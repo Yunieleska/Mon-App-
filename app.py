@@ -2,28 +2,36 @@ import streamlit as st
 import sqlite3
 import hashlib
 import os
+import base64
 
-# CONFIGURATION
+# --- CONFIGURATION ---
 DB_FILE = "storyia_users.db"
 
-# HASHAGE UNIQUE ET FIXE
+# Fonction de hachage sécurisée
 def hash_pass(p):
     return hashlib.sha256(p.strip().encode('utf-8')).hexdigest()
 
-# INITIALISATION DE LA BASE
+# Initialisation de la table
 conn = sqlite3.connect(DB_FILE)
 conn.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, question TEXT, answer TEXT)')
 conn.commit()
 conn.close()
 
-# CONFIGURATION PAGE
+# Configuration de la page
 st.set_page_config(page_title="Storyia", layout="wide")
+
 st.markdown("""
     <style>
     .stApp { background-color: #0B0E14 !important; color: white; }
     div.stButton > button { background-color: #1e2533 !important; color: white !important; border: 1px solid #ff4b4b !important; border-radius: 8px !important; }
     </style>
 """, unsafe_allow_html=True)
+
+# Affichage bannière fond.png
+if os.path.exists("fond.png"):
+    with open("fond.png", "rb") as f:
+        data = base64.b64encode(f.read()).decode()
+        st.markdown(f'<div style="text-align:center;"><img src="data:image/png;base64,{data}" style="width:100%; max-width:600px; border-radius:15px;"></div>', unsafe_allow_html=True)
 
 # GESTION SESSION
 if "authentifie" not in st.session_state: st.session_state.authentifie = False
@@ -43,11 +51,11 @@ if not st.session_state.authentifie:
                 conn = sqlite3.connect(DB_FILE)
                 user = conn.execute('SELECT username FROM users WHERE username=? AND password=?', (u.strip(), hash_pass(p))).fetchone()
                 conn.close()
-                if user: 
+                if user:
                     st.session_state.authentifie = True
                     st.session_state.username = user[0]
                     st.rerun()
-                else: 
+                else:
                     st.error("Identifiants incorrects.")
             
             if st.button("Mot de passe oublié ?"):
@@ -65,7 +73,7 @@ if not st.session_state.authentifie:
                     conn.execute('INSERT INTO users VALUES (?,?,?,?)', (nu.strip(), hash_pass(np), q, hash_pass(a)))
                     conn.commit()
                     st.success("Compte créé ! Tu peux te connecter.")
-                except: 
+                except:
                     st.error("Erreur : Ce pseudo est déjà pris.")
                 conn.close()
 
@@ -74,21 +82,23 @@ if not st.session_state.authentifie:
         ru = st.text_input("Ton pseudo")
         conn = sqlite3.connect(DB_FILE)
         data = conn.execute('SELECT question, answer FROM users WHERE username=?', (ru.strip(),)).fetchone()
+        conn.close()
         
         if data:
-            st.write(f"Question de sécurité : **{data[0]}**")
+            st.write(f"Question : **{data[0]}**")
             ra = st.text_input("Ta réponse", type="password")
             nnp = st.text_input("Nouveau mot de passe", type="password")
             if st.button("Réinitialiser"):
                 if hash_pass(ra) == data[1]:
+                    conn = sqlite3.connect(DB_FILE)
                     conn.execute('UPDATE users SET password=? WHERE username=?', (hash_pass(nnp), ru.strip()))
                     conn.commit()
+                    conn.close()
                     st.success("Mot de passe mis à jour !")
                     st.session_state.mode = "login"
                     st.rerun()
                 else:
                     st.error("Réponse incorrecte.")
-        conn.close()
         if st.button("Retour à la connexion"):
             st.session_state.mode = "login"
             st.rerun()
