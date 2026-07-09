@@ -2,8 +2,7 @@ import streamlit as st
 from groq import Groq
 
 # --- CONFIGURATION GROQ ---
-# Remplace "TON_API_KEY" par ta clé réelle
-client = Groq(api_key="TON_API_KEY")
+client = Groq(api_key="TON_API_KEY") # Remplace par ta vraie clé
 
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="collapsed")
 
@@ -36,7 +35,7 @@ personnages = [
     {"nom": "Caelum", "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", "accroche": "Tu es sur mon chemin, humaine. Disparais."},
     {"nom": "Alexei", "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg", "accroche": "La mafia n'attend personne."},
     {"nom": "Killian", "img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg", "accroche": "On joue selon mes règles."},
-    {"nom": "Noah", "img": "Noah.png", "accroche": "Regarde-moi dans les yeux quand je te parle."},
+    {"nom": "Noah", "img": "Noah.png", "accroche": "C'est fou comme je peux être moi-même avec toi, alors qu'en vrai, je ne suis qu'une façade."},
     {"nom": "Lucas", "img": "Lucas.png", "accroche": "Je t'attendais, tu es en retard."},
     {"nom": "Ethan", "img": "Ethan.png", "accroche": "Laisse tes problèmes à la porte."},
     {"nom": "Léo", "img": "Léo.png", "accroche": "Tu es enfin là, je m'impatientais."},
@@ -54,7 +53,6 @@ if st.session_state.page == "home":
             st.caption(p["accroche"])
             if st.button(f"Chatter avec {p['nom']}", key=f"btn_{i}"):
                 st.session_state.char_select = p["nom"]
-                # Initialisation propre pour chaque perso
                 if p["nom"] in CHARACTERS:
                     st.session_state.messages = [
                         {"role": "system", "content": CHARACTERS[p["nom"]]["prompt"]},
@@ -78,7 +76,6 @@ elif st.session_state.page == "chat":
     if prompt := st.chat_input("Répondre..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         
-        # Appel API Groq
         with st.spinner("L'IA réfléchit..."):
             response = client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
