@@ -1,11 +1,18 @@
 import streamlit as st
+import os
 
 # --- CONFIGURATION ---
 st.set_page_config(page_title="Storyia", layout="wide")
 
+# Fonction pour lire les fichiers .txt dans le dossier 'Personnages'
+def lire_accroche(nom):
+    chemin = f"Personnages/{nom}.txt"
+    if os.path.exists(chemin):
+        with open(chemin, "r", encoding="utf-8") as f:
+            return f.read().strip()
+    return "Clique pour commencer une romance..."
+
 # --- LISTE DES PERSONNAGES ---
-# Puisque tes fichiers sont dans ton dépôt GitHub, on les appelle directement par leur nom.
-# Streamlit les trouvera automatiquement s'ils sont à la racine.
 personnages = [
     {"nom": "Caelum", "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"},
     {"nom": "Alexei", "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg"},
@@ -38,10 +45,12 @@ if st.session_state.page == "home":
     for i, p in enumerate(personnages):
         with cols[i % 4]:
             st.markdown('<div class="char-card">', unsafe_allow_html=True)
-            # Affichage de l'image
             st.image(p["img"], use_container_width=True)
             st.subheader(p["nom"])
-            if st.button(f"Chatter avec {p['nom']}", key=f"btn_{i}"):
+            # Ici on récupère et affiche l'accroche depuis le fichier texte
+            st.caption(lire_accroche(p["nom"]))
+            
+            if st.button(f"Chatter", key=f"btn_{i}"):
                 st.session_state.char_select = p["nom"]
                 st.session_state.page = "chat"
                 st.rerun()
@@ -52,12 +61,8 @@ elif st.session_state.page == "chat":
         st.session_state.page = "home"
         st.rerun()
     st.title(f"Conversation avec {st.session_state.char_select}")
-    
-    # Affichage de l'historique des messages
     for msg in st.session_state.messages:
         with st.chat_message("user"): st.write(msg)
-    
-    # Input utilisateur
     if prompt := st.chat_input("Dis quelque chose..."):
         st.session_state.messages.append(prompt)
         st.rerun()
