@@ -1,5 +1,0 @@
-Requirements.text 
-
-text
-streamlit
-groq
