@@ -9,7 +9,7 @@ from groq import Groq
 st.set_page_config(page_title="Storyia - AI Roleplay", layout="centered")
 
 # URL de ton image de fond (mets le lien direct de ton image ici)
-IMAGE_FOND =
+
 import streamlit as st
 import os
 from groq import Groq
