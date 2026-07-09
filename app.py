@@ -2,6 +2,7 @@ import streamlit as st
 import os
 import sqlite3
 import hashlib
+import base64
 from groq import Groq
 
 # ==========================================
@@ -9,8 +10,33 @@ from groq import Groq
 # ==========================================
 st.set_page_config(page_title="Storyia - AI Roleplay", layout="centered")
 
-# Lien de ton image Storyia
-IMAGE_LOGO = "https://i.imgur.com/GisLhYl.png"
+def get_base64_image():
+    """Trouve l'image bg.png localement et la convertit en base64."""
+    # Trouve le dossier où se trouve actuellement ce script app.py
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    image_path = os.path.join(current_dir, "bg.png")
+    
+    if os.path.exists(image_path):
+        with open(image_path, "rb") as img_file:
+            return base64.b64encode(img_file.read()).decode()
+    return None
+
+# Récupération de l'image locale encodée
+image_base64 = get_base64_image()
+
+if image_base64:
+    # Si bg.png est trouvée, on l'affiche proprement en haut de la page
+    st.markdown(
+        f"""
+        <div style="text-align: center;">
+            <img src="data:image/png;base64,{image_base64}" style="width: 100%; max-width: 800px; border-radius: 10px;">
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+else:
+    # Message discret si l'image n'est pas encore détectée sur le serveur
+    st.warning("⚠️ Image 'bg.png' introuvable dans le dossier. Pense à l'ajouter sur GitHub à côté de app.py !")
 
 st.markdown(
     """
@@ -38,6 +64,7 @@ st.markdown(
         border-radius: 15px;
         border: 1px solid rgba(255, 255, 255, 0.05);
         box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.3);
+        margin-top: 20px;
     }
     </style>
     """,
@@ -145,9 +172,6 @@ if "page_recup" not in st.session_state:
 
 def systeme_authentification():
     if not st.session_state.authentifie:
-        # Affichage propre et garanti de ton image en haut de la page d'accueil
-        st.image(IMAGE_LOGO, use_container_width=True)
-        
         # Début du conteneur visuel pour le formulaire
         st.markdown('<div class="auth-container">', unsafe_allow_html=True)
         
