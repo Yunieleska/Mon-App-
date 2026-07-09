@@ -1,6 +1,9 @@
 import streamlit as st
 from groq import Groq
 
+# --- CONFIGURATION GROQ ---
+client = Groq(api_key="TON_API_KEY") # Remplace par ta vraie clé
+
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="collapsed")
 
 # --- CONFIGURATION DES PERSONNALITÉS ---
@@ -17,7 +20,6 @@ CHARACTERS = {
         "prompt": "Tu es Ethan, Loup Alpha. Possessif, protecteur, dominant. Ton âme sœur est {{user}}. Mystérieux sur ta nature.",
         "start": "Tu ne devrais pas te promener seule ici, humaine. La forêt cache des prédateurs dangereux... Reste près de moi."
     }
-    # Tu peux ajouter les autres ici sur le même modèle
 }
 
 # --- INITIALISATION ---
@@ -47,7 +49,6 @@ if st.session_state.page == "home":
             st.caption(p["accroche"])
             if st.button(f"Chatter avec {p['nom']}", key=f"btn_{i}"):
                 st.session_state.char_select = p["nom"]
-                # Initialisation des messages si le perso existe dans la config
                 if p["nom"] in CHARACTERS:
                     st.session_state.messages = [
                         {"role": "system", "content": CHARACTERS[p["nom"]]["prompt"]},
@@ -69,8 +70,18 @@ elif st.session_state.page == "chat":
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
             
-    # Saisie utilisateur
+    # Saisie utilisateur et appel Groq
     if prompt := st.chat_input("Répondre..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
-        # Ici viendra l'appel API Groq
+        with st.chat_message("user"):
+            st.write(prompt)
+            
+        # Appel API Groq
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=st.session_state.messages
+        )
+        
+        reply = response.choices[0].message.content
+        st.session_state.messages.append({"role": "assistant", "content": reply})
         st.rerun()
