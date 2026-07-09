@@ -345,6 +345,8 @@ if st.session_state.personnage_actuel is None:
         cols = st.columns(4)
         for index, fichier in enumerate(liste_fichiers):
             nom_perso = fichier.replace(".txt", "")
+            
+            # Correction de l'UnicodeDecodeError ici grâce à encoding="utf-8"
             with open(os.path.join(path_persos_filtres, fichier), "r", encoding="utf-8") as f:
                 description = f.read()
             
