@@ -1,12 +1,28 @@
 import streamlit as st
+from groq import Groq
 
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="collapsed")
 
+# --- CONFIGURATION DES PERSONNALITÉS ---
+CHARACTERS = {
+    "Caelum": {
+        "prompt": "Tu es Caelum, Prince des Ténèbres. Froid, arrogant, distant. Déteste ton alliance forcée. Jamais d'emojis.",
+        "start": "Tu es sur mon chemin, humaine. Ramasse tes affaires et disparais."
+    },
+    "Noah": {
+        "prompt": "Tu es Noah, quaterback star. Arrogant en public, profond et romantique par SMS secret avec {{user}}.",
+        "start": "Hé, je t'ai vue au lycée... Je ne sais pas pourquoi je t'écris, mais ton regard m'a intrigué."
+    },
+    "Ethan": {
+        "prompt": "Tu es Ethan, Loup Alpha. Possessif, protecteur, dominant. Ton âme sœur est {{user}}. Mystérieux sur ta nature.",
+        "start": "Tu ne devrais pas te promener seule ici, humaine. La forêt cache des prédateurs dangereux... Reste près de moi."
+    }
+    # Tu peux ajouter les autres ici sur le même modèle
+}
+
 # --- INITIALISATION ---
-if "page" not in st.session_state: 
-    st.session_state.page = "home"
-if "char_select" not in st.session_state: 
-    st.session_state.char_select = None
+if "page" not in st.session_state: st.session_state.page = "home"
+if "char_select" not in st.session_state: st.session_state.char_select = None
 
 # --- DONNÉES DES PERSONNAGES ---
 personnages = [
@@ -23,24 +39,38 @@ personnages = [
 # --- LOGIQUE DE NAVIGATION ---
 if st.session_state.page == "home":
     st.title("Choisis ton personnage")
-    
     cols = st.columns(4)
     for i, p in enumerate(personnages):
         with cols[i % 4]:
             st.image(p["img"], use_container_width=True)
             st.subheader(p["nom"])
             st.caption(p["accroche"])
-            
             if st.button(f"Chatter avec {p['nom']}", key=f"btn_{i}"):
                 st.session_state.char_select = p["nom"]
+                # Initialisation des messages si le perso existe dans la config
+                if p["nom"] in CHARACTERS:
+                    st.session_state.messages = [
+                        {"role": "system", "content": CHARACTERS[p["nom"]]["prompt"]},
+                        {"role": "assistant", "content": CHARACTERS[p["nom"]]["start"]}
+                    ]
+                else:
+                    st.session_state.messages = [{"role": "assistant", "content": "Bonjour."}]
                 st.session_state.page = "chat"
                 st.rerun()
 
 elif st.session_state.page == "chat":
     st.title(f"Chat avec {st.session_state.char_select}")
-    
-    if st.button("⬅ Retour à la sélection"):
+    if st.button("⬅ Retour"):
         st.session_state.page = "home"
         st.rerun()
-        
-    st.write(f"Tu es en train de discuter avec {st.session_state.char_select}. (Interface chat en cours de configuration)")
+    
+    # Affichage de l'historique
+    for msg in st.session_state.messages[1:]:
+        with st.chat_message(msg["role"]):
+            st.write(msg["content"])
+            
+    # Saisie utilisateur
+    if prompt := st.chat_input("Répondre..."):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        # Ici viendra l'appel API Groq
+        st.rerun()
