@@ -24,7 +24,6 @@ def get_base64_image():
 image_base64 = get_base64_image()
 
 if image_base64:
-    # Si bg.png est trouvée sur GitHub, on l'affiche proprement en haut
     st.markdown(
         f"""
         <div style="text-align: center;">
@@ -34,7 +33,6 @@ if image_base64:
         unsafe_allow_html=True
     )
 else:
-    # Sécurité visuelle si le déploiement prend quelques secondes
     st.warning("⚠️ Synchronisation avec GitHub en cours... Si ce message reste, vérifie que l'image s'appelle exactement 'bg.png' sur ton dépôt.")
 
 st.markdown(
@@ -171,13 +169,10 @@ if "page_recup" not in st.session_state:
 
 def systeme_authentification():
     if not st.session_state.authentifie:
-        # Début du conteneur visuel pour le formulaire
         st.markdown('<div class="auth-container">', unsafe_allow_html=True)
         
-        # --- MODE RÉCUPÉRATION DE MOT DE PASSE ---
         if st.session_state.page_recup:
             st.markdown("<h3 style='text-align: center; color: #ff4b4b;'>🔑 Récupération</h3>", unsafe_allow_html=True)
-            
             user_recup = st.text_input("Entre ton Pseudo :", key="user_recup")
             
             if user_recup:
@@ -206,7 +201,6 @@ def systeme_authentification():
             st.markdown('</div>', unsafe_allow_html=True)
             st.stop()
 
-        # --- MODE NORMAL (CONNEXION / INSCRIPTION) ---
         tab_login, tab_register = st.tabs(["🔒 Connexion", "📝 S'inscrire"])
         
         with tab_login:
@@ -263,7 +257,8 @@ systeme_authentification()
 client = Groq(api_key="VOTRE_CLE_API_GROQ_ICI")
 
 CATEGORIES = ["Mafieux", "Fantaisie", "Motard", "École"]
-BASE_DIR = "personnages"
+# CORRECTION ICI : "Personnages" avec un P majuscule pour correspondre à ton GitHub
+BASE_DIR = "Personnages"
 
 if not os.path.exists(BASE_DIR):
     os.makedirs(BASE_DIR)
