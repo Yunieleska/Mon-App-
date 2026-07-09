@@ -45,7 +45,6 @@ def init_db():
     """Crée la table des utilisateurs avec la question et réponse de sécurité."""
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    # Ajout des colonnes pour la récupération de mot de passe si elles n'existent pas
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
             username TEXT PRIMARY KEY,
@@ -53,7 +52,7 @@ def init_db():
             security_question TEXT,
             security_answer TEXT
         )
-    ''''')
+    ''')
     conn.commit()
     conn.close()
 
@@ -77,7 +76,6 @@ def add_user(username, password, question, answer):
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     try:
-        # On stocke la réponse en minuscule et hachée pour la sécurité
         hashed_answer = hashlib.sha256(str.encode(answer.strip().lower())).hexdigest()
         c.execute('''
             INSERT INTO users (username, password, security_question, security_answer) 
@@ -116,7 +114,6 @@ def update_password(username, answer, new_password):
     c = conn.cursor()
     hashed_answer = hashlib.sha256(str.encode(answer.strip().lower())).hexdigest()
     
-    # Vérification de la réponse secrète
     c.execute('SELECT 1 FROM users WHERE LOWER(username) = LOWER(?) AND security_answer = ?', (username.strip(), hashed_answer))
     if c.fetchone():
         c.execute('UPDATE users SET password = ? WHERE LOWER(username) = LOWER(?)', (hash_password(new_password), username.strip()))
@@ -189,8 +186,8 @@ def systeme_authentification():
                 else:
                     st.error("Pseudo ou mot de passe incorrect.")
             
-            # Bouton mot de passe oublié
-            if st.button("Mot de passe oublié ?", variant="secondary"):
+            # Correction de l'erreur ici (retrait du paramètre variant)
+            if st.button("Mot de passe oublié ?"):
                 st.session_state.page_recup = True
                 st.rerun()
                     
@@ -311,30 +308,4 @@ with st.sidebar.expander("➕ Créer un personnage"):
 # 6. INTERFACE DE CHAT PRINCIPALE
 # ==========================================
 if choix_perso and choix_perso != "Aucun personnage":
-    st.markdown(f"<h1 style='color: white; text-shadow: 2px 2px 8px #000000;'>🎭 {choix_perso} <span style='font-size:16px; color:#ff4b4b;'>({categorie_choisie})</span></h1>", unsafe_allow_html=True)
-
-    for message in st.session_state.messages:
-        if message["role"] != "system":
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
-
-    if prompt := st.chat_input(f"Écris la suite de ton histoire avec {choix_perso}..."):
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
-
-        with st.chat_message("assistant"):
-            placeholder = st.empty()
-            
-            response = client.chat.completions.create(
-                messages=st.session_state.messages,
-                model="llama-3.1-8b-instant",
-                temperature=0.8,
-            )
-            
-            reponse_ia = response.choices[0].message.content
-            placeholder.markdown(reponse_ia)
-            
-        st.session_state.messages.append({"role": "assistant", "content": reponse_ia})
-else:
-    st.info("Sélectionnez ou créez un personnage dans le menu latéral pour commencer l'aventure.")
+    st.markdown(f"<h1 style='color: white; text-shadow: 2px 2px 8px #000000;'>🎭 {choix_perso} <span style='font-size:16px; color:#ff4b4b;'>({categorie_choisie})</span></h1>", unsafe_allow_html=True) dans le menu latéral pour commencer l'aventure.")
