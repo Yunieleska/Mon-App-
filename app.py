@@ -11,8 +11,7 @@ from groq import Groq
 st.set_page_config(page_title="Storyia - AI Roleplay", layout="centered")
 
 def get_base64_image():
-    """Trouve l'image bg.png localement et la convertit en base64."""
-    # Trouve le dossier où se trouve actuellement ce script app.py
+    """Trouve l'image bg.png localement sur le serveur GitHub/Streamlit et la convertit."""
     current_dir = os.path.dirname(os.path.abspath(__file__))
     image_path = os.path.join(current_dir, "bg.png")
     
@@ -25,7 +24,7 @@ def get_base64_image():
 image_base64 = get_base64_image()
 
 if image_base64:
-    # Si bg.png est trouvée, on l'affiche proprement en haut de la page
+    # Si bg.png est trouvée sur GitHub, on l'affiche proprement en haut
     st.markdown(
         f"""
         <div style="text-align: center;">
@@ -35,8 +34,8 @@ if image_base64:
         unsafe_allow_html=True
     )
 else:
-    # Message discret si l'image n'est pas encore détectée sur le serveur
-    st.warning("⚠️ Image 'bg.png' introuvable dans le dossier. Pense à l'ajouter sur GitHub à côté de app.py !")
+    # Sécurité visuelle si le déploiement prend quelques secondes
+    st.warning("⚠️ Synchronisation avec GitHub en cours... Si ce message reste, vérifie que l'image s'appelle exactement 'bg.png' sur ton dépôt.")
 
 st.markdown(
     """
