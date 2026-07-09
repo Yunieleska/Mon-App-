@@ -63,6 +63,47 @@ st.markdown(
         box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.3);
         margin-top: 20px;
     }
+    
+    /* STYLE DES CARTES DE PERSONNAGES (STYLE CHARACTER.AI / POLYBUZZ) */
+    .char-card {
+        background-color: #171E2C;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 15px;
+        text-align: center;
+        margin-bottom: 15px;
+        transition: transform 0.2s, border-color 0.2s;
+    }
+    .char-card:hover {
+        transform: translateY(-5px);
+        border-color: #ff4b4b;
+        box-shadow: 0px 4px 15px rgba(255, 75, 75, 0.2);
+    }
+    .char-avatar {
+        font-size: 40px;
+        background: rgba(255, 75, 75, 0.1);
+        width: 70px;
+        height: 70px;
+        line-height: 70px;
+        border-radius: 50%;
+        margin: 0 auto 10px auto;
+    }
+    .char-name {
+        color: #ffffff;
+        font-weight: bold;
+        font-size: 18px;
+        margin-bottom: 5px;
+    }
+    .char-bio {
+        color: #9CA3AF;
+        font-size: 13px;
+        height: 40px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -77,7 +118,6 @@ else:
     DB_FILE = "storyia_users.db"
 
 def init_db():
-    """Crée la table des utilisateurs avec la question et réponse de sécurité."""
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute('''
@@ -103,7 +143,6 @@ def user_exists(username):
     return result is not None
 
 def add_user(username, password, question, answer):
-    """Inscrit un utilisateur avec ses données de récupération."""
     username_clean = username.strip()
     if user_exists(username_clean):
         return False
@@ -135,7 +174,6 @@ def login_user(username, password):
     return False
 
 def get_security_question(username):
-    """Récupère la question secrète d'un utilisateur."""
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute('SELECT security_question FROM users WHERE LOWER(username) = LOWER(?)', (username.strip(),))
@@ -144,7 +182,6 @@ def get_security_question(username):
     return data[0] if data else None
 
 def update_password(username, answer, new_password):
-    """Vérifie la réponse et met à jour le mot de passe."""
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     hashed_answer = hashlib.sha256(str.encode(answer.strip().lower())).hexdigest()
@@ -171,6 +208,8 @@ if "page_recup" not in st.session_state:
     st.session_state.page_recup = False
 if "messages" not in st.session_state:
     st.session_state.messages = []
+if "personnage_actuel" not in st.session_state:
+    st.session_state.personnage_actuel = None
 
 def systeme_authentification():
     if not st.session_state.authentifie:
@@ -281,46 +320,22 @@ if st.sidebar.button("🚪 Déconnexion"):
     st.session_state.authentifie = False
     st.session_state.username = ""
     st.session_state.messages = []
+    st.session_state.personnage_actuel = None
     st.rerun()
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("<h2 style='color: #ff4b4b;'>🔮 Storyia Menu</h2>", unsafe_allow_html=True)
 
+# Navigation principale : Univers et Retour à l'accueil
+if st.session_state.personnage_actuel:
+    if st.sidebar.button("🏠 Retour au Hub Character"):
+        st.session_state.personnage_actuel = None
+        st.session_state.messages = []
+        st.rerun()
+
 categorie_choisie = st.sidebar.selectbox("Choisir un univers :", CATEGORIES)
-path_persos_filtres = os.path.join(BASE_DIR, categorie_choisie)
 
-if os.path.exists(path_persos_filtres):
-    liste_persos = [f.replace(".txt", "") for f in os.listdir(path_persos_filtres) if f.endswith(".txt")]
-else:
-    liste_persos = []
-
-if not liste_persos:
-    liste_persos = ["Aucun personnage"]
-
-choix_perso = st.sidebar.selectbox("Avec qui veux-tu RP ?", liste_persos)
-
-if "personnage_actuel" not in st.session_state or st.session_state.personnage_actuel != choix_perso:
-    if choix_perso != "Aucun personnage":
-        st.session_state.personnage_actuel = choix_perso
-        chemin_fichier = os.path.join(BASE_DIR, categorie_choisie, f"{choix_perso}.txt")
-        
-        if os.path.exists(chemin_fichier):
-            with open(chemin_fichier, "r", encoding="utf-8") as f:
-                contexte_perso = f.read()
-        else:
-            contexte_perso = "Tu es un personnage mystérieux."
-        
-        prompt_systeme = (
-            f"Tu es {choix_perso}. Voici ta personnalité, tes secrets et ton histoire : {contexte_perso}. "
-            f"Tu te trouves actuellement dans un univers de type [{categorie_choisie}]. "
-            "Ceci est un jeu de rôle textuel interactif, immersif et romantique. Reste TOUJOURS strictement dans ton personnage. "
-            "Fais des réponses engageantes mais courtes pour laisser l'utilisateur répondre. "
-            "Décris TOUJOURS tes actions, expressions corporelles et pensées entre astérisques *comme ceci* "
-            "et utilise les guillemets ou le texte normal pour les dialogues."
-        )
-        st.session_state.messages = [{"role": "system", "content": prompt_systeme}]
-
-if st.sidebar.button("🗑️ Recommencer l'histoire"):
+if st.sidebar.button("🗑️ Recommencer l'histoire") and st.session_state.personnage_actuel:
     if "messages" in st.session_state and len(st.session_state.messages) > 0:
         st.session_state.messages = [st.session_state.messages[0]]
         st.rerun()
@@ -334,48 +349,4 @@ with st.sidebar.expander("➕ Créer un personnage"):
     
     if st.button("Sauvegarder le personnage"):
         if nom_perso and bio_perso:
-            nom_propre = nom_perso.strip().replace("/", "_")
-            chemin_sauvegarde = os.path.join(BASE_DIR, univers_perso, f"{nom_propre}.txt")
-            
-            with open(chemin_sauvegarde, "w", encoding="utf-8") as f:
-                f.write(bio_perso)
-                
-            st.success(f"✨ {nom_propre} a rejoint l'univers {univers_perso} !")
-            st.rerun()
-        else:
-            st.error("Veuillez remplir le nom et la description.")
-
-# ==========================================
-# 6. INTERFACE DE CHAT PRINCIPALE
-# ==========================================
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-if choix_perso and choix_perso != "Aucun personnage":
-    st.markdown(f"<h1 style='color: white; text-shadow: 2px 2px 8px #000000;'>🎭 {choix_perso} <span style='font-size:16px; color:#ff4b4b;'>({categorie_choisie})</span></h1>", unsafe_allow_html=True)
-
-    for message in st.session_state.messages:
-        if message["role"] != "system":
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
-
-    if prompt := st.chat_input(f"Écris la suite de ton histoire avec {choix_perso}..."):
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
-
-        with st.chat_message("assistant"):
-            placeholder = st.empty()
-            
-            response = client.chat.completions.create(
-                messages=st.session_state.messages,
-                model="llama-3.1-8b-instant",
-                temperature=0.8
-            )
-            
-            reponse_ia = response.choices[0].message.content
-            placeholder.markdown(reponse_ia)
-            
-        st.session_state.messages.append({"role": "assistant", "content": reponse_ia})
-else:
-    st.info("Sélectionnez ou créez un personnage dans le menu latéral pour commencer l'aventure.")
+            nom_propre = nom_perso.strip().replace
