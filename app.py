@@ -11,12 +11,12 @@ def hash_pass(p):
     return hashlib.sha256(p.strip().encode('utf-8')).hexdigest()
 
 def display_banner():
-    # Correction : on cherche maintenant 'bg.png'
+    # Retour au nom de fichier 'fond.png' tel qu'il apparaît dans ton explorateur
     dossier_actuel = os.getcwd()
     fichiers = os.listdir(dossier_actuel)
     
-    # Cherche une correspondance insensible à la casse pour 'bg.png'
-    image_nom = next((f for f in fichiers if f.lower() == "bg.png"), None)
+    # Cherche 'fond.png' spécifiquement
+    image_nom = next((f for f in fichiers if f.lower() == "fond.png"), None)
     
     if image_nom:
         image_path = os.path.join(dossier_actuel, image_nom)
@@ -24,7 +24,7 @@ def display_banner():
             data = base64.b64encode(f.read()).decode()
             st.markdown(f'<div style="text-align:center;"><img src="data:image/png;base64,{data}" style="width:100%; max-width:600px; border-radius:15px;"></div>', unsafe_allow_html=True)
     else:
-        st.warning(f"Fichier 'bg.png' non trouvé dans : {dossier_actuel}. Fichiers présents : {fichiers}")
+        st.warning(f"Fichier 'fond.png' introuvable.")
 
 # CONFIG PAGE
 st.set_page_config(page_title="Storyia", layout="wide")
@@ -34,6 +34,11 @@ st.markdown("""
     div.stButton > button { background-color: #1e2533 !important; color: white !important; border: 1px solid #ff4b4b !important; border-radius: 8px !important; }
     </style>
 """, unsafe_allow_html=True)
+
+# BOUTON RESET (pour régler ton problème de connexion)
+if st.sidebar.button("RESET TOTAL (Si erreur persistante)"):
+    for key in st.session_state.keys(): del st.session_state[key]
+    st.rerun()
 
 # BASE DE DONNÉES
 conn = sqlite3.connect(DB_FILE)
@@ -46,7 +51,7 @@ display_banner()
 if "authentifie" not in st.session_state: st.session_state.authentifie = False
 if "mode" not in st.session_state: st.session_state.mode = "login"
 
-# LOGIQUE
+# LOGIQUE DE CONNEXION
 if not st.session_state.authentifie:
     st.title("Bienvenue sur Storyia")
     if st.session_state.mode == "login":
@@ -56,13 +61,15 @@ if not st.session_state.authentifie:
             p = st.text_input("Mot de passe", type="password", key="log_p")
             if st.button("Se connecter"):
                 conn = sqlite3.connect(DB_FILE)
+                # Recherche du user avec le mot de passe hashé
                 user = conn.execute('SELECT username FROM users WHERE username=? AND password=?', (u.strip(), hash_pass(p))).fetchone()
                 conn.close()
                 if user:
                     st.session_state.authentifie = True
                     st.session_state.username = user[0]
                     st.rerun()
-                else: st.error("Identifiants incorrects.")
+                else: 
+                    st.error("Identifiants incorrects. Si tu viens de changer le code, supprime 'storyia_users.db' à gauche pour refaire ton compte.")
             if st.button("Mot de passe oublié ?"):
                 st.session_state.mode = "recup"
                 st.rerun()
@@ -76,8 +83,8 @@ if not st.session_state.authentifie:
                 try:
                     conn.execute('INSERT INTO users VALUES (?,?,?,?)', (nu.strip(), hash_pass(np), q, hash_pass(a)))
                     conn.commit()
-                    st.success("Compte créé ! Connecte-toi.")
-                except: st.error("Pseudo déjà pris.")
+                    st.success("Compte créé ! Tu peux maintenant te connecter.")
+                except: st.error("Ce pseudo est déjà pris.")
                 conn.close()
     elif st.session_state.mode == "recup":
         st.subheader("Récupération de mot de passe")
