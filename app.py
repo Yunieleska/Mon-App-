@@ -8,10 +8,6 @@ import base64
 script_dir = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = os.path.join(script_dir, "storyia_users.db")
 
-# SUPPRESSION FORCEE DE LA BASE (Pour repartir à zéro)
-if os.path.exists(DB_FILE):
-    os.remove(DB_FILE)
-
 def hash_pass(p):
     return hashlib.sha256(p.strip().encode('utf-8')).hexdigest()
 
@@ -28,11 +24,24 @@ def display_banner():
 
 # CONFIG PAGE
 st.set_page_config(page_title="Storyia", layout="wide")
-st.markdown("""<style>.stApp { background-color: #0B0E14 !important; color: white; }</style>""", unsafe_allow_html=True)
+
+# CSS AMÉLIORÉ : Correction de la couleur des boutons
+st.markdown("""
+    <style>
+    .stApp { background-color: #0B0E14 !important; color: white; }
+    /* Force la couleur des boutons */
+    div.stButton > button { 
+        background-color: #ff4b4b !important; 
+        color: white !important; 
+        border: none !important; 
+        border-radius: 8px !important; 
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 display_banner()
 
-# INITIALISATION BASE (sera recréée propre à chaque démarrage)
+# INITIALISATION BASE
 conn = sqlite3.connect(DB_FILE)
 conn.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, question TEXT, answer TEXT)')
 conn.commit(); conn.close()
@@ -47,7 +56,7 @@ if not st.session_state.authentifie:
     with tab1:
         u = st.text_input("Pseudo", key="log_u")
         p = st.text_input("Mot de passe", type="password", key="log_p")
-        if st.button("Se connecter"):
+        if st.button("Se connecter", key="btn_login"):
             conn = sqlite3.connect(DB_FILE)
             user = conn.execute('SELECT username FROM users WHERE username=? AND password=?', (u.strip(), hash_pass(p))).fetchone()
             conn.close()
@@ -55,20 +64,21 @@ if not st.session_state.authentifie:
                 st.session_state.authentifie = True
                 st.session_state.username = user[0]
                 st.rerun()
-            else: st.error("Identifiants incorrects. Inscris-toi d'abord.")
+            else: st.error("Identifiants incorrects.")
 
     with tab2:
         nu = st.text_input("Nouveau pseudo", key="reg_u")
         np = st.text_input("Nouveau mot de passe", type="password", key="reg_p")
         q = st.selectbox("Question", ["Animal ?", "Ville ?", "Mère ?"])
         a = st.text_input("Réponse", type="password")
-        if st.button("S'inscrire"):
+        if st.button("S'inscrire", key="btn_signup"):
             conn = sqlite3.connect(DB_FILE)
             try:
                 conn.execute('INSERT INTO users VALUES (?,?,?,?)', (nu.strip(), hash_pass(np), q, hash_pass(a)))
                 conn.commit()
-                st.success("Compte créé ! Connecte-toi maintenant.")
-            except: st.error("Erreur : Pseudo déjà pris.")
+                st.success("Inscription réussie ! Tu peux maintenant te connecter dans l'onglet 'Connexion'.")
+            except Exception as e: 
+                st.error(f"Erreur : Ce pseudo est probablement déjà pris. ({e})")
             conn.close()
 else:
     st.write(f"Bonjour {st.session_state.username} !")
