@@ -1,0 +1,10 @@
+MonApp/
+├── app.py              # Le script principal de l'application
+├── requirements.txt    # Liste des outils nécessaires (streamlit, groq)
+├── personnages/        # Dossier de vos IA
+│   ├── Mafieux/
+│   │   └── Parrain.txt
+│   ├── Fantaisie/
+│   │   └── Elfe.txt
+│   └── ...
+└── images/             # Vos avatars (ex: Parrain.jpg)
