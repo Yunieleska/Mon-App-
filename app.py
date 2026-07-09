@@ -11,19 +11,17 @@ DB_FILE = "storyia_users.db"
 def hash_pass(p):
     return hashlib.sha256(p.strip().encode('utf-8')).hexdigest()
 
-# BANNIÈRE - MODIFIÉE POUR ÊTRE PLUS ROBUSTE
+# BANNIÈRE - CORRECTIF DE CHEMIN
 def display_banner():
-    # On définit le chemin absolu vers l'image en utilisant l'emplacement de app.py
-    base_path = os.path.dirname(os.path.abspath(__file__))
-    image_path = os.path.join(base_path, "fond.png")
+    # Cherche l'image dans le répertoire courant de travail
+    image_path = os.path.join(os.getcwd(), "fond.png")
     
     if os.path.exists(image_path):
         with open(image_path, "rb") as f:
             data = base64.b64encode(f.read()).decode()
             st.markdown(f'<div style="text-align:center;"><img src="data:image/png;base64,{data}" style="width:100%; max-width:600px; border-radius:15px;"></div>', unsafe_allow_html=True)
     else:
-        # Affiche une erreur explicite pour savoir où il cherche
-        st.error(f"Image introuvable ici : {image_path}")
+        st.warning(f"Fichier image non détecté à : {image_path}. Vérifie que 'fond.png' est bien à la racine.")
 
 # CONFIG PAGE
 st.set_page_config(page_title="Storyia", layout="wide")
@@ -45,7 +43,7 @@ display_banner()
 if "authentifie" not in st.session_state: st.session_state.authentifie = False
 if "mode" not in st.session_state: st.session_state.mode = "login"
 
-# LOGIQUE (inchangée)
+# LOGIQUE
 if not st.session_state.authentifie:
     st.title("Bienvenue sur Storyia")
     if st.session_state.mode == "login":
