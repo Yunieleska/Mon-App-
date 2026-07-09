@@ -71,7 +71,11 @@ st.markdown(
 # ==========================================
 # 2. GESTION DE LA BASE DE DONNÉES
 # ==========================================
-DB_FILE = "storyia_users.db"
+# Ajustement pour éviter les erreurs d'écriture sur Streamlit Cloud
+if os.path.exists("/mount/src"):
+    DB_FILE = "/tmp/storyia_users.db"
+else:
+    DB_FILE = "storyia_users.db"
 
 def init_db():
     """Crée la table des utilisateurs avec la question et réponse de sécurité."""
@@ -257,7 +261,6 @@ systeme_authentification()
 client = Groq(api_key="VOTRE_CLE_API_GROQ_ICI")
 
 CATEGORIES = ["Mafieux", "Fantaisie", "Motard", "École"]
-# CORRECTION ICI : "Personnages" avec un P majuscule pour correspondre à ton GitHub
 BASE_DIR = "Personnages"
 
 if not os.path.exists(BASE_DIR):
@@ -354,15 +357,4 @@ if choix_perso and choix_perso != "Aucun personnage":
         with st.chat_message("assistant"):
             placeholder = st.empty()
             
-            response = client.chat.completions.create(
-                messages=st.session_state.messages,
-                model="llama-3.1-8b-instant",
-                temperature=0.8,
-            )
-            
-            reponse_ia = response.choices[0].message.content
-            placeholder.markdown(reponse_ia)
-            
-        st.session_state.messages.append({"role": "assistant", "content": reponse_ia})
-else:
-    st.info("Sélectionnez ou créez un personnage dans le menu latéral pour commencer l'aventure.")
+            response = client.chat.completions.
