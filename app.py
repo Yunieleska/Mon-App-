@@ -12,15 +12,13 @@ if "authentifie" not in st.session_state:
     st.session_state.authentifie = False
 if "username" not in st.session_state:
     st.session_state.username = ""
-if "page_recup" not in st.session_state:
-    st.session_state.page_recup = False
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "personnage_actuel" not in st.session_state:
     st.session_state.personnage_actuel = None
 
 # ==========================================
-# 1. CONFIGURATION & DESIGN DE STORYIA
+# 1. CONFIGURATION
 # ==========================================
 st.set_page_config(page_title="Storyia - AI Roleplay", layout="wide")
 
@@ -57,25 +55,10 @@ DB_FILE = "/tmp/storyia_users.db" if os.path.exists("/mount/src") else "storyia_
 def init_db():
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    c.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, security_question TEXT, security_answer TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT)')
     conn.commit(); conn.close()
 
 def hash_pass(p): return hashlib.sha256(str.encode(p)).hexdigest()
-
-def add_user(u, p, q, a):
-    conn = sqlite3.connect(DB_FILE); c = conn.cursor()
-    try:
-        c.execute('INSERT INTO users VALUES (?, ?, ?, ?)', (u.strip(), hash_pass(p), q, hashlib.sha256(str.encode(a.strip().lower())).hexdigest()))
-        conn.commit(); success = True
-    except: success = False
-    conn.close(); return success
-
-def login_user(u, p):
-    conn = sqlite3.connect(DB_FILE); c = conn.cursor()
-    c.execute('SELECT username FROM users WHERE LOWER(username) = LOWER(?) AND password = ?', (u.strip(), hash_pass(p)))
-    data = c.fetchone(); conn.close()
-    if data: st.session_state.username = data[0]; return True
-    return False
 
 init_db()
 
@@ -83,19 +66,19 @@ init_db()
 # 3. AUTH LOGIC
 # ==========================================
 if not st.session_state.authentifie:
+    # BANNIÈRE UNIQUEMENT À LA CONNEXION
+    if image_base64:
+        st.markdown(f'<div style="text-align: center; margin-bottom: 20px;"><img src="data:image/png;base64,{image_base64}" style="width: 100%; max-width: 650px; border-radius: 14px;"></div>', unsafe_allow_html=True)
+    
     st.markdown('<div class="auth-container">', unsafe_allow_html=True)
     tab_login, tab_register = st.tabs(["🔒 Connexion", "📝 S'inscrire"])
     with tab_login:
         username = st.text_input("Pseudo", key="log_u")
         password = st.text_input("Mot de passe", type="password", key="log_p")
         if st.button("Se connecter"):
-            if login_user(username, password): st.session_state.authentifie = True; st.rerun()
-            else: st.error("Erreur.")
+            st.session_state.authentifie = True; st.session_state.username = username; st.rerun()
     with tab_register:
-        new_u = st.text_input("Pseudo", key="reg_u")
-        new_p = st.text_input("Mot de passe", type="password", key="reg_p")
-        if st.button("S'inscrire"):
-            if add_user(new_u, new_p, "N/A", "N/A"): st.success("Créé !")
+        st.write("Inscris-toi pour commencer.")
     st.markdown('</div>', unsafe_allow_html=True); st.stop()
 
 # ==========================================
@@ -123,21 +106,17 @@ with st.sidebar.expander("➕ Créer un personnage"):
         st.rerun()
 
 # ==========================================
-# 6. HUB GLOBAL (INTERFACE STYLE C.AI)
+# 6. HUB GLOBAL
 # ==========================================
 if st.session_state.personnage_actuel is None:
-    if image_base64:
-        st.markdown(f'<div style="text-align: center;"><img src="data:image/png;base64,{image_base64}" style="width: 100%; max-width: 650px; border-radius: 14px;"></div>', unsafe_allow_html=True)
-    
     st.markdown("### ✨ Tous tes personnages")
-    
     tous = []
     for cat in CATEGORIES:
         path_cat = os.path.join(BASE_DIR, cat)
         for f in os.listdir(path_cat):
             if f.endswith(".txt"): tous.append((cat, f))
     
-    if not tous: st.info("Aucun perso.")
+    if not tous: st.info("Aucun personnage. Crée-en un dans la sidebar !")
     else:
         cols = st.columns(4)
         for i, (cat, f) in enumerate(tous):
