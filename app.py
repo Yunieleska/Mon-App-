@@ -32,7 +32,6 @@ st.markdown(
     .card-img { width: 100%; height: 250px; object-fit: cover; border-radius: 15px; }
     .card-name { font-size: 17px; font-weight: 800; margin: 10px 0 0 0; }
     .card-desc { font-size: 12px; color: #a0a0a0; margin-bottom: 15px; }
-    .auth-box { background: #151922; padding: 40px; border-radius: 20px; border: 1px solid #333; }
     </style>
     """, unsafe_allow_html=True
 )
@@ -48,14 +47,13 @@ def init_db():
 init_db()
 
 # ==========================================
-# 3. ÉCRAN DE CONNEXION
+# 3. ÉCRAN DE CONNEXION (NETTOYÉ)
 # ==========================================
 if not st.session_state.authentifie:
     image_base64 = get_base64_image()
     if image_base64:
         st.markdown(f'<div style="text-align: center; margin-bottom: 20px;"><img src="data:image/png;base64,{image_base64}" style="width: 100%; max-width: 650px; border-radius: 14px;"></div>', unsafe_allow_html=True)
     
-    st.markdown('<div class="auth-box">', unsafe_allow_html=True)
     st.title("Bienvenue sur Storyia")
     u = st.text_input("Pseudo")
     p = st.text_input("Mot de passe", type="password")
@@ -63,7 +61,6 @@ if not st.session_state.authentifie:
         st.session_state.authentifie = True
         st.session_state.username = u
         st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
 
 # ==========================================
