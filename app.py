@@ -127,7 +127,7 @@ st.markdown(
     f"""
     <style>
     .stApp {{
-        background-image: url("{IMAGE_FOND}");
+       
         background-size: cover;
         background-position: center;
         background-attachment: fixed;
