@@ -169,6 +169,8 @@ if "username" not in st.session_state:
     st.session_state.username = ""
 if "page_recup" not in st.session_state:
     st.session_state.page_recup = False
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
 def systeme_authentification():
     if not st.session_state.authentifie:
@@ -287,7 +289,6 @@ st.sidebar.markdown("<h2 style='color: #ff4b4b;'>🔮 Storyia Menu</h2>", unsafe
 categorie_choisie = st.sidebar.selectbox("Choisir un univers :", CATEGORIES)
 path_persos_filtres = os.path.join(BASE_DIR, categorie_choisie)
 
-# Sécurité pour lister les personnages sans planter
 if os.path.exists(path_persos_filtres):
     liste_persos = [f.replace(".txt", "") for f in os.listdir(path_persos_filtres) if f.endswith(".txt")]
 else:
@@ -303,7 +304,6 @@ if "personnage_actuel" not in st.session_state or st.session_state.personnage_ac
         st.session_state.personnage_actuel = choix_perso
         chemin_fichier = os.path.join(BASE_DIR, categorie_choisie, f"{choix_perso}.txt")
         
-        # Sécurité renforcée pour l'ouverture du fichier (évite le FileNotFoundError)
         if os.path.exists(chemin_fichier):
             with open(chemin_fichier, "r", encoding="utf-8") as f:
                 contexte_perso = f.read()
@@ -321,7 +321,7 @@ if "personnage_actuel" not in st.session_state or st.session_state.personnage_ac
         st.session_state.messages = [{"role": "system", "content": prompt_systeme}]
 
 if st.sidebar.button("🗑️ Recommencer l'histoire"):
-    if len(st.session_state.messages) > 0:
+    if "messages" in st.session_state and len(st.session_state.messages) > 0:
         st.session_state.messages = [st.session_state.messages[0]]
         st.rerun()
 
@@ -348,6 +348,9 @@ with st.sidebar.expander("➕ Créer un personnage"):
 # ==========================================
 # 6. INTERFACE DE CHAT PRINCIPALE
 # ==========================================
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
 if choix_perso and choix_perso != "Aucun personnage":
     st.markdown(f"<h1 style='color: white; text-shadow: 2px 2px 8px #000000;'>🎭 {choix_perso} <span style='font-size:16px; color:#ff4b4b;'>({categorie_choisie})</span></h1>", unsafe_allow_html=True)
 
