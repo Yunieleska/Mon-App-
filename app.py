@@ -3,36 +3,38 @@ import os
 
 st.set_page_config(page_title="Storyia", layout="wide")
 
-# DEBUG : On va afficher ce que le programme voit dans le dossier racine
-st.sidebar.write("Fichiers trouvés à la racine :", os.listdir("."))
-if os.path.exists("Personnages"):
-    st.sidebar.write("Fichiers dans /Personnages :", os.listdir("Personnages"))
-
-def lire_accroche(nom):
-    # On teste les deux chemins possibles : racine ou dossier Personnages
-    for chemin in [f"Personnages/{nom}.txt", f"{nom}.txt"]:
-        if os.path.exists(chemin):
+# Fonction améliorée qui cherche le fichier .txt PARTOUT dans le dossier Personnages
+def trouver_accroche(nom):
+    nom_fichier = f"{nom}.txt"
+    # On parcourt le dossier Personnages et tous ses sous-dossiers
+    for root, dirs, files in os.walk("Personnages"):
+        if nom_fichier in files:
+            chemin = os.path.join(root, nom_fichier)
             with open(chemin, "r", encoding="utf-8") as f:
                 return f.read().strip()
-    return f"Accroche introuvable pour {nom}..."
+    return "Clique pour commencer une romance..."
 
 # --- PERSONNAGES ---
-# Ici, on ne met plus "Personnages/" devant, on laisse le code chercher
+# Tes images sont à la racine, donc on laisse le nom du fichier tel quel
 personnages = [
     {"nom": "Lucas", "img": "Lucas.png"},
     {"nom": "Ethan", "img": "Ethan.png"},
-    {"nom": "Léo", "img": "Léo.png"}
+    {"nom": "Léo", "img": "Léo.png"},
+    {"nom": "Liam", "img": "Liam.png"},
+    {"nom": "Noah", "img": "Noah.png"}
 ]
 
 st.title("Choisis ton personnage")
-for p in personnages:
-    # DEBUG : Affiche le chemin qu'il tente d'utiliser
-    st.write(f"Tentative de chargement : {p['img']}")
-    
-    if os.path.exists(p["img"]):
-        st.image(p["img"])
-    else:
-        st.error(f"Fichier {p['img']} introuvable sur le serveur.")
-    
-    st.subheader(p["nom"])
-    st.write(lire_accroche(p["nom"]))
+
+cols = st.columns(len(personnages))
+for i, p in enumerate(personnages):
+    with cols[i]:
+        # Chargement image
+        if os.path.exists(p["img"]):
+            st.image(p["img"], use_container_width=True)
+        else:
+            st.error(f"Image {p['img']} introuvable.")
+        
+        st.subheader(p["nom"])
+        # Recherche auto du texte dans n'importe quel sous-dossier
+        st.write(trouver_accroche(p["nom"]))
