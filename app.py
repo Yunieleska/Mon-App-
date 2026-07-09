@@ -9,7 +9,8 @@ from groq import Groq
 # ==========================================
 st.set_page_config(page_title="Storyia - AI Roleplay", layout="centered")
 
-IMAGE_FOND = "https://share.gemini.google/zeM5fxLPDnhb" 
+# Lien direct vers ta superbe image de fond Storyia
+IMAGE_FOND = "https://i.ibb.co/689NfKsc/image-pour-se-connecter.png" 
 
 st.markdown(
     f"""
@@ -20,8 +21,9 @@ st.markdown(
         background-position: center;
         background-attachment: fixed;
     }}
+    /* Style pour les messages de chat (Bulles sombres semi-transparentes très immersives) */
     .stChatMessage {{
-        background-color: rgba(20, 20, 20, 0.75) !important;
+        background-color: rgba(20, 20, 20, 0.8) !important;
         border: 1px solid rgba(255, 75, 75, 0.2);
         border-radius: 12px;
         padding: 12px;
@@ -30,6 +32,14 @@ st.markdown(
     }}
     .stChatMessage p {{
         color: #ffffff !important;
+    }}
+    /* Encadré semi-transparent pour rendre les formulaires d'authentification lisibles */
+    .auth-container {{
+        background-color: rgba(15, 15, 15, 0.75);
+        padding: 30px;
+        border-radius: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin-top: 200px; /* Laisse de l'espace pour voir le logo du fond */
     }}
     </style>
     """,
@@ -137,11 +147,15 @@ if "page_recup" not in st.session_state:
 
 def systeme_authentification():
     if not st.session_state.authentifie:
-        st.markdown("<h1 style='text-align: center; color: #ff4b4b; text-shadow: 2px 2px 4px #000;'>✨ Storyia ✨</h1>", unsafe_allow_html=True)
+        # Un peu d'espace en haut pour laisser respirer le logo de ton image
+        st.write("<br><br><br><br><br><br>", unsafe_allow_html=True)
+        
+        # Début du conteneur visuel pour le formulaire
+        st.markdown('<div class="auth-container">', unsafe_allow_html=True)
         
         # --- MODE RÉCUPÉRATION DE MOT DE PASSE ---
         if st.session_state.page_recup:
-            st.markdown("<p style='text-align: center; color: white;'>Réinitialisation de ton mot de passe</p>", unsafe_allow_html=True)
+            st.markdown("<h3 style='text-align: center; color: #ff4b4b;'>🔑 Récupération</h3>", unsafe_allow_html=True)
             
             user_recup = st.text_input("Entre ton Pseudo :", key="user_recup")
             
@@ -165,13 +179,13 @@ def systeme_authentification():
                 else:
                     st.error("Ce pseudo n'existe pas.")
             
-            if st.button("⬅️ Retour à la connexion"):
+            if st.button("⬅️ Retour à la connexion", use_container_width=True):
                 st.session_state.page_recup = False
                 st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
             st.stop()
 
         # --- MODE NORMAL (CONNEXION / INSCRIPTION) ---
-        st.markdown("<p style='text-align: center; color: white;'>Inscris-toi ou connecte-toi pour rejoindre l'aventure.</p>", unsafe_allow_html=True)
         tab_login, tab_register = st.tabs(["🔒 Connexion", "📝 S'inscrire"])
         
         with tab_login:
@@ -186,7 +200,7 @@ def systeme_authentification():
                 else:
                     st.error("Pseudo ou mot de passe incorrect.")
             
-            if st.button("Mot de passe oublié ?"):
+            if st.button("Mot de passe oublié ?", use_container_width=True):
                 st.session_state.page_recup = True
                 st.rerun()
                     
@@ -196,7 +210,7 @@ def systeme_authentification():
             confirm_password = st.text_input("Confirme le mot de passe", type="password", key="reg_pass_conf")
             
             st.markdown("---")
-            st.markdown("🔒 **Sécurité (en cas d'oubli de mot de passe) :**")
+            st.markdown("🔒 **Sécurité (En cas d'oubli) :**")
             liste_questions = [
                 "Quel est le nom de ton premier animal de compagnie ?",
                 "Dans quelle ville es-tu né(e) ?",
@@ -204,11 +218,11 @@ def systeme_authentification():
                 "Quelle est ta couleur préférée ou ton chiffre fétiche ?"
             ]
             q_choisie = st.selectbox("Choisis une question secrète :", liste_questions)
-            rep_choisie = st.text_input("Ta réponse secrète (ne l'oublie pas) :")
+            rep_choisie = st.text_input("Ta réponse secrète :")
             
             if st.button("Créer mon compte", use_container_width=True):
                 if not new_username or not new_password or not rep_choisie:
-                    st.error("Veuillez remplir tous les champs, y compris la sécurité.")
+                    st.error("Veuillez remplir tous les champs.")
                 elif new_password != confirm_password:
                     st.error("Les mots de passe ne correspondent pas.")
                 else:
@@ -216,6 +230,8 @@ def systeme_authentification():
                         st.success("Compte créé avec succès ! Tu peux maintenant te connecter.")
                     else:
                         st.error("❌ Ce pseudo est déjà pris. Choisis-en un autre !")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
         st.stop()
 
 systeme_authentification()
