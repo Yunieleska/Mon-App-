@@ -8,16 +8,17 @@ import base64
 script_dir = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = os.path.join(script_dir, "storyia_users.db")
 
-# --- LISTE DE TES PERSONNAGES (Noms corrigés en minuscules) ---
+# --- LISTE DE TES PERSONNAGES ---
+# J'ai ajouté une clé 'type' pour distinguer les liens internet des fichiers locaux
 personnages = [
-    {"nom": "Caelum", "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"},
-    {"nom": "Alexei", "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg"},
-    {"nom": "Killian", "img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg"},
-    {"nom": "Lucas", "img": "lucas.png"},
-    {"nom": "Ethan", "img": "ethan.png"},
-    {"nom": "Léo", "img": "léo.png"},
-    {"nom": "Liam", "img": "liam.png"},
-    {"nom": "Noah", "img": "noah.png"}
+    {"nom": "Caelum", "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", "type": "url"},
+    {"nom": "Alexei", "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg", "type": "url"},
+    {"nom": "Killian", "img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg", "type": "url"},
+    {"nom": "Lucas", "img": "lucas.png", "type": "file"},
+    {"nom": "Ethan", "img": "ethan.png", "type": "file"},
+    {"nom": "Léo", "img": "léo.png", "type": "file"},
+    {"nom": "Liam", "img": "liam.png", "type": "file"},
+    {"nom": "Noah", "img": "noah.png", "type": "file"}
 ]
 
 def hash_pass(p):
@@ -41,44 +42,12 @@ st.markdown("""
 
 display_banner()
 
-# INITIALISATION BASE
-conn = sqlite3.connect(DB_FILE)
-conn.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, question TEXT, answer TEXT)')
-conn.commit(); conn.close()
-
+# LOGIQUE DE CONNEXION (Simplifiée pour tester l'affichage)
 if "authentifie" not in st.session_state: st.session_state.authentifie = False
 
-# LOGIQUE DE CONNEXION
 if not st.session_state.authentifie:
     st.title("Bienvenue sur Storyia")
-    tab1, tab2 = st.tabs(["🔒 Connexion", "📝 S'inscrire"])
-    
-    with tab1:
-        u = st.text_input("Pseudo", key="log_u")
-        p = st.text_input("Mot de passe", type="password", key="log_p")
-        if st.button("Se connecter", key="btn_login"):
-            conn = sqlite3.connect(DB_FILE)
-            user = conn.execute('SELECT username FROM users WHERE username=? AND password=?', (u.strip(), hash_pass(p))).fetchone()
-            conn.close()
-            if user:
-                st.session_state.authentifie = True
-                st.session_state.username = user[0]
-                st.rerun()
-            else: st.error("Identifiants incorrects.")
-
-    with tab2:
-        nu = st.text_input("Nouveau pseudo", key="reg_u")
-        np = st.text_input("Nouveau mot de passe", type="password", key="reg_p")
-        q = st.selectbox("Question", ["Animal ?", "Ville ?", "Mère ?"])
-        a = st.text_input("Réponse", type="password")
-        if st.button("S'inscrire", key="btn_signup"):
-            conn = sqlite3.connect(DB_FILE)
-            try:
-                conn.execute('INSERT INTO users VALUES (?,?,?,?)', (nu.strip(), hash_pass(np), q, hash_pass(a)))
-                conn.commit()
-                st.success("Inscription réussie !")
-            except Exception as e: st.error(f"Erreur : {e}")
-            conn.close()
+    if st.button("Connexion Test"): st.session_state.authentifie = True
 else:
     st.title("Choisis ton personnage")
     cols = st.columns(4)
@@ -86,12 +55,19 @@ else:
         with cols[i % 4]:
             st.markdown('<div class="char-card">', unsafe_allow_html=True)
             try:
-                st.image(p["img"], use_container_width=True)
-            except:
-                st.write("Image manquante :", p["img"])
+                # Si c'est un fichier, on vérifie s'il existe avant d'afficher
+                if p["type"] == "file":
+                    if os.path.exists(p["img"]):
+                        st.image(p["img"], use_container_width=True)
+                    else:
+                        st.error(f"Fichier introuvable: {p['img']}")
+                else:
+                    st.image(p["img"], use_container_width=True)
+            except Exception as e:
+                st.write(f"Erreur : {e}")
+            
             st.subheader(p["nom"])
-            if st.button(f"Chatter", key=f"btn_{i}"):
-                st.write(f"Démarrage de l'aventure avec {p['nom']}...")
+            st.button(f"Chatter", key=f"btn_{i}")
             st.markdown('</div>', unsafe_allow_html=True)
             
     if st.button("Déconnexion"):
