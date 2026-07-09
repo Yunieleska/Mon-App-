@@ -71,7 +71,6 @@ st.markdown(
 # ==========================================
 # 2. GESTION DE LA BASE DE DONNÉES
 # ==========================================
-# Ajustement pour éviter les erreurs d'écriture sur Streamlit Cloud
 if os.path.exists("/mount/src"):
     DB_FILE = "/tmp/storyia_users.db"
 else:
@@ -214,7 +213,6 @@ def systeme_authentification():
             if st.button("Se connecter", use_container_width=True):
                 if login_user(username, password):
                     st.session_state.authentifie = True
-                    st.success(f"Ravi de te revoir, {st.session_state.username} !")
                     st.rerun()
                 else:
                     st.error("Pseudo ou mot de passe incorrect.")
@@ -288,7 +286,12 @@ st.sidebar.markdown("<h2 style='color: #ff4b4b;'>🔮 Storyia Menu</h2>", unsafe
 
 categorie_choisie = st.sidebar.selectbox("Choisir un univers :", CATEGORIES)
 path_persos_filtres = os.path.join(BASE_DIR, categorie_choisie)
-liste_persos = [f.replace(".txt", "") for f in os.listdir(path_persos_filtres) if f.endswith(".txt")]
+
+# Sécurité pour lister les personnages sans planter
+if os.path.exists(path_persos_filtres):
+    liste_persos = [f.replace(".txt", "") for f in os.listdir(path_persos_filtres) if f.endswith(".txt")]
+else:
+    liste_persos = []
 
 if not liste_persos:
     liste_persos = ["Aucun personnage"]
@@ -298,10 +301,14 @@ choix_perso = st.sidebar.selectbox("Avec qui veux-tu RP ?", liste_persos)
 if "personnage_actuel" not in st.session_state or st.session_state.personnage_actuel != choix_perso:
     if choix_perso != "Aucun personnage":
         st.session_state.personnage_actuel = choix_perso
-        
         chemin_fichier = os.path.join(BASE_DIR, categorie_choisie, f"{choix_perso}.txt")
-        with open(chemin_fichier, "r", encoding="utf-8") as f:
-            contexte_perso = f.read()
+        
+        # Sécurité renforcée pour l'ouverture du fichier (évite le FileNotFoundError)
+        if os.path.exists(chemin_fichier):
+            with open(chemin_fichier, "r", encoding="utf-8") as f:
+                contexte_perso = f.read()
+        else:
+            contexte_perso = "Tu es un personnage mystérieux."
         
         prompt_systeme = (
             f"Tu es {choix_perso}. Voici ta personnalité, tes secrets et ton histoire : {contexte_perso}. "
