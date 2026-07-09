@@ -18,11 +18,6 @@ def display_banner():
             data = base64.b64encode(f.read()).decode()
             st.markdown(f'<div style="text-align:center;"><img src="data:image/png;base64,{data}" style="width:100%; max-width:600px; border-radius:15px;"></div>', unsafe_allow_html=True)
 
-# INITIALISATION BASE
-conn = sqlite3.connect(DB_FILE)
-conn.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, question TEXT, answer TEXT)')
-conn.commit(); conn.close()
-
 # CONFIG PAGE
 st.set_page_config(page_title="Storyia", layout="wide")
 st.markdown("""
@@ -32,12 +27,19 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# INITIALISATION BASE
+conn = sqlite3.connect(DB_FILE)
+conn.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, question TEXT, answer TEXT)')
+conn.commit(); conn.close()
+
+# AFFICHAGE BANNIÈRE (appelé ici pour être sûr qu'elle s'affiche)
+display_banner()
+
 if "authentifie" not in st.session_state: st.session_state.authentifie = False
 if "mode" not in st.session_state: st.session_state.mode = "login"
 
 # LOGIQUE
 if not st.session_state.authentifie:
-    display_banner()
     st.title("Bienvenue sur Storyia")
     
     if st.session_state.mode == "login":
