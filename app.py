@@ -11,15 +11,17 @@ def hash_pass(p):
     return hashlib.sha256(p.strip().encode('utf-8')).hexdigest()
 
 def display_banner():
-    # CHEMIN FORCÉ : Basé sur l'erreur que Streamlit t'a renvoyée
-    image_path = "/mount/src/mon-app-/fond.png"
+    # Méthode infaillible : on récupère le répertoire du fichier app.py actuel
+    # Cela fonctionne même dans les environnements isolés de GitHub
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    image_path = os.path.join(script_dir, "fond.png")
     
     if os.path.exists(image_path):
         with open(image_path, "rb") as f:
             data = base64.b64encode(f.read()).decode()
             st.markdown(f'<div style="text-align:center;"><img src="data:image/png;base64,{data}" style="width:100%; max-width:600px; border-radius:15px;"></div>', unsafe_allow_html=True)
     else:
-        st.warning(f"Impossible de trouver le fichier à : {image_path}. Vérifie que le dossier s'appelle bien 'mon-app-'.")
+        st.warning(f"Image introuvable. Chemin testé : {image_path}")
 
 # CONFIG PAGE
 st.set_page_config(page_title="Storyia", layout="wide")
@@ -35,13 +37,13 @@ conn = sqlite3.connect(DB_FILE)
 conn.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, question TEXT, answer TEXT)')
 conn.commit(); conn.close()
 
-# APPEL BANNIÈRE
+# AFFICHAGE BANNIÈRE
 display_banner()
 
 if "authentifie" not in st.session_state: st.session_state.authentifie = False
 if "mode" not in st.session_state: st.session_state.mode = "login"
 
-# LOGIQUE (inchangée)
+# LOGIQUE
 if not st.session_state.authentifie:
     st.title("Bienvenue sur Storyia")
     
@@ -75,7 +77,6 @@ if not st.session_state.authentifie:
                     st.success("Compte créé ! Connecte-toi.")
                 except: st.error("Pseudo déjà pris.")
                 conn.close()
-
     elif st.session_state.mode == "recup":
         st.subheader("Récupération de mot de passe")
         ru = st.text_input("Ton pseudo")
