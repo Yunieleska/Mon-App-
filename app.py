@@ -1,7 +1,7 @@
 import streamlit as st
 import os
 import sqlite3
-import hashlib
+import base64
 from groq import Groq
 
 # ==========================================
@@ -16,6 +16,14 @@ if "personnage_actuel" not in st.session_state: st.session_state.personnage_actu
 # 1. CONFIGURATION ET STYLE
 # ==========================================
 st.set_page_config(page_title="Storyia", layout="centered")
+
+def get_base64_image():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    image_path = os.path.join(current_dir, "bg.png")
+    if os.path.exists(image_path):
+        with open(image_path, "rb") as img_file:
+            return base64.b64encode(img_file.read()).decode()
+    return None
 
 st.markdown(
     """
@@ -43,6 +51,10 @@ init_db()
 # 3. ÉCRAN DE CONNEXION
 # ==========================================
 if not st.session_state.authentifie:
+    image_base64 = get_base64_image()
+    if image_base64:
+        st.markdown(f'<div style="text-align: center; margin-bottom: 20px;"><img src="data:image/png;base64,{image_base64}" style="width: 100%; max-width: 650px; border-radius: 14px;"></div>', unsafe_allow_html=True)
+    
     st.markdown('<div class="auth-box">', unsafe_allow_html=True)
     st.title("Bienvenue sur Storyia")
     u = st.text_input("Pseudo")
@@ -78,11 +90,10 @@ with st.sidebar.expander("➕ Créer un personnage"):
         st.rerun()
 
 # ==========================================
-# 5. HUB PRINCIPAL (GRILLE SOCIAL MEDIA)
+# 5. HUB PRINCIPAL (GRILLE)
 # ==========================================
 if st.session_state.personnage_actuel is None:
     st.markdown("### Pour vous")
-    
     tous = []
     for cat in CATEGORIES:
         path = os.path.join(BASE_DIR, cat)
@@ -91,8 +102,12 @@ if st.session_state.personnage_actuel is None:
     
     cols = st.columns(2)
     for i, (cat, f) in enumerate(tous):
-        with open(os.path.join(BASE_DIR, cat, f), "r", encoding="utf-8", errors="ignore") as file: 
-            desc = file.read()
+        path_file = os.path.join(BASE_DIR, cat, f)
+        try:
+            with open(path_file, "r", encoding="utf-8", errors="ignore") as file: 
+                desc = file.read()
+        except:
+            desc = "Pas de description."
         
         with cols[i % 2]:
             st.markdown(f'<img src="https://picsum.photos/400/600?random={i}" class="card-img">', unsafe_allow_html=True)
@@ -112,7 +127,6 @@ else:
         st.rerun()
         
     st.header(f"Discussion avec {st.session_state.personnage_actuel}")
-    
     for m in st.session_state.messages:
         if m["role"] != "system":
             with st.chat_message(m["role"]): st.markdown(m["content"])
@@ -122,7 +136,6 @@ else:
         with st.chat_message("user"): st.markdown(prompt)
         
         with st.chat_message("assistant"):
-            # N'oublie pas de mettre ta vraie clé ici
             client = Groq(api_key="VOTRE_CLE_API_GROQ_ICI")
             response = client.chat.completions.create(
                 messages=st.session_state.messages, 
