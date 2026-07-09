@@ -41,7 +41,7 @@ personnages = [
     {"nom": "Killian", "img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg", "accroche": "On joue selon mes règles."},
     {"nom": "Noah", "img": "Noah.png", "accroche": "C'est fou comme je peux être moi-même avec toi, alors qu'en vrai, je ne suis qu'une façade."},
     {"nom": "Lucas", "img": "Lucas.png", "accroche": "Je t'attendais, tu es en retard."},
-    {"nom": "Ethan", "img": "Ethan.png", "accroche": "Laisse tes problèmes à la porte."},
+    {"nom": "Ethan", "img": "Ethan.png", "accroche": "Tu es nouvelle en ville, n'est-ce pas ? La forêt est dangereuse pour quelqu'un qui ne connaît pas les lieux."},
     {"nom": "Léo", "img": "Léo.png", "accroche": "Tu es enfin là, je m'impatientais."},
     {"nom": "Liam", "img": "Liam.png", "accroche": "Je n'aime pas que l'on perturbe le calme de ma maison."}
 ]
