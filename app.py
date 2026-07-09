@@ -4,24 +4,30 @@ import hashlib
 import os
 import base64
 
+# AFFICHE LE DOSSIER COURANT (pour déboguer)
+# st.write(f"Dossier courant : {os.getcwd()}") 
+
 # CONFIGURATION
 DB_FILE = "storyia_users.db"
 
-# HASHAGE
 def hash_pass(p):
     return hashlib.sha256(p.strip().encode('utf-8')).hexdigest()
 
-# BANNIÈRE - CORRECTIF DE CHEMIN
 def display_banner():
-    # Cherche l'image dans le répertoire courant de travail
-    image_path = os.path.join(os.getcwd(), "fond.png")
+    # On teste plusieurs chemins possibles
+    chemins_possibles = ["fond.png", "./fond.png", "/workspaces/Mon-App-/fond.png"]
     
-    if os.path.exists(image_path):
-        with open(image_path, "rb") as f:
-            data = base64.b64encode(f.read()).decode()
-            st.markdown(f'<div style="text-align:center;"><img src="data:image/png;base64,{data}" style="width:100%; max-width:600px; border-radius:15px;"></div>', unsafe_allow_html=True)
-    else:
-        st.warning(f"Fichier image non détecté à : {image_path}. Vérifie que 'fond.png' est bien à la racine.")
+    image_trouvee = False
+    for chemin in chemins_possibles:
+        if os.path.exists(chemin):
+            with open(chemin, "rb") as f:
+                data = base64.b64encode(f.read()).decode()
+                st.markdown(f'<div style="text-align:center;"><img src="data:image/png;base64,{data}" style="width:100%; max-width:600px; border-radius:15px;"></div>', unsafe_allow_html=True)
+            image_trouvee = True
+            break
+            
+    if not image_trouvee:
+        st.warning("Image 'fond.png' non trouvée. Vérifie qu'elle est bien à la racine.")
 
 # CONFIG PAGE
 st.set_page_config(page_title="Storyia", layout="wide")
@@ -37,7 +43,7 @@ conn = sqlite3.connect(DB_FILE)
 conn.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, question TEXT, answer TEXT)')
 conn.commit(); conn.close()
 
-# AFFICHAGE BANNIÈRE
+# APPEL BANNIÈRE
 display_banner()
 
 if "authentifie" not in st.session_state: st.session_state.authentifie = False
