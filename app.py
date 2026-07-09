@@ -11,12 +11,12 @@ def hash_pass(p):
     return hashlib.sha256(p.strip().encode('utf-8')).hexdigest()
 
 def display_banner():
-    # On liste les fichiers du dossier courant pour trouver 'fond.png'
+    # Correction : on cherche maintenant 'bg.png'
     dossier_actuel = os.getcwd()
     fichiers = os.listdir(dossier_actuel)
     
-    # Cherche une correspondance insensible à la casse
-    image_nom = next((f for f in fichiers if f.lower() == "fond.png"), None)
+    # Cherche une correspondance insensible à la casse pour 'bg.png'
+    image_nom = next((f for f in fichiers if f.lower() == "bg.png"), None)
     
     if image_nom:
         image_path = os.path.join(dossier_actuel, image_nom)
@@ -24,7 +24,7 @@ def display_banner():
             data = base64.b64encode(f.read()).decode()
             st.markdown(f'<div style="text-align:center;"><img src="data:image/png;base64,{data}" style="width:100%; max-width:600px; border-radius:15px;"></div>', unsafe_allow_html=True)
     else:
-        st.warning(f"Fichier 'fond.png' non trouvé dans : {dossier_actuel}. Fichiers présents : {fichiers}")
+        st.warning(f"Fichier 'bg.png' non trouvé dans : {dossier_actuel}. Fichiers présents : {fichiers}")
 
 # CONFIG PAGE
 st.set_page_config(page_title="Storyia", layout="wide")
@@ -46,7 +46,7 @@ display_banner()
 if "authentifie" not in st.session_state: st.session_state.authentifie = False
 if "mode" not in st.session_state: st.session_state.mode = "login"
 
-# LOGIQUE (inchangée)
+# LOGIQUE
 if not st.session_state.authentifie:
     st.title("Bienvenue sur Storyia")
     if st.session_state.mode == "login":
