@@ -19,8 +19,7 @@ from groq import Groq
 # ==========================================
 st.set_page_config(page_title="Storyia - AI Roleplay", layout="centered")
 
-# URL de ton image de fond (mets le lien direct de ton image ici)
-IMAGE_FOND = "https://share.gemini.google/zeM HYPERLINK "https://share.gemini.google/zeM5fxLPDnhb"5 HYPERLINK "https://share.gemini.google/zeM5fxLPDnhb"fxLPDnhb" 
+# URL de ton image de fond (mets le lien direct de ton image ici
 
 # Injection CSS pour le fond visuel et le style
 st.markdown(
