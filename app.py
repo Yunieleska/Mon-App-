@@ -2,7 +2,8 @@ import streamlit as st
 from groq import Groq
 
 # --- CONFIGURATION GROQ ---
-client = Groq(api_key="TON_API_KEY") # Remplace par ta vraie clé
+# Remplace "TON_API_KEY" par ta clé réelle
+client = Groq(api_key="TON_API_KEY")
 
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="collapsed")
 
@@ -10,15 +11,19 @@ st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="c
 CHARACTERS = {
     "Caelum": {
         "prompt": "Tu es Caelum, Prince des Ténèbres. Froid, arrogant, distant. Déteste ton alliance forcée. Jamais d'emojis.",
-        "start": "Tu es sur mon chemin, humaine. Ramasse tes affaires et disparais."
+        "start": "*Tu bouscules accidentellement Caelum dans le couloir.*\n\nTu es sur mon chemin, humaine. Ramasse tes affaires et disparais."
     },
     "Noah": {
-        "prompt": "Tu es Noah, quaterback star. Arrogant en public, profond et romantique par SMS secret avec {{user}}.",
-        "start": "Hé, je t'ai vue au lycée... Je ne sais pas pourquoi je t'écris, mais ton regard m'a intrigué."
+        "prompt": "Tu es Noah, quaterback star. En public : arrogant et distant. Par message anonyme avec {{user}} : profond, attentionné, romantique. Tu ignores qu'elle est ta correspondante.",
+        "start": "*Ton téléphone vibre en pleine nuit. Noah t'écrit sur l'app anonyme, loin de son image de star.*\n\nHey... Le match de ce soir était d'un ennui mortel. Tu crois qu'on est tous obligés de jouer un rôle pour plaire aux autres ?"
     },
     "Ethan": {
         "prompt": "Tu es Ethan, Loup Alpha. Possessif, protecteur, dominant. Ton âme sœur est {{user}}. Mystérieux sur ta nature.",
-        "start": "Tu ne devrais pas te promener seule ici, humaine. La forêt cache des prédateurs dangereux... Reste près de moi."
+        "start": "*Ethan émerge de la pénombre, ses yeux sombres fixés sur toi avec une intensité animale.*\n\nTu ne devrais pas te promener seule ici, humaine. La forêt cache des prédateurs dangereux... Reste près de moi."
+    },
+    "Léo": {
+        "prompt": "Tu es Léo (Neo), streameur gaming. En ligne : extraverti, taquin et complice. En vrai : introverti, distant, cache ton identité de streameur.",
+        "start": "*Le signal sonore de Discord retentit. La voix grave de Léo résonne.*\n\nAh, te voilà enfin ! Je t'attendais pour lancer la partie. Dis-moi, t'as pas l'air en forme, tu stresses pour demain au lycée ?"
     }
 }
 
@@ -49,6 +54,7 @@ if st.session_state.page == "home":
             st.caption(p["accroche"])
             if st.button(f"Chatter avec {p['nom']}", key=f"btn_{i}"):
                 st.session_state.char_select = p["nom"]
+                # Initialisation propre pour chaque perso
                 if p["nom"] in CHARACTERS:
                     st.session_state.messages = [
                         {"role": "system", "content": CHARACTERS[p["nom"]]["prompt"]},
@@ -65,23 +71,19 @@ elif st.session_state.page == "chat":
         st.session_state.page = "home"
         st.rerun()
     
-    # Affichage de l'historique
     for msg in st.session_state.messages[1:]:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
             
-    # Saisie utilisateur et appel Groq
     if prompt := st.chat_input("Répondre..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.write(prompt)
-            
-        # Appel API Groq
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=st.session_state.messages
-        )
         
-        reply = response.choices[0].message.content
-        st.session_state.messages.append({"role": "assistant", "content": reply})
+        # Appel API Groq
+        with st.spinner("L'IA réfléchit..."):
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=st.session_state.messages
+            )
+            reply = response.choices[0].message.content
+            st.session_state.messages.append({"role": "assistant", "content": reply})
         st.rerun()
