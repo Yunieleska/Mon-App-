@@ -9,38 +9,36 @@ from groq import Groq
 # ==========================================
 st.set_page_config(page_title="Storyia - AI Roleplay", layout="centered")
 
-# Lien direct et stable via le CDN Imgur
-IMAGE_FOND = "https://i.imgur.com/GisLhYl.png"
+# Lien de ton image Storyia
+IMAGE_LOGO = "https://i.imgur.com/GisLhYl.png"
 
 st.markdown(
-    f"""
+    """
     <style>
-    .stApp {{
-        background-image: url("{IMAGE_FOND}");
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
-    }}
+    /* Fond sombre général ultra-pro */
+    .stApp {
+        background-color: #0B0E14 !important;
+    }
     /* Style pour les messages de chat (Bulles sombres semi-transparentes) */
-    .stChatMessage {{
-        background-color: rgba(20, 20, 20, 0.8) !important;
+    .stChatMessage {
+        background-color: rgba(25, 30, 40, 0.6) !important;
         border: 1px solid rgba(255, 75, 75, 0.2);
         border-radius: 12px;
         padding: 12px;
         margin-bottom: 10px;
         color: #ffffff !important;
-    }}
-    .stChatMessage p {{
+    }
+    .stChatMessage p {
         color: #ffffff !important;
-    }}
-    /* Encadré semi-transparent pour rendre les formulaires d'authentification lisibles */
-    .auth-container {{
-        background-color: rgba(15, 15, 15, 0.85);
+    }
+    /* Encadré pour les formulaires d'authentification */
+    .auth-container {
+        background-color: #151922;
         padding: 30px;
         border-radius: 15px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        margin-top: 220px; /* Laisse de l'espace pour voir le logo du fond */
-    }}
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.3);
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -147,8 +145,8 @@ if "page_recup" not in st.session_state:
 
 def systeme_authentification():
     if not st.session_state.authentifie:
-        # Un peu d'espace en haut pour laisser respirer le logo de ton image
-        st.write("<br><br><br><br><br><br>", unsafe_allow_html=True)
+        # Affichage propre et garanti de ton image en haut de la page d'accueil
+        st.image(IMAGE_LOGO, use_container_width=True)
         
         # Début du conteneur visuel pour le formulaire
         st.markdown('<div class="auth-container">', unsafe_allow_html=True)
