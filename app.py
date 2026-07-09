@@ -6,9 +6,23 @@ import base64
 from groq import Groq
 
 # ==========================================
+# 0. INITIALISATION STRICTE DU SESSION_STATE
+# ==========================================
+if "authentifie" not in st.session_state:
+    st.session_state.authentifie = False
+if "username" not in st.session_state:
+    st.session_state.username = ""
+if "page_recup" not in st.session_state:
+    st.session_state.page_recup = False
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+if "personnage_actuel" not in st.session_state:
+    st.session_state.personnage_actuel = None
+
+# ==========================================
 # 1. CONFIGURATION & DESIGN DE STORYIA
 # ==========================================
-st.set_page_config(page_title="Storyia - AI Roleplay", layout="wide") # Passage en mode large pour la grille
+st.set_page_config(page_title="Storyia - AI Roleplay", layout="wide")
 
 def get_base64_image():
     """Trouve l'image bg.png localement sur le serveur GitHub/Streamlit et la convertit."""
@@ -180,17 +194,6 @@ init_db()
 # ==========================================
 # 3. INTERFACE D'INSCRIPTION / CONNEXION
 # ==========================================
-if "authentifie" not in st.session_state:
-    st.session_state.authentifie = False
-if "username" not in st.session_state:
-    st.session_state.username = ""
-if "page_recup" not in st.session_state:
-    st.session_state.page_recup = False
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-if "personnage_actuel" not in st.session_state:
-    st.session_state.personnage_actuel = None
-
 def systeme_authentification():
     if not st.session_state.authentifie:
         st.markdown('<div class="auth-container">', unsafe_allow_html=True)
@@ -346,7 +349,7 @@ if st.session_state.personnage_actuel is None:
         for index, fichier in enumerate(liste_fichiers):
             nom_perso = fichier.replace(".txt", "")
             
-            # Correction de l'UnicodeDecodeError ici grâce à encoding="utf-8"
+            # Lecture sécurisée en UTF-8
             with open(os.path.join(path_persos_filtres, fichier), "r", encoding="utf-8") as f:
                 description = f.read()
             
@@ -377,10 +380,12 @@ else:
     choix_perso = st.session_state.personnage_actuel
     st.markdown(f"## 🎭 En plein RP avec {choix_perso}")
 
-    for message in st.session_state.messages:
-        if message["role"] != "system":
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
+    # Boucle de rendu des messages protégée contre le session_state instable
+    if "messages" in st.session_state and st.session_state.messages:
+        for message in st.session_state.messages:
+            if message["role"] != "system":
+                with st.chat_message(message["role"]):
+                    st.markdown(message["content"])
 
     if prompt := st.chat_input("Écris ton action ou dialogue..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
@@ -391,10 +396,4 @@ else:
             placeholder = st.empty()
             response = client.chat.completions.create(
                 messages=st.session_state.messages,
-                model="llama-3.1-8b-instant",
-                temperature=0.8
-            )
-            reponse_ia = response.choices[0].message.content
-            placeholder.markdown(reponse_ia)
-            
-        st.session_state.messages.append({"role": "assistant", "content": reponse_ia})
+                model
