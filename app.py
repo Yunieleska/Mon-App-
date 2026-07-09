@@ -9,8 +9,8 @@ from groq import Groq
 # ==========================================
 st.set_page_config(page_title="Storyia - AI Roleplay", layout="centered")
 
-# Lien direct vers ta superbe image de fond Storyia
-IMAGE_FOND = "https://i.ibb.co/689NfKsc/image-pour-se-connecter.png" 
+# Lien direct et stable vers ton image Storyia
+IMAGE_FOND = "https://raw.githubusercontent.com/AlenixDev/storage/main/storyia_bg.png" 
 
 st.markdown(
     f"""
@@ -21,7 +21,7 @@ st.markdown(
         background-position: center;
         background-attachment: fixed;
     }}
-    /* Style pour les messages de chat (Bulles sombres semi-transparentes très immersives) */
+    /* Style pour les messages de chat (Bulles sombres semi-transparentes) */
     .stChatMessage {{
         background-color: rgba(20, 20, 20, 0.8) !important;
         border: 1px solid rgba(255, 75, 75, 0.2);
@@ -35,11 +35,11 @@ st.markdown(
     }}
     /* Encadré semi-transparent pour rendre les formulaires d'authentification lisibles */
     .auth-container {{
-        background-color: rgba(15, 15, 15, 0.75);
+        background-color: rgba(15, 15, 15, 0.85);
         padding: 30px;
         border-radius: 15px;
         border: 1px solid rgba(255, 255, 255, 0.1);
-        margin-top: 200px; /* Laisse de l'espace pour voir le logo du fond */
+        margin-top: 220px; /* Laisse de l'espace pour voir le logo du fond */
     }}
     </style>
     """,
@@ -173,7 +173,7 @@ def systeme_authentification():
                                 st.session_state.page_recup = False
                                 st.rerun()
                             else:
-                                st.error("La réponse à la question secrète est incorrecte.")
+                                'st.error("La réponse à la question secrète est incorrecte.")'
                         else:
                             st.error("Veuillez remplir tous les champs.")
                 else:
@@ -285,68 +285,4 @@ if "personnage_actuel" not in st.session_state or st.session_state.personnage_ac
             contexte_perso = f.read()
         
         prompt_systeme = (
-            f"Tu es {choix_perso}. Voici ta personnalité, tes secrets et ton histoire : {contexte_perso}. "
-            f"Tu te trouves actuellement dans un univers de type [{categorie_choisie}]. "
-            "Ceci est un jeu de rôle textuel interactif, immersif et romantique. Reste TOUJOURS strictement dans ton personnage. "
-            "Fais des réponses engageantes mais courtes pour laisser l'utilisateur répondre. "
-            "Décris TOUJOURS tes actions, expressions corporelles et pensées entre astérisques *comme ceci* "
-            "et utilise les guillemets ou le texte normal pour les dialogues."
-        )
-        st.session_state.messages = [{"role": "system", "content": prompt_systeme}]
-
-if st.sidebar.button("🗑️ Recommencer l'histoire"):
-    if len(st.session_state.messages) > 0:
-        st.session_state.messages = [st.session_state.messages[0]]
-        st.rerun()
-
-# --- FORMULAIRE DE CRÉATION DE PERSONNAGE ---
-st.sidebar.markdown("---")
-with st.sidebar.expander("➕ Créer un personnage"):
-    nom_perso = st.text_input("Nom du personnage")
-    univers_perso = st.selectbox("Assigner à l'univers", CATEGORIES, key="create_cat")
-    bio_perso = st.text_area("Description / Background (Sa 'Bible')")
-    
-    if st.button("Sauvegarder le personnage"):
-        if nom_perso and bio_perso:
-            nom_propre = nom_perso.strip().replace("/", "_")
-            chemin_sauvegarde = os.path.join(BASE_DIR, univers_perso, f"{nom_propre}.txt")
-            
-            with open(chemin_sauvegarde, "w", encoding="utf-8") as f:
-                f.write(bio_perso)
-                
-            st.success(f"✨ {nom_propre} a rejoint l'univers {univers_perso} !")
-            st.rerun()
-        else:
-            st.error("Veuillez remplir le nom et la description.")
-
-# ==========================================
-# 6. INTERFACE DE CHAT PRINCIPALE
-# ==========================================
-if choix_perso and choix_perso != "Aucun personnage":
-    st.markdown(f"<h1 style='color: white; text-shadow: 2px 2px 8px #000000;'>🎭 {choix_perso} <span style='font-size:16px; color:#ff4b4b;'>({categorie_choisie})</span></h1>", unsafe_allow_html=True)
-
-    for message in st.session_state.messages:
-        if message["role"] != "system":
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
-
-    if prompt := st.chat_input(f"Écris la suite de ton histoire avec {choix_perso}..."):
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
-
-        with st.chat_message("assistant"):
-            placeholder = st.empty()
-            
-            response = client.chat.completions.create(
-                messages=st.session_state.messages,
-                model="llama-3.1-8b-instant",
-                temperature=0.8,
-            )
-            
-            reponse_ia = response.choices[0].message.content
-            placeholder.markdown(reponse_ia)
-            
-        st.session_state.messages.append({"role": "assistant", "content": reponse_ia})
-else:
-    st.info("Sélectionnez ou créez un personnage dans le menu latéral pour commencer l'aventure.")
+            f"Tu es {choix_perso}. Voici ta personnalité, tes secrets et ton histoire : {contexte_
