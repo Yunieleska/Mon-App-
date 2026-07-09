@@ -8,16 +8,16 @@ import base64
 script_dir = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = os.path.join(script_dir, "storyia_users.db")
 
-# --- LISTE DE TES PERSONNAGES (Utilise les fichiers dans ton dossier) ---
+# --- LISTE DE TES PERSONNAGES (Noms corrigés en minuscules) ---
 personnages = [
     {"nom": "Caelum", "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"},
     {"nom": "Alexei", "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg"},
     {"nom": "Killian", "img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg"},
-    {"nom": "Lucas", "img": "Lucas.PNG"},
-    {"nom": "Ethan", "img": "Ethan.PNG"},
-    {"nom": "Léo", "img": "Léo.PNG"},
-    {"nom": "Liam", "img": "Liam.PNG"},
-    {"nom": "Noah", "img": "Noah.PNG"}
+    {"nom": "Lucas", "img": "lucas.png"},
+    {"nom": "Ethan", "img": "ethan.png"},
+    {"nom": "Léo", "img": "léo.png"},
+    {"nom": "Liam", "img": "liam.png"},
+    {"nom": "Noah", "img": "noah.png"}
 ]
 
 def hash_pass(p):
@@ -81,7 +81,7 @@ if not st.session_state.authentifie:
             conn.close()
 else:
     st.title("Choisis ton personnage")
-    cols = st.columns(4) # Ajusté pour 4 colonnes vu que tu as plus de personnages
+    cols = st.columns(4)
     for i, p in enumerate(personnages):
         with cols[i % 4]:
             st.markdown('<div class="char-card">', unsafe_allow_html=True)
