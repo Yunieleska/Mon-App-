@@ -8,12 +8,12 @@ import base64
 script_dir = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = os.path.join(script_dir, "storyia_users.db")
 
-# --- LISTE DE TES PERSONNAGES (Liens directs corrigés) ---
+# --- LISTE DE TES PERSONNAGES ---
 personnages = [
     {"nom": "Caelum", "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"},
     {"nom": "Alexei", "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg"},
     {"nom": "Killian", "img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg"},
-    {"nom": "Lucas", "img": "https://i.pinimg.com/736x/95/9d/54/959d543e49e0839e4468f76016e78864.jpg"},
+    {"nom": "Lucas", "img": "https://i.ibb.co/37456J5z/9mF2wXbL.jpg"},
     {"nom": "Ethan", "img": "https://i.pinimg.com/736x/2a/5a/53/2a5a53856b3e34b9d0737a42a222383c.jpg"},
     {"nom": "Léo", "img": "https://i.pinimg.com/736x/e4/f9/52/e4f952136e05f6e87398912e6971936c.jpg"},
     {"nom": "Liam", "img": "https://i.pinimg.com/736x/07/77/65/077765103a8848d7d8e6c4664879d72e.jpg"}
