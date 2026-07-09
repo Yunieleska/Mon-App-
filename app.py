@@ -1,27 +1,29 @@
 import streamlit as st
-import os
 import sqlite3
 import hashlib
+import os
 import base64
-
-# --- LIGNE DE SECOURS (Si erreur persistante, enleve le '#' devant la ligne suivante pour reset) ---
-# os.remove("storyia_users.db")
 
 # CONFIGURATION
 DB_FILE = "storyia_users.db"
 
-# HASHAGE (fixé en utf-8 pour la cohérence)
+# HASHAGE
 def hash_pass(p):
     return hashlib.sha256(p.strip().encode('utf-8')).hexdigest()
 
-# AFFICHAGE BANNIÈRE (Utilise fond.png)
+# BANNIÈRE
 def display_banner():
     if os.path.exists("fond.png"):
         with open("fond.png", "rb") as f:
             data = base64.b64encode(f.read()).decode()
             st.markdown(f'<div style="text-align:center;"><img src="data:image/png;base64,{data}" style="width:100%; max-width:600px; border-radius:15px;"></div>', unsafe_allow_html=True)
 
-# CONFIGURATION PAGE
+# INITIALISATION BASE
+conn = sqlite3.connect(DB_FILE)
+conn.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, question TEXT, answer TEXT)')
+conn.commit(); conn.close()
+
+# CONFIG PAGE
 st.set_page_config(page_title="Storyia", layout="wide")
 st.markdown("""
     <style>
@@ -30,45 +32,66 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# BASE DE DONNÉES
-conn = sqlite3.connect(DB_FILE)
-conn.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, question TEXT, answer TEXT)')
-conn.commit(); conn.close()
-
-# SESSION
 if "authentifie" not in st.session_state: st.session_state.authentifie = False
+if "mode" not in st.session_state: st.session_state.mode = "login"
 
 # LOGIQUE
 if not st.session_state.authentifie:
     display_banner()
     st.title("Bienvenue sur Storyia")
     
-    tab1, tab2 = st.tabs(["🔒 Connexion", "📝 S'inscrire"])
-    with tab1:
-        u = st.text_input("Pseudo", key="login_u")
-        p = st.text_input("Mot de passe", type="password", key="login_p")
-        if st.button("Se connecter"):
-            conn = sqlite3.connect(DB_FILE)
-            user = conn.execute('SELECT username FROM users WHERE username=? AND password=?', (u.strip(), hash_pass(p))).fetchone()
-            conn.close()
-            if user:
-                st.session_state.authentifie = True
-                st.session_state.username = user[0]
+    if st.session_state.mode == "login":
+        tab1, tab2 = st.tabs(["🔒 Connexion", "📝 S'inscrire"])
+        with tab1:
+            u = st.text_input("Pseudo", key="log_u")
+            p = st.text_input("Mot de passe", type="password", key="log_p")
+            if st.button("Se connecter"):
+                conn = sqlite3.connect(DB_FILE)
+                user = conn.execute('SELECT username FROM users WHERE username=? AND password=?', (u.strip(), hash_pass(p))).fetchone()
+                conn.close()
+                if user:
+                    st.session_state.authentifie = True
+                    st.session_state.username = user[0]
+                    st.rerun()
+                else: st.error("Identifiants incorrects.")
+            if st.button("Mot de passe oublié ?"):
+                st.session_state.mode = "recup"
                 st.rerun()
-            else: st.error("Identifiants incorrects.")
-    with tab2:
-        nu = st.text_input("Nouveau pseudo", key="reg_u")
-        np = st.text_input("Nouveau mot de passe", type="password", key="reg_p")
-        if st.button("S'inscrire"):
-            conn = sqlite3.connect(DB_FILE)
-            try:
-                conn.execute('INSERT INTO users VALUES (?,?,?,?)', (nu.strip(), hash_pass(np), "Q", "A"))
-                conn.commit()
-                st.success("Compte créé ! Connecte-toi.")
-            except: st.error("Pseudo déjà pris.")
-            conn.close()
+        with tab2:
+            nu = st.text_input("Nouveau pseudo", key="reg_u")
+            np = st.text_input("Nouveau mot de passe", type="password", key="reg_p")
+            q = st.selectbox("Question", ["Animal ?", "Ville ?", "Mère ?"])
+            a = st.text_input("Réponse", type="password")
+            if st.button("S'inscrire"):
+                conn = sqlite3.connect(DB_FILE)
+                try:
+                    conn.execute('INSERT INTO users VALUES (?,?,?,?)', (nu.strip(), hash_pass(np), q, hash_pass(a)))
+                    conn.commit()
+                    st.success("Compte créé ! Connecte-toi.")
+                except: st.error("Pseudo déjà pris.")
+                conn.close()
+
+    elif st.session_state.mode == "recup":
+        st.subheader("Récupération de mot de passe")
+        ru = st.text_input("Ton pseudo")
+        conn = sqlite3.connect(DB_FILE)
+        data = conn.execute('SELECT question, answer FROM users WHERE username=?', (ru.strip(),)).fetchone()
+        conn.close()
+        if data:
+            st.write(f"Question : **{data[0]}**")
+            ra = st.text_input("Ta réponse", type="password")
+            nnp = st.text_input("Nouveau mot de passe", type="password")
+            if st.button("Valider la récupération"):
+                if hash_pass(ra) == data[1]:
+                    conn = sqlite3.connect(DB_FILE)
+                    conn.execute('UPDATE users SET password=? WHERE username=?', (hash_pass(nnp), ru.strip()))
+                    conn.commit(); conn.close()
+                    st.success("Mot de passe mis à jour !")
+                    st.session_state.mode = "login"; st.rerun()
+                else: st.error("Réponse incorrecte.")
+        if st.button("Retour à la connexion"):
+            st.session_state.mode = "login"; st.rerun()
 else:
     st.write(f"Bonjour {st.session_state.username} !")
     if st.button("Déconnexion"):
-        st.session_state.authentifie = False
-        st.rerun()
+        st.session_state.authentifie = False; st.rerun()
