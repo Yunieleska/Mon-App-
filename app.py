@@ -5,7 +5,6 @@ import os
 import base64
 
 # CONFIGURATION
-# On force le chemin complet pour être certain de l'endroit
 script_dir = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = os.path.join(script_dir, "storyia_users.db")
 
@@ -13,6 +12,7 @@ def hash_pass(p):
     return hashlib.sha256(p.strip().encode('utf-8')).hexdigest()
 
 def display_banner():
+    # On cherche bg.png car c'est le nom de ton image
     dossier_actuel = os.getcwd()
     fichiers = os.listdir(dossier_actuel)
     image_nom = next((f for f in fichiers if f.lower() == "bg.png"), None)
@@ -23,13 +23,13 @@ def display_banner():
             data = base64.b64encode(f.read()).decode()
             st.markdown(f'<div style="text-align:center;"><img src="data:image/png;base64,{data}" style="width:100%; max-width:600px; border-radius:15px;"></div>', unsafe_allow_html=True)
     else:
-        st.warning("Fichier 'bg.png' introuvable.")
+        st.warning("Image 'bg.png' introuvable.")
 
 # CONFIG PAGE
 st.set_page_config(page_title="Storyia", layout="wide")
+st.markdown("""<style>.stApp { background-color: #0B0E14 !important; color: white; }</style>""", unsafe_allow_html=True)
 
 # AFFICHAGE
-st.write(f"Base de données située ici : {DB_FILE}") # Pour que tu puisses la localiser
 display_banner()
 
 # INITIALISATION BASE
@@ -38,7 +38,6 @@ conn.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, passw
 conn.commit(); conn.close()
 
 if "authentifie" not in st.session_state: st.session_state.authentifie = False
-if "mode" not in st.session_state: st.session_state.mode = "login"
 
 # LOGIQUE DE CONNEXION
 if not st.session_state.authentifie:
@@ -50,6 +49,7 @@ if not st.session_state.authentifie:
         p = st.text_input("Mot de passe", type="password", key="log_p")
         if st.button("Se connecter"):
             conn = sqlite3.connect(DB_FILE)
+            # On vérifie si l'utilisateur existe
             user = conn.execute('SELECT username FROM users WHERE username=? AND password=?', (u.strip(), hash_pass(p))).fetchone()
             conn.close()
             if user:
