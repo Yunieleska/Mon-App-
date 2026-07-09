@@ -11,17 +11,20 @@ def hash_pass(p):
     return hashlib.sha256(p.strip().encode('utf-8')).hexdigest()
 
 def display_banner():
-    # Méthode infaillible : on récupère le répertoire du fichier app.py actuel
-    # Cela fonctionne même dans les environnements isolés de GitHub
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    image_path = os.path.join(script_dir, "fond.png")
+    # On liste les fichiers du dossier courant pour trouver 'fond.png'
+    dossier_actuel = os.getcwd()
+    fichiers = os.listdir(dossier_actuel)
     
-    if os.path.exists(image_path):
+    # Cherche une correspondance insensible à la casse
+    image_nom = next((f for f in fichiers if f.lower() == "fond.png"), None)
+    
+    if image_nom:
+        image_path = os.path.join(dossier_actuel, image_nom)
         with open(image_path, "rb") as f:
             data = base64.b64encode(f.read()).decode()
             st.markdown(f'<div style="text-align:center;"><img src="data:image/png;base64,{data}" style="width:100%; max-width:600px; border-radius:15px;"></div>', unsafe_allow_html=True)
     else:
-        st.warning(f"Image introuvable. Chemin testé : {image_path}")
+        st.warning(f"Fichier 'fond.png' non trouvé dans : {dossier_actuel}. Fichiers présents : {fichiers}")
 
 # CONFIG PAGE
 st.set_page_config(page_title="Storyia", layout="wide")
@@ -32,21 +35,20 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# INITIALISATION BASE
+# BASE DE DONNÉES
 conn = sqlite3.connect(DB_FILE)
 conn.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, question TEXT, answer TEXT)')
 conn.commit(); conn.close()
 
-# AFFICHAGE BANNIÈRE
+# AFFICHAGE
 display_banner()
 
 if "authentifie" not in st.session_state: st.session_state.authentifie = False
 if "mode" not in st.session_state: st.session_state.mode = "login"
 
-# LOGIQUE
+# LOGIQUE (inchangée)
 if not st.session_state.authentifie:
     st.title("Bienvenue sur Storyia")
-    
     if st.session_state.mode == "login":
         tab1, tab2 = st.tabs(["🔒 Connexion", "📝 S'inscrire"])
         with tab1:
