@@ -1,56 +1,32 @@
 import streamlit as st
-from groq import Groq
 
-# Configuration de la page
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="collapsed")
 
-# --- INITIALISATION ---
-if "page" not in st.session_state: st.session_state.page = "home"
-if "char_select" not in st.session_state: st.session_state.char_select = None
-
 # --- DONNÉES DES PERSONNAGES ---
-# Ici sont regroupées les infos pour l'affichage ET pour l'IA
-personnages_data = {
-    "Noah": {
-        "img": "Noah.png",
-        "accroche": "Regarde-moi dans les yeux quand je te parle.",
-        "prompt": "Tu es Noah, quaterback star, distant au lycée mais attentionné et profond par SMS avec {{user}}..."
-    },
-    "Caelum": {
-        "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
-        "accroche": "Tu es sur mon chemin, humaine. Disparais.",
-        "prompt": "Tu es Caelum, Prince des Ténèbres. Froid, arrogant, distant, fiancé de force, mais secrètement protecteur..."
-    },
-    # ... Ajoute les autres ici de la même manière
-}
+personnages = [
+    {"nom": "Caelum", "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", "accroche": "Tu es sur mon chemin, humaine. Disparais."},
+    {"nom": "Alexei", "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg", "accroche": "La mafia n'attend personne."},
+    {"nom": "Killian", "img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg", "accroche": "On joue selon mes règles."},
+    {"nom": "Noah", "img": "Noah.png", "accroche": "Regarde-moi dans les yeux quand je te parle."},
+    {"nom": "Lucas", "img": "Lucas.png", "accroche": "Je t'attendais, tu es en retard."},
+    {"nom": "Ethan", "img": "Ethan.png", "accroche": "Laisse tes problèmes à la porte."},
+    {"nom": "Léo", "img": "Léo.png", "accroche": "Tu es enfin là, je m'impatientais."},
+    {"nom": "Liam", "img": "Liam.png", "accroche": "Viens voir ce que je te réserve."}
+]
 
 # --- PAGE D'ACCUEIL ---
-if st.session_state.page == "home":
-    st.title("Choisis ton personnage")
-    cols = st.columns(4)
-    
-    # Liste des noms pour la boucle
-    noms = ["Noah", "Caelum", "Lucas", "Ethan", "Léo", "Liam", "Alexei", "Killian"]
-    
-    for i, nom in enumerate(noms):
-        with cols[i % 4]:
-            # Utilise soit une URL soit un fichier local
-            img = personnages_data.get(nom, {}).get("img", f"{nom}.png")
-            st.image(img, use_container_width=True)
-            st.subheader(nom)
-            st.caption(personnages_data.get(nom, {}).get("accroche", "Prête à commencer ?"))
-            
-            if st.button(f"Chatter avec {nom}", key=f"btn_{nom}"):
-                st.session_state.char_select = nom
-                st.session_state.page = "chat"
-                st.rerun()
+st.title("Choisis ton personnage")
 
-# --- PAGE DE CHAT ---
-elif st.session_state.page == "chat":
-    st.title(f"Discussion avec {st.session_state.char_select}")
-    if st.button("⬅ Retour au choix"):
-        st.session_state.page = "home"
-        st.rerun()
+cols = st.columns(4)
+for i, p in enumerate(personnages):
+    with cols[i % 4]:
+        # Affiche l'image (URL ou locale)
+        st.image(p["img"], use_container_width=True)
+        st.subheader(p["nom"])
+        st.caption(p["accroche"])
         
-    # Ici tu inséreras la logique d'appel à Groq avec st.session_state.char_select
-    st.write(f"Connexion avec l'IA pour {st.session_state.char_select} en cours...")
+        if st.button(f"Chatter avec {p['nom']}", key=f"btn_{i}"):
+            st.session_state.char_select = p["nom"]
+            st.session_state.page = "chat"
+            # Ici tu pourras plus tard ajouter st.rerun() pour basculer
+            st.success(f"Mode chat activé pour {p['nom']} !")
