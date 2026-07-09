@@ -9,22 +9,22 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = os.path.join(script_dir, "storyia_users.db")
 
 # --- LISTE DES PERSONNAGES ---
-# Important : Assure-toi que le dossier 'Personnages' existe bien à la racine
+# J'ai retiré 'Personnages/' car tes fichiers sont à la racine
+# J'ai mis les noms exacts (avec .PNG et majuscules)
 personnages = [
     {"nom": "Caelum", "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", "type": "url"},
     {"nom": "Alexei", "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg", "type": "url"},
     {"nom": "Killian", "img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg", "type": "url"},
-    {"nom": "Lucas", "img": "Personnages/lucas.png", "type": "file"},
-    {"nom": "Ethan", "img": "Personnages/ethan.png", "type": "file"},
-    {"nom": "Léo", "img": "Personnages/léo.png", "type": "file"},
-    {"nom": "Liam", "img": "Personnages/liam.png", "type": "file"},
-    {"nom": "Noah", "img": "Personnages/noah.png", "type": "file"}
+    {"nom": "Lucas", "img": "Lucas.PNG", "type": "file"},
+    {"nom": "Ethan", "img": "Ethan.PNG", "type": "file"},
+    {"nom": "Léo", "img": "Léo.PNG", "type": "file"},
+    {"nom": "Liam", "img": "Liam.PNG", "type": "file"},
+    {"nom": "Noah", "img": "Noah.PNG", "type": "file"}
 ]
 
 # --- INITIALISATION ÉTATS ---
 if "page" not in st.session_state: st.session_state.page = "home"
 if "char_select" not in st.session_state: st.session_state.char_select = None
-if "authentifie" not in st.session_state: st.session_state.authentifie = False
 if "messages" not in st.session_state: st.session_state.messages = []
 
 # --- STYLE CSS ---
@@ -48,6 +48,7 @@ if st.session_state.page == "home":
             if p["type"] == "url":
                 st.image(p["img"], use_container_width=True)
             else:
+                # Vérification simple du fichier à la racine
                 if os.path.exists(p["img"]):
                     st.image(p["img"], use_container_width=True)
                 else:
@@ -61,7 +62,6 @@ if st.session_state.page == "home":
             st.markdown('</div>', unsafe_allow_html=True)
 
 elif st.session_state.page == "chat":
-    # Bouton retour
     if st.button("← Retour à la sélection"):
         st.session_state.page = "home"
         st.rerun()
@@ -74,5 +74,4 @@ elif st.session_state.page == "chat":
     
     if prompt := st.chat_input(f"Dis quelque chose à {st.session_state.char_select}..."):
         st.session_state.messages.append(prompt)
-        # Ici tu pourras plus tard ajouter l'appel à ton API IA
         st.rerun()
