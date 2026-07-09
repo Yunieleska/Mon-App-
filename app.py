@@ -60,12 +60,6 @@ st.markdown(
     }
     
     /* DESIGN GRILLE STYLE CHARACTER.AI */
-    .character-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-        gap: 20px;
-        padding: 10px 0;
-    }
     .char-card-box {
         background: #181E2A;
         border: 1px solid #242F41;
@@ -73,6 +67,7 @@ st.markdown(
         padding: 20px;
         text-align: center;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin-bottom: 10px;
     }
     .char-avatar-circle {
         width: 70px;
@@ -98,7 +93,7 @@ st.markdown(
         line-height: 1.4;
         height: 40px;
         overflow: hidden;
-        margin-bottom: 15px;
+        margin-bottom: 5px;
     }
     </style>
     """,
@@ -172,7 +167,7 @@ def get_security_question(username):
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute('SELECT security_question FROM users WHERE LOWER(username) = LOWER(?)', (username.strip(),))
-    data = c.fetchone() # <- Ligne corrigée ici !
+    data = c.fetchone()
     conn.close()
     return data[0] if data else None
 
@@ -275,9 +270,6 @@ for cat in CATEGORIES:
     cat_path = os.path.join(BASE_DIR, cat)
     if not os.path.exists(cat_path):
         os.makedirs(cat_path)
-    if not os.listdir(cat_path):
-        with open(os.path.join(cat_path, "Exemple.txt"), "w", encoding="utf-8") as f:
-            f.write("Tu es un personnage mystérieux et séduisant de cet univers.")
 
 # ==========================================
 # 5. MENU LATÉRAL
@@ -326,83 +318,10 @@ with st.sidebar.expander("➕ Créer un personnage"):
 path_persos_filtres = os.path.join(BASE_DIR, categorie_choisie)
 liste_fichiers = [f for f in os.listdir(path_persos_filtres) if f.endswith(".txt")] if os.path.exists(path_persos_filtres) else []
 
-# --- MODE 1 : HUB C.AI (BANNIÈRE CONTENUE + GRILLE COMPACTE) ---
+# --- MODE 1 : HUB C.AI ---
 if st.session_state.personnage_actuel is None:
-    # Bannière affichée proprement en haut de page
     if image_base64:
         st.markdown(
             f"""
             <div style="text-align: center; margin-bottom: 25px;">
-                <img src="data:image/png;base64,{image_base64}" style="width: 100%; max-width: 650px; border-radius: 14px; box-shadow: 0px 4px 15px rgba(0,0,0,0.5);">
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-    
-    st.markdown(f"### ✨ Personnages actifs ({categorie_choisie})")
-    
-    if not liste_fichiers:
-        st.info("Aucun personnage pour l'instant. Crée-en un depuis le menu latéral.")
-    else:
-        # Grille native à 4 colonnes pour un rendu similaire à Character.ai
-        cols = st.columns(4)
-        for index, fichier in enumerate(liste_fichiers):
-            nom_perso = fichier.replace(".txt", "")
-            
-            # Lecture ultra-sécurisée contre les bugs d'encodage (errors="ignore")
-            try:
-                with open(os.path.join(path_persos_filtres, fichier), "r", encoding="utf-8", errors="ignore") as f:
-                    description = f.read()
-            except Exception:
-                description = "Pas de description disponible."
-            
-            with cols[index % 4]:
-                # Rendu HTML de la tuile
-                st.markdown(
-                    f"""
-                    <div class="char-card-box">
-                        <div class="char-avatar-circle">🎭</div>
-                        <div class="char-title">{nom_perso}</div>
-                        <div class="char-subtitle">{description[:50]}...</div>
-                    </div>
-                    """, 
-                    unsafe_allow_html=True
-                )
-                # Le bouton Streamlit qui s'intègre sous la tuile
-                if st.button(f"Chatter avec {nom_perso}", key=f"btn_{nom_perso}", use_container_width=True):
-                    st.session_state.personnage_actuel = nom_perso
-                    prompt_systeme = (
-                        f"Tu es {nom_perso}. Contexte : {description}. Univers : [{categorie_choisie}]. "
-                        "Jeu de rôle immersif. Réponses courtes. Décris les actions entre astérisques *comme ceci*."
-                    )
-                    st.session_state.messages = [{"role": "system", "content": prompt_systeme}]
-                    st.rerun()
-
-# --- MODE 2 : CHAT UNIQUE ---
-else:
-    choix_perso = st.session_state.personnage_actuel
-    st.markdown(f"## 🎭 En plein RP avec {choix_perso}")
-
-    # Boucle de rendu des messages protégée contre le session_state instable
-    if "messages" in st.session_state and st.session_state.messages:
-        for message in st.session_state.messages:
-            if message["role"] != "system":
-                with st.chat_message(message["role"]):
-                    st.markdown(message["content"])
-
-    if prompt := st.chat_input("Écris ton action ou dialogue..."):
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
-
-        with st.chat_message("assistant"):
-            placeholder = st.empty()
-            response = client.chat.completions.create(
-                messages=st.session_state.messages,
-                model="llama-3.1-8b-instant",
-                temperature=0.8
-            )
-            reponse_ia = response.choices[0].message.content
-            placeholder.markdown(reponse_ia)
-            
-        st.session_state.messages.append({"role": "assistant", "content": reponse_ia})
+                <img src="data:image/png;base64,{image_base64}" style="width: 100%; max-width: 650px
