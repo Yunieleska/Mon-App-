@@ -6,6 +6,7 @@ st.set_page_config(page_title="Storyia", layout="wide")
 
 # Fonction pour lire les fichiers .txt dans le dossier 'Personnages'
 def lire_accroche(nom):
+    # Chemin corrigé avec le sous-dossier
     chemin = f"Personnages/{nom}.txt"
     if os.path.exists(chemin):
         with open(chemin, "r", encoding="utf-8") as f:
@@ -17,11 +18,11 @@ personnages = [
     {"nom": "Caelum", "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"},
     {"nom": "Alexei", "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg"},
     {"nom": "Killian", "img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg"},
-    {"nom": "Lucas", "img": "Lucas.png"}, 
-    {"nom": "Ethan", "img": "Ethan.png"},
-    {"nom": "Léo", "img": "Léo.png"},
-    {"nom": "Liam", "img": "Liam.png"},
-    {"nom": "Noah", "img": "Noah.png"}
+    {"nom": "Lucas", "img": "Personnages/Lucas.png"}, 
+    {"nom": "Ethan", "img": "Personnages/Ethan.png"},
+    {"nom": "Léo", "img": "Personnages/Léo.png"},
+    {"nom": "Liam", "img": "Personnages/Liam.png"},
+    {"nom": "Noah", "img": "Personnages/Noah.png"}
 ]
 
 # --- INITIALISATION ÉTATS ---
@@ -45,9 +46,10 @@ if st.session_state.page == "home":
     for i, p in enumerate(personnages):
         with cols[i % 4]:
             st.markdown('<div class="char-card">', unsafe_allow_html=True)
+            # Affichage de l'image (chemin corrigé dans la liste plus haut)
             st.image(p["img"], use_container_width=True)
             st.subheader(p["nom"])
-            # Ici on récupère et affiche l'accroche depuis le fichier texte
+            # Lecture de l'accroche dans le dossier Personnages
             st.caption(lire_accroche(p["nom"]))
             
             if st.button(f"Chatter", key=f"btn_{i}"):
