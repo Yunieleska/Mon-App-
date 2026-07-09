@@ -2,7 +2,6 @@ import streamlit as st
 import os
 import sqlite3
 import hashlib
-import base64
 from groq import Groq
 
 # ==========================================
@@ -10,74 +9,42 @@ from groq import Groq
 # ==========================================
 st.set_page_config(page_title="Storyia - AI Roleplay", layout="centered")
 
-def get_base64_image(image_path):
-    """Encode l'image locale en base64 pour contourner les blocages d'hébergeurs."""
-    if os.path.exists(image_path):
-        with open(image_path, "rb") as img_file:
-            return base64.b64encode(img_file.read()).decode()
-    return None
+# Lien direct et stable via le CDN Imgur
+IMAGE_FOND = "https://i.imgur.com/GisLhYl.png"
 
-# Chargement de ton image locale
-image_base64 = get_base64_image("bg.png")
-
-if image_base64:
-    st.markdown(
-        f"""
-        <style>
-        .stApp {{
-            background-image: url("data:image/png;base64,{image_base64}");
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-        }}
-        /* Style pour les messages de chat (Bulles sombres semi-transparentes) */
-        .stChatMessage {{
-            background-color: rgba(20, 20, 20, 0.8) !important;
-            border: 1px solid rgba(255, 75, 75, 0.2);
-            border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 10px;
-            color: #ffffff !important;
-        }}
-        .stChatMessage p {{
-            color: #ffffff !important;
-        }}
-        /* Encadré semi-transparent pour rendre les formulaires d'authentification lisibles */
-        .auth-container {{
-            background-color: rgba(15, 15, 15, 0.85);
-            padding: 30px;
-            border-radius: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            margin-top: 220px; /* Laisse de l'espace pour voir le logo du fond */
-        }}
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-else:
-    # Si l'image bg.png n'est pas trouvée, on met un fond sombre par défaut pour éviter le blanc
-    st.markdown(
-        """
-        <style>
-        .stApp { background-color: #0e1117; }
-        .stChatMessage {
-            background-color: #1a1c23 !important;
-            border: 1px solid rgba(255, 75, 75, 0.3);
-            border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 10px;
-        }
-        .auth-container {
-            background-color: #1a1c23;
-            padding: 30px;
-            border-radius: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            margin-top: 50px;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+st.markdown(
+    f"""
+    <style>
+    .stApp {{
+        background-image: url("{IMAGE_FOND}");
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+    }}
+    /* Style pour les messages de chat (Bulles sombres semi-transparentes) */
+    .stChatMessage {{
+        background-color: rgba(20, 20, 20, 0.8) !important;
+        border: 1px solid rgba(255, 75, 75, 0.2);
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 10px;
+        color: #ffffff !important;
+    }}
+    .stChatMessage p {{
+        color: #ffffff !important;
+    }}
+    /* Encadré semi-transparent pour rendre les formulaires d'authentification lisibles */
+    .auth-container {{
+        background-color: rgba(15, 15, 15, 0.85);
+        padding: 30px;
+        border-radius: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin-top: 220px; /* Laisse de l'espace pour voir le logo du fond */
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 # ==========================================
 # 2. GESTION DE LA BASE DE DONNÉES
