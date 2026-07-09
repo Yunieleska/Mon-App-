@@ -11,12 +11,11 @@ def hash_pass(p):
     return hashlib.sha256(p.strip().encode('utf-8')).hexdigest()
 
 def display_banner():
-    # Retour au nom de fichier 'fond.png' tel qu'il apparaît dans ton explorateur
     dossier_actuel = os.getcwd()
     fichiers = os.listdir(dossier_actuel)
     
-    # Cherche 'fond.png' spécifiquement
-    image_nom = next((f for f in fichiers if f.lower() == "fond.png"), None)
+    # Correction définitive : on cherche 'bg.png' car c'est le nom détecté
+    image_nom = next((f for f in fichiers if f.lower() == "bg.png"), None)
     
     if image_nom:
         image_path = os.path.join(dossier_actuel, image_nom)
@@ -24,7 +23,7 @@ def display_banner():
             data = base64.b64encode(f.read()).decode()
             st.markdown(f'<div style="text-align:center;"><img src="data:image/png;base64,{data}" style="width:100%; max-width:600px; border-radius:15px;"></div>', unsafe_allow_html=True)
     else:
-        st.warning(f"Fichier 'fond.png' introuvable.")
+        st.warning(f"Fichier image non trouvé. Cherché 'bg.png'. Fichiers présents : {fichiers}")
 
 # CONFIG PAGE
 st.set_page_config(page_title="Storyia", layout="wide")
@@ -35,7 +34,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# BOUTON RESET (pour régler ton problème de connexion)
+# BOUTON RESET
 if st.sidebar.button("RESET TOTAL (Si erreur persistante)"):
     for key in st.session_state.keys(): del st.session_state[key]
     st.rerun()
@@ -61,7 +60,6 @@ if not st.session_state.authentifie:
             p = st.text_input("Mot de passe", type="password", key="log_p")
             if st.button("Se connecter"):
                 conn = sqlite3.connect(DB_FILE)
-                # Recherche du user avec le mot de passe hashé
                 user = conn.execute('SELECT username FROM users WHERE username=? AND password=?', (u.strip(), hash_pass(p))).fetchone()
                 conn.close()
                 if user:
@@ -69,7 +67,7 @@ if not st.session_state.authentifie:
                     st.session_state.username = user[0]
                     st.rerun()
                 else: 
-                    st.error("Identifiants incorrects. Si tu viens de changer le code, supprime 'storyia_users.db' à gauche pour refaire ton compte.")
+                    st.error("Identifiants incorrects. Si tu viens de changer le code, clique sur le bouton RESET à gauche et supprime 'storyia_users.db'.")
             if st.button("Mot de passe oublié ?"):
                 st.session_state.mode = "recup"
                 st.rerun()
