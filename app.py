@@ -186,7 +186,6 @@ def systeme_authentification():
                 else:
                     st.error("Pseudo ou mot de passe incorrect.")
             
-            # Correction de l'erreur ici (retrait du paramètre variant)
             if st.button("Mot de passe oublié ?"):
                 st.session_state.page_recup = True
                 st.rerun()
@@ -308,4 +307,30 @@ with st.sidebar.expander("➕ Créer un personnage"):
 # 6. INTERFACE DE CHAT PRINCIPALE
 # ==========================================
 if choix_perso and choix_perso != "Aucun personnage":
-    st.markdown(f"<h1 style='color: white; text-shadow: 2px 2px 8px #000000;'>🎭 {choix_perso} <span style='font-size:16px; color:#ff4b4b;'>({categorie_choisie})</span></h1>", unsafe_allow_html=True) dans le menu latéral pour commencer l'aventure.")
+    st.markdown(f"<h1 style='color: white; text-shadow: 2px 2px 8px #000000;'>🎭 {choix_perso} <span style='font-size:16px; color:#ff4b4b;'>({categorie_choisie})</span></h1>", unsafe_allow_html=True)
+
+    for message in st.session_state.messages:
+        if message["role"] != "system":
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
+
+    if prompt := st.chat_input(f"Écris la suite de ton histoire avec {choix_perso}..."):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        with st.chat_message("assistant"):
+            placeholder = st.empty()
+            
+            response = client.chat.completions.create(
+                messages=st.session_state.messages,
+                model="llama-3.1-8b-instant",
+                temperature=0.8,
+            )
+            
+            reponse_ia = response.choices[0].message.content
+            placeholder.markdown(reponse_ia)
+            
+        st.session_state.messages.append({"role": "assistant", "content": reponse_ia})
+else:
+    st.info("Sélectionnez ou créez un personnage dans le menu latéral pour commencer l'aventure.")
