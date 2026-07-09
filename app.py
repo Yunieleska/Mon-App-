@@ -1,40 +1,26 @@
 import streamlit as st
 import os
 
-st.set_page_config(page_title="Storyia", layout="wide")
+st.set_page_config(page_title="Debug Page", layout="wide")
 
-# Fonction améliorée qui cherche le fichier .txt PARTOUT dans le dossier Personnages
-def trouver_accroche(nom):
-    nom_fichier = f"{nom}.txt"
-    # On parcourt le dossier Personnages et tous ses sous-dossiers
-    for root, dirs, files in os.walk("Personnages"):
-        if nom_fichier in files:
-            chemin = os.path.join(root, nom_fichier)
-            with open(chemin, "r", encoding="utf-8") as f:
-                return f.read().strip()
-    return "Clique pour commencer une romance..."
+st.title("Diagnostic des fichiers")
 
-# --- PERSONNAGES ---
-# Tes images sont à la racine, donc on laisse le nom du fichier tel quel
-personnages = [
-    {"nom": "Lucas", "img": "Lucas.png"},
-    {"nom": "Ethan", "img": "Ethan.png"},
-    {"nom": "Léo", "img": "Léo.png"},
-    {"nom": "Liam", "img": "Liam.png"},
-    {"nom": "Noah", "img": "Noah.png"}
-]
+# 1. Liste tout ce qui existe à la racine
+st.subheader("Fichiers trouvés à la racine du projet :")
+fichiers = os.listdir(".")
+st.write(fichiers)
 
-st.title("Choisis ton personnage")
+# 2. Vérification visuelle
+st.subheader("Test d'affichage des images trouvées :")
+for f in fichiers:
+    if f.lower().endswith(('.png', '.jpg', '.jpeg')):
+        st.write(f"Tentative d'afficher : {f}")
+        st.image(f, caption=f)
 
-cols = st.columns(len(personnages))
-for i, p in enumerate(personnages):
-    with cols[i]:
-        # Chargement image
-        if os.path.exists(p["img"]):
-            st.image(p["img"], use_container_width=True)
-        else:
-            st.error(f"Image {p['img']} introuvable.")
-        
-        st.subheader(p["nom"])
-        # Recherche auto du texte dans n'importe quel sous-dossier
-        st.write(trouver_accroche(p["nom"]))
+# 3. Vérification des textes
+st.subheader("Test des fichiers texte :")
+for f in fichiers:
+    if f.lower().endswith('.txt'):
+        st.write(f"Contenu de {f} :")
+        with open(f, "r", encoding="utf-8") as file:
+            st.code(file.read())
