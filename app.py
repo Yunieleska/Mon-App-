@@ -35,7 +35,6 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
 # ==========================================
 # 2. GESTION DE LA BASE DE DONNÉES (UTILISATEURS)
 # ==========================================
@@ -58,30 +57,50 @@ def hash_password(password):
     """Hache le mot de passe pour ne pas le stocker en texte brut."""
     return hashlib.sha256(str.encode(password)).hexdigest()
 
+def user_exists(username):
+    """Vérifie si un pseudo existe déjà (insensible à la casse)."""
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    # LOWER() permet de bloquer "Admin" si "admin" existe déjà
+    c.execute('SELECT 1 FROM users WHERE LOWER(username) = LOWER(?)', (username.strip(),))
+    result = c.fetchone()
+    conn.close()
+    return result is not None
+
 def add_user(username, password):
-    """Ajoute un utilisateur dans la base de données."""
+    """Ajoute un utilisateur unique dans la base de données."""
+    username_clean = username.strip()
+    if user_exists(username_clean):
+        return False # Le pseudo est déjà pris !
+        
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     try:
-        c.execute('INSERT INTO users (username, password) VALUES (?,?)', (username, hash_password(password)))
+        c.execute('INSERT INTO users (username, password) VALUES (?,?)', (username_clean, hash_password(password)))
         conn.commit()
         success = True
     except sqlite3.IntegrityError:
-        success = False  # Le pseudo existe déjà
+        success = False
     conn.close()
     return success
 
 def login_user(username, password):
-    """Vérifie si les identifiants sont corrects."""
+    """Vérifie si les identifiants sont corrects (insensible à la casse pour le pseudo)."""
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    c.execute('SELECT * FROM users WHERE username = ? AND password = ?', (username, hash_password(password)))
-    data = c.fetchall()
+    c.execute('SELECT username FROM users WHERE LOWER(username) = LOWER(?) AND password = ?', (username.strip(), hash_password(password)))
+    data = c.fetchone()
     conn.close()
-    return len(data) > 0
+    
+    # Si trouvé, on récupère la vraie orthographe du pseudo stockée en base
+    if data:
+        st.session_state.username = data[0]
+        return True
+    return False
 
 # Initialisation de la base de données au lancement
 init_db()
+
 
 # ==========================================
 # 3. INTERFACE D'INSCRIPTION / CONNEXION
