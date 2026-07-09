@@ -4,26 +4,24 @@ import hashlib
 import os
 import base64
 
-# --- CONFIGURATION ---
+# CONFIGURATION
 DB_FILE = "storyia_users.db"
 
 def hash_pass(p):
     return hashlib.sha256(p.strip().encode('utf-8')).hexdigest()
 
 def display_banner():
-    # Détection automatique du chemin où se trouve app.py
-    app_dir = os.path.dirname(os.path.abspath(__file__))
-    image_path = os.path.join(app_dir, "fond.png")
+    # CHEMIN FORCÉ : Basé sur l'erreur que Streamlit t'a renvoyée
+    image_path = "/mount/src/mon-app-/fond.png"
     
     if os.path.exists(image_path):
         with open(image_path, "rb") as f:
             data = base64.b64encode(f.read()).decode()
             st.markdown(f'<div style="text-align:center;"><img src="data:image/png;base64,{data}" style="width:100%; max-width:600px; border-radius:15px;"></div>', unsafe_allow_html=True)
     else:
-        # Affiche le chemin cherché pour nous aider à comprendre
-        st.warning(f"Image 'fond.png' non trouvée. Chemin cherché : {image_path}")
+        st.warning(f"Impossible de trouver le fichier à : {image_path}. Vérifie que le dossier s'appelle bien 'mon-app-'.")
 
-# --- CONFIGURATION PAGE ---
+# CONFIG PAGE
 st.set_page_config(page_title="Storyia", layout="wide")
 st.markdown("""
     <style>
@@ -32,17 +30,18 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- BASE DE DONNÉES ---
+# INITIALISATION BASE
 conn = sqlite3.connect(DB_FILE)
 conn.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, question TEXT, answer TEXT)')
 conn.commit(); conn.close()
 
-# --- AFFICHAGE ---
+# APPEL BANNIÈRE
 display_banner()
 
 if "authentifie" not in st.session_state: st.session_state.authentifie = False
 if "mode" not in st.session_state: st.session_state.mode = "login"
 
+# LOGIQUE (inchangée)
 if not st.session_state.authentifie:
     st.title("Bienvenue sur Storyia")
     
