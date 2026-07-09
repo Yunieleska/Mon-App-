@@ -1,5 +1,7 @@
 import streamlit as st
 import os
+import sqlite3
+import hashlib
 from groq import Groq
 
 # ==========================================
@@ -7,10 +9,8 @@ from groq import Groq
 # ==========================================
 st.set_page_config(page_title="Storyia - AI Roleplay", layout="centered")
 
-# Nettoyage de l'URL de fond
 IMAGE_FOND = "https://share.gemini.google/zeM5fxLPDnhb" 
 
-# Injection CSS pour l'univers immersif (Dark Mode text-friendly)
 st.markdown(
     f"""
     <style>
@@ -20,7 +20,6 @@ st.markdown(
         background-position: center;
         background-attachment: fixed;
     }}
-    /* Style pour les messages de chat (Bulles sombres semi-transparentes) */
     .stChatMessage {{
         background-color: rgba(20, 20, 20, 0.75) !important;
         border: 1px solid rgba(255, 75, 75, 0.2);
@@ -29,7 +28,6 @@ st.markdown(
         margin-bottom: 10px;
         color: #ffffff !important;
     }}
-    /* Forcer la couleur du texte dans le chat */
     .stChatMessage p {{
         color: #ffffff !important;
     }}
@@ -39,34 +37,104 @@ st.markdown(
 )
 
 # ==========================================
-# 2. ACCÈS PRIVÉ
+# 2. GESTION DE LA BASE DE DONNÉES (UTILISATEURS)
+# ==========================================
+DB_FILE = "storyia_users.db"
+
+def init_db():
+    """Crée la table des utilisateurs si elle n'existe pas."""
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            username TEXT PRIMARY KEY,
+            password TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def hash_password(password):
+    """Hache le mot de passe pour ne pas le stocker en texte brut."""
+    return hashlib.sha256(str.encode(password)).hexdigest()
+
+def add_user(username, password):
+    """Ajoute un utilisateur dans la base de données."""
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    try:
+        c.execute('INSERT INTO users (username, password) VALUES (?,?)', (username, hash_password(password)))
+        conn.commit()
+        success = True
+    except sqlite3.IntegrityError:
+        success = False  # Le pseudo existe déjà
+    conn.close()
+    return success
+
+def login_user(username, password):
+    """Vérifie si les identifiants sont corrects."""
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('SELECT * FROM users WHERE username = ? AND password = ?', (username, hash_password(password)))
+    data = c.fetchall()
+    conn.close()
+    return len(data) > 0
+
+# Initialisation de la base de données au lancement
+init_db()
+
+# ==========================================
+# 3. INTERFACE D'INSCRIPTION / CONNEXION
 # ==========================================
 if "authentifie" not in st.session_state:
     st.session_state.authentifie = False
+if "username" not in st.session_state:
+    st.session_state.username = ""
 
-def check_password():
+def systeme_authentification():
     if not st.session_state.authentifie:
         st.markdown("<h1 style='text-align: center; color: #ff4b4b; text-shadow: 2px 2px 4px #000;'>✨ Storyia ✨</h1>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center; color: white;'>Bienvenue sur votre plateforme de RP privée.</p>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center; color: white;'>Inscris-toi ou connecte-toi pour rejoindre l'aventure.</p>", unsafe_allow_html=True)
         
-        password = st.text_input("Entre le mot de passe secret :", type="password")
-        if st.button("Entrer dans Storyia"):
-            if password == "SECRET":  # Pense à changer "SECRET" par ton vrai MDP
-                st.session_state.authentifie = True
-                st.rerun()
-            else:
-                st.error("Mot de passe incorrect.")
+        # Onglets pour basculer entre Connexion et Inscription
+        tab_login, tab_register = st.tabs(["🔒 Connexion", "📝 S'inscrire"])
+        
+        with tab_login:
+            username = st.text_input("Pseudo", key="login_user")
+            password = st.text_input("Mot de passe", type="password", key="login_pass")
+            if st.button("Se connecter", use_container_width=True):
+                if login_user(username, password):
+                    st.session_state.authentifie = True
+                    st.session_state.username = username
+                    st.success(f"Ravi de te revoir, {username} !")
+                    st.rerun()
+                else:
+                    st.error("Pseudo ou mot de passe incorrect.")
+                    
+        with tab_register:
+            new_username = st.text_input("Choisis un Pseudo", key="reg_user")
+            new_password = st.text_input("Choisis un Mot de passe", type="password", key="reg_pass")
+            confirm_password = st.text_input("Confirme le mot de passe", type="password", key="reg_pass_conf")
+            
+            if st.button("Créer mon compte", use_container_width=True):
+                if not new_username or not new_password:
+                    st.error("Veuillez remplir tous les champs.")
+                elif new_password != confirm_password:
+                    st.error("Les mots de passe ne correspondent pas.")
+                else:
+                    if add_user(new_username, new_password):
+                        st.success("Compte créé avec succès ! Tu peux maintenant te connecter.")
+                    else:
+                        st.error("Ce pseudo est déjà pris. Choisis-en un autre !")
         st.stop()
 
-check_password()
+systeme_authentification()
 
 # ==========================================
-# 3. INITIALISATION DE L'API GROQ & DOSSIERS
+# 4. INITIALISATION DE L'API GROQ & DOSSIERS
 # ==========================================
-# Client Groq (Idéalement, utilise st.secrets pour masquer ta clé)
 client = Groq(api_key="VOTRE_CLE_API_GROQ_ICI")
 
-# Initialisation des catégories par défaut
 CATEGORIES = ["Mafieux", "Fantaisie", "Motard", "École"]
 BASE_DIR = "personnages"
 
@@ -76,20 +144,24 @@ for cat in CATEGORIES:
     cat_path = os.path.join(BASE_DIR, cat)
     if not os.path.exists(cat_path):
         os.makedirs(cat_path)
-    # Création d'un exemple si la catégorie est complètement vide
     if not os.listdir(cat_path):
         with open(os.path.join(cat_path, "Exemple.txt"), "w", encoding="utf-8") as f:
             f.write("Tu es un personnage mystérieux et séduisant.")
 
 # ==========================================
-# 4. MENU LATÉRAL (SÉLECTION & CRÉATION)
+# 5. MENU LATÉRAL (PROFIL, SÉLECTION & CRÉATION)
 # ==========================================
+st.sidebar.markdown(f"<h3 style='color: white;'>👤 Joueur : {st.session_state.username}</h3>", unsafe_allow_html=True)
+if st.sidebar.button("🚪 Déconnexion"):
+    st.session_state.authentifie = False
+    st.session_state.username = ""
+    st.session_state.messages = []
+    st.rerun()
+
+st.sidebar.markdown("---")
 st.sidebar.markdown("<h2 style='color: #ff4b4b;'>🔮 Storyia Menu</h2>", unsafe_allow_html=True)
 
-# Étape A : Choisir la catégorie
 categorie_choisie = st.sidebar.selectbox("Choisir un univers :", CATEGORIES)
-
-# Étape B : Filtrer les personnages selon la catégorie choisie
 path_persos_filtres = os.path.join(BASE_DIR, categorie_choisie)
 liste_persos = [f.replace(".txt", "") for f in os.listdir(path_persos_filtres) if f.endswith(".txt")]
 
@@ -98,7 +170,7 @@ if not liste_persos:
 
 choix_perso = st.sidebar.selectbox("Avec qui veux-tu RP ?", liste_persos)
 
-# Gestion du changement de personnage et initialisation de la mémoire du chat
+# Gestion de l'historique de chat propre à l'utilisateur actuel
 if "personnage_actuel" not in st.session_state or st.session_state.personnage_actuel != choix_perso:
     if choix_perso != "Aucun personnage":
         st.session_state.personnage_actuel = choix_perso
@@ -107,7 +179,6 @@ if "personnage_actuel" not in st.session_state or st.session_state.personnage_ac
         with open(chemin_fichier, "r", encoding="utf-8") as f:
             contexte_perso = f.read()
         
-        # Prompt système calibré style Character.ai / Polybuzz
         prompt_systeme = (
             f"Tu es {choix_perso}. Voici ta personnalité, tes secrets et ton histoire : {contexte_perso}. "
             f"Tu te trouves actuellement dans un univers de type [{categorie_choisie}]. "
@@ -118,7 +189,6 @@ if "personnage_actuel" not in st.session_state or st.session_state.personnage_ac
         )
         st.session_state.messages = [{"role": "system", "content": prompt_systeme}]
 
-# Bouton de réinitialisation de l'histoire
 if st.sidebar.button("🗑️ Recommencer l'histoire"):
     if len(st.session_state.messages) > 0:
         st.session_state.messages = [st.session_state.messages[0]]
@@ -145,18 +215,16 @@ with st.sidebar.expander("➕ Créer un personnage"):
             st.error("Veuillez remplir le nom et la description.")
 
 # ==========================================
-# 5. INTERFACE DE CHAT PRINCIPALE
+# 6. INTERFACE DE CHAT PRINCIPALE
 # ==========================================
 if choix_perso and choix_perso != "Aucun personnage":
     st.markdown(f"<h1 style='color: white; text-shadow: 2px 2px 8px #000000;'>🎭 {choix_perso} <span style='font-size:16px; color:#ff4b4b;'>({categorie_choisie})</span></h1>", unsafe_allow_html=True)
 
-    # Affichage de l'historique (en masquant le prompt système de l'IA)
     for message in st.session_state.messages:
         if message["role"] != "system":
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
 
-    # Entrée utilisateur et streaming/réponse de l'IA
     if prompt := st.chat_input(f"Écris la suite de ton histoire avec {choix_perso}..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
@@ -165,11 +233,10 @@ if choix_perso and choix_perso != "Aucun personnage":
         with st.chat_message("assistant"):
             placeholder = st.empty()
             
-            # Utilisation du modèle Llama 3.1 8B optimisé et mis à jour
             response = client.chat.completions.create(
                 messages=st.session_state.messages,
                 model="llama-3.1-8b-instant",
-                temperature=0.8, # Un poil de créativité pour le RP
+                temperature=0.8,
             )
             
             reponse_ia = response.choices[0].message.content
