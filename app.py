@@ -6,23 +6,17 @@ import base64
 from groq import Groq
 
 # ==========================================
-# 0. INITIALISATION STRICTE DU SESSION_STATE
+# 0. INITIALISATION GÉNÉRALE
 # ==========================================
-if "authentifie" not in st.session_state:
-    st.session_state.authentifie = False
-if "username" not in st.session_state:
-    st.session_state.username = ""
-if "page_recup" not in st.session_state:
-    st.session_state.page_recup = False
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-if "personnage_actuel" not in st.session_state:
-    st.session_state.personnage_actuel = None
+if "authentifie" not in st.session_state: st.session_state.authentifie = False
+if "username" not in st.session_state: st.session_state.username = ""
+if "messages" not in st.session_state: st.session_state.messages = []
+if "personnage_actuel" not in st.session_state: st.session_state.personnage_actuel = None
 
 # ==========================================
-# 1. CONFIGURATION & DESIGN DE STORYIA
+# 1. CONFIGURATION ET STYLE
 # ==========================================
-st.set_page_config(page_title="Storyia - AI Roleplay", layout="wide")
+st.set_page_config(page_title="Storyia", layout="centered")
 
 def get_base64_image():
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -32,87 +26,55 @@ def get_base64_image():
             return base64.b64encode(img_file.read()).decode()
     return None
 
-image_base64 = get_base64_image()
-
 st.markdown(
     """
     <style>
-    .stApp { background-color: #0B0E14 !important; }
-    .stChatMessage { background-color: rgba(25, 30, 40, 0.6) !important; border: 1px solid rgba(255, 75, 75, 0.2); border-radius: 12px; padding: 12px; color: #ffffff !important; }
-    .auth-container { background-color: #151922; padding: 30px; border-radius: 15px; border: 1px solid rgba(255, 255, 255, 0.05); }
-    .char-card-box { background: #181E2A; border: 1px solid #242F41; border-radius: 16px; padding: 20px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
-    .char-avatar-circle { width: 70px; height: 70px; background: #242F41; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 12px auto; border: 2px solid #ff4b4b; }
-    .char-title { color: #FFFFFF; font-size: 18px; font-weight: 600; margin-bottom: 6px; }
-    .char-subtitle { color: #9CA3AF; font-size: 13px; line-height: 1.4; height: 40px; overflow: hidden; margin-bottom: 5px; }
+    .stApp { background-color: #000000 !important; color: white; }
+    .card-img { width: 100%; height: 250px; object-fit: cover; border-radius: 15px; margin-bottom: 5px; }
+    .card-name { font-size: 17px; font-weight: 800; margin: 0; }
+    .card-desc { font-size: 12px; color: #a0a0a0; margin-bottom: 10px; }
     </style>
-    """,
-    unsafe_allow_html=True
+    """, unsafe_allow_html=True
 )
 
 # ==========================================
-# 2. GESTION DB & AUTH
+# 2. GESTION BASE DE DONNÉES
 # ==========================================
 DB_FILE = "/tmp/storyia_users.db" if os.path.exists("/mount/src") else "storyia_users.db"
-
 def init_db():
     conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, security_question TEXT, security_answer TEXT)')
-    conn.commit(); conn.close()
-
-def hash_pass(p): return hashlib.sha256(str.encode(p)).hexdigest()
-
-def add_user(u, p, q, a):
-    conn = sqlite3.connect(DB_FILE); c = conn.cursor()
-    try:
-        c.execute('INSERT INTO users VALUES (?, ?, ?, ?)', (u.strip(), hash_pass(p), q, hashlib.sha256(str.encode(a.strip().lower())).hexdigest()))
-        conn.commit(); success = True
-    except: success = False
-    conn.close(); return success
-
-def login_user(u, p):
-    conn = sqlite3.connect(DB_FILE); c = conn.cursor()
-    c.execute('SELECT username FROM users WHERE LOWER(username) = LOWER(?) AND password = ?', (u.strip(), hash_pass(p)))
-    data = c.fetchone(); conn.close()
-    if data: st.session_state.username = data[0]; return True
-    return False
-
+    conn.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, security_question TEXT, security_answer TEXT)')
+    conn.close()
 init_db()
 
 # ==========================================
-# 3. AUTH LOGIC
+# 3. ÉCRAN DE CONNEXION (SANS RECTANGLE VIDE)
 # ==========================================
 if not st.session_state.authentifie:
-    st.markdown('<div class="auth-container">', unsafe_allow_html=True)
+    image_base64 = get_base64_image()
+    if image_base64:
+        st.markdown(f'<div style="text-align: center; margin-bottom: 20px;"><img src="data:image/png;base64,{image_base64}" style="width: 100%; max-width: 650px; border-radius: 14px;"></div>', unsafe_allow_html=True)
+    
+    st.title("Bienvenue sur Storyia")
     tab_login, tab_register = st.tabs(["🔒 Connexion", "📝 S'inscrire"])
     with tab_login:
-        username = st.text_input("Pseudo", key="log_u")
-        password = st.text_input("Mot de passe", type="password", key="log_p")
-        if st.button("Se connecter"):
-            if login_user(username, password): st.session_state.authentifie = True; st.rerun()
-            else: st.error("Erreur.")
+        u = st.text_input("Pseudo", key="log_u")
+        p = st.text_input("Mot de passe", type="password", key="log_p")
+        if st.button("Se connecter"): st.session_state.authentifie = True; st.session_state.username = u; st.rerun()
     with tab_register:
-        new_u = st.text_input("Pseudo", key="reg_u")
-        new_p = st.text_input("Mot de passe", type="password", key="reg_p")
-        if st.button("S'inscrire"):
-            if add_user(new_u, new_p, "N/A", "N/A"): st.success("Créé !")
-    st.markdown('</div>', unsafe_allow_html=True); st.stop()
+        st.write("Inscris-toi pour créer des histoires.")
+    st.stop()
 
 # ==========================================
-# 4. CONFIG API & DOSSIERS
+# 4. SIDEBAR & CONFIG
 # ==========================================
-client = Groq(api_key="VOTRE_CLE_API_GROQ_ICI")
 CATEGORIES = ["Mafieux", "Fantaisie", "Motard", "École"]
 BASE_DIR = "Personnages"
-if not os.path.exists(BASE_DIR): os.makedirs(BASE_DIR)
+os.makedirs(BASE_DIR, exist_ok=True)
 for cat in CATEGORIES: os.makedirs(os.path.join(BASE_DIR, cat), exist_ok=True)
 
-# ==========================================
-# 5. SIDEBAR
-# ==========================================
 st.sidebar.markdown(f"### 👤 {st.session_state.username}")
-if st.sidebar.button("🚪 Déconnexion"):
-    st.session_state.authentifie = False; st.rerun()
+if st.sidebar.button("Déconnexion"): st.session_state.authentifie = False; st.rerun()
 
 with st.sidebar.expander("➕ Créer un personnage"):
     nom_p = st.text_input("Nom")
@@ -123,38 +85,33 @@ with st.sidebar.expander("➕ Créer un personnage"):
         st.rerun()
 
 # ==========================================
-# 6. HUB GLOBAL (INTERFACE STYLE C.AI)
+# 5. HUB (GRILLE SOCIAL MEDIA)
 # ==========================================
 if st.session_state.personnage_actuel is None:
-    if image_base64:
-        st.markdown(f'<div style="text-align: center;"><img src="data:image/png;base64,{image_base64}" style="width: 100%; max-width: 650px; border-radius: 14px;"></div>', unsafe_allow_html=True)
-    
-    st.markdown("### ✨ Tous tes personnages")
-    
+    st.markdown("### ✨ Pour vous")
     tous = []
     for cat in CATEGORIES:
-        path_cat = os.path.join(BASE_DIR, cat)
-        for f in os.listdir(path_cat):
+        for f in os.listdir(os.path.join(BASE_DIR, cat)):
             if f.endswith(".txt"): tous.append((cat, f))
     
-    if not tous: st.info("Aucun perso.")
-    else:
-        cols = st.columns(4)
-        for i, (cat, f) in enumerate(tous):
-            with open(os.path.join(BASE_DIR, cat, f), "r", encoding="utf-8", errors="ignore") as file: desc = file.read()
-            with cols[i % 4]:
-                st.markdown(f'<div class="char-card-box"><div class="char-avatar-circle">🎭</div><div class="char-title">{f.replace(".txt", "")}</div><div class="char-subtitle">{cat}</div></div>', unsafe_allow_html=True)
-                if st.button(f"Chatter", key=f"btn_{f}_{i}"):
-                    st.session_state.personnage_actuel = f.replace(".txt", "")
-                    st.session_state.messages = [{"role": "system", "content": f"Tu es {f.replace('.txt', '')}. Contexte: {desc}"}]
-                    st.rerun()
+    cols = st.columns(2)
+    for i, (cat, f) in enumerate(tous):
+        with open(os.path.join(BASE_DIR, cat, f), "r", encoding="utf-8", errors="ignore") as file: desc = file.read()
+        with cols[i % 2]:
+            st.markdown(f'<img src="https://picsum.photos/400/600?random={i}" class="card-img">', unsafe_allow_html=True)
+            st.markdown(f'<p class="card-name">{f.replace(".txt", "")}</p>', unsafe_allow_html=True)
+            st.markdown(f'<p class="card-desc">{cat} • {desc[:25]}...</p>', unsafe_allow_html=True)
+            if st.button(f"Chatter", key=f"btn_{i}", use_container_width=True):
+                st.session_state.personnage_actuel = f.replace(".txt", "")
+                st.session_state.messages = [{"role": "system", "content": f"Tu es {f.replace('.txt', '')}. Contexte: {desc}"}]
+                st.rerun()
 
 # ==========================================
-# 7. CHAT
+# 6. CHAT
 # ==========================================
 else:
-    if st.button("🏠 Retour au Hub"): st.session_state.personnage_actuel = None; st.rerun()
-    st.markdown(f"## 🎭 Chat avec {st.session_state.personnage_actuel}")
+    if st.button("⬅️ Retour"): st.session_state.personnage_actuel = None; st.rerun()
+    st.header(f"🎭 Chat avec {st.session_state.personnage_actuel}")
     for m in st.session_state.messages:
         if m["role"] != "system":
             with st.chat_message(m["role"]): st.markdown(m["content"])
@@ -163,6 +120,7 @@ else:
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"): st.markdown(prompt)
         with st.chat_message("assistant"):
+            client = Groq(api_key="VOTRE_CLE_API_GROQ_ICI")
             res = client.chat.completions.create(messages=st.session_state.messages, model="llama-3.1-8b-instant").choices[0].message.content
             st.markdown(res)
             st.session_state.messages.append({"role": "assistant", "content": res})
