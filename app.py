@@ -44,28 +44,6 @@ st.markdown(
 )
 
 # ==========================================
-# 2. ACCÈS PRIVÉ
-# ==========================================
-if "authentifie" not in st.session_state:
-    st.session_state.authentifie = False
-
-def check_password():
-    if not st.session_state.authentifie:
-        st.markdown("<h1 style='text-align: center; color: #ff4b4b;'>✨ Storyia ✨</h1>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center;'>Bienvenue sur ta plateforme de RP privée.</p>", unsafe_allow_html=True)
-        
-        password = st.text_input("Entre le mot de passe secret :", type="password")
-        if st.button("Entrer dans Storyia"):
-            if password == "SECRET":  # Change "SECRET" par ton vrai mot de passe
-                st.session_state.authentifie = True
-                st.rerun()
-            else:
-                st.error("Mot de passe incorrect.")
-        st.stop()
-
-check_password()
-
-# ==========================================
 # 3. CONNEXION À L'API GROQ
 # ==========================================
 client = Groq(api_key="VOTRE_CLE_API_GROQ_ICI")
