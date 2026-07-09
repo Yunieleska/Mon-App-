@@ -9,8 +9,8 @@ from groq import Groq
 # ==========================================
 st.set_page_config(page_title="Storyia - AI Roleplay", layout="centered")
 
-# Lien direct et stable vers ton image Storyia
-IMAGE_FOND = "https://raw.githubusercontent.com/AlenixDev/storage/main/storyia_bg.png" 
+# Lien direct et stable via CDN public (Postimages)
+IMAGE_FOND = "https://i.postimg.cc/q7fQzY2d/image-pour-se-connecter.png" 
 
 st.markdown(
     f"""
