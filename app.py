@@ -357,4 +357,15 @@ if choix_perso and choix_perso != "Aucun personnage":
         with st.chat_message("assistant"):
             placeholder = st.empty()
             
-            response = client.chat.completions.
+            response = client.chat.completions.create(
+                messages=st.session_state.messages,
+                model="llama-3.1-8b-instant",
+                temperature=0.8
+            )
+            
+            reponse_ia = response.choices[0].message.content
+            placeholder.markdown(reponse_ia)
+            
+        st.session_state.messages.append({"role": "assistant", "content": reponse_ia})
+else:
+    st.info("Sélectionnez ou créez un personnage dans le menu latéral pour commencer l'aventure.")
