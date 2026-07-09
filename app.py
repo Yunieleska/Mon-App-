@@ -37,47 +37,52 @@ st.markdown(
 )
 
 # ==========================================
-# 2. GESTION DE LA BASE DE DONNÉES (UTILISATEURS UNIQUE)
+# 2. GESTION DE LA BASE DE DONNÉES
 # ==========================================
 DB_FILE = "storyia_users.db"
 
 def init_db():
-    """Crée la table des utilisateurs si elle n'existe pas."""
+    """Crée la table des utilisateurs avec la question et réponse de sécurité."""
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
+    # Ajout des colonnes pour la récupération de mot de passe si elles n'existent pas
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
             username TEXT PRIMARY KEY,
-            password TEXT
+            password TEXT,
+            security_question TEXT,
+            security_answer TEXT
         )
-    ''')
+    ''''')
     conn.commit()
     conn.close()
 
 def hash_password(password):
-    """Hache le mot de passe pour ne pas le stocker en texte brut."""
     return hashlib.sha256(str.encode(password)).hexdigest()
 
 def user_exists(username):
-    """Vérifie si un pseudo existe déjà (insensible à la casse)."""
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    # LOWER() empêche de créer "Batman" si "batman" existe déjà
     c.execute('SELECT 1 FROM users WHERE LOWER(username) = LOWER(?)', (username.strip(),))
     result = c.fetchone()
     conn.close()
     return result is not None
 
-def add_user(username, password):
-    """Ajoute un utilisateur unique dans la base de données."""
+def add_user(username, password, question, answer):
+    """Inscrit un utilisateur avec ses données de récupération."""
     username_clean = username.strip()
     if user_exists(username_clean):
-        return False  # Le pseudo est déjà pris
+        return False
         
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     try:
-        c.execute('INSERT INTO users (username, password) VALUES (?,?)', (username_clean, hash_password(password)))
+        # On stocke la réponse en minuscule et hachée pour la sécurité
+        hashed_answer = hashlib.sha256(str.encode(answer.strip().lower())).hexdigest()
+        c.execute('''
+            INSERT INTO users (username, password, security_question, security_answer) 
+            VALUES (?, ?, ?, ?)
+        ''', (username_clean, hash_password(password), question, hashed_answer))
         conn.commit()
         success = True
     except sqlite3.IntegrityError:
@@ -86,19 +91,41 @@ def add_user(username, password):
     return success
 
 def login_user(username, password):
-    """Vérifie si les identifiants sont corrects (insensible à la casse)."""
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute('SELECT username FROM users WHERE LOWER(username) = LOWER(?) AND password = ?', (username.strip(), hash_password(password)))
     data = c.fetchone()
     conn.close()
-    
     if data:
-        st.session_state.username = data[0]  # Récupère l'orthographe exacte du pseudo (ex: "MonPseudo")
+        st.session_state.username = data[0]
         return True
     return False
 
-# Initialisation automatique de la base de données
+def get_security_question(username):
+    """Récupère la question secrète d'un utilisateur."""
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('SELECT security_question FROM users WHERE LOWER(username) = LOWER(?)', (username.strip(),))
+    data = c.fetchone()
+    conn.close()
+    return data[0] if data else None
+
+def update_password(username, answer, new_password):
+    """Vérifie la réponse et met à jour le mot de passe."""
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    hashed_answer = hashlib.sha256(str.encode(answer.strip().lower())).hexdigest()
+    
+    # Vérification de la réponse secrète
+    c.execute('SELECT 1 FROM users WHERE LOWER(username) = LOWER(?) AND security_answer = ?', (username.strip(), hashed_answer))
+    if c.fetchone():
+        c.execute('UPDATE users SET password = ? WHERE LOWER(username) = LOWER(?)', (hash_password(new_password), username.strip()))
+        conn.commit()
+        conn.close()
+        return True
+    conn.close()
+    return False
+
 init_db()
 
 # ==========================================
@@ -108,17 +135,52 @@ if "authentifie" not in st.session_state:
     st.session_state.authentifie = False
 if "username" not in st.session_state:
     st.session_state.username = ""
+if "page_recup" not in st.session_state:
+    st.session_state.page_recup = False
 
 def systeme_authentification():
     if not st.session_state.authentifie:
         st.markdown("<h1 style='text-align: center; color: #ff4b4b; text-shadow: 2px 2px 4px #000;'>✨ Storyia ✨</h1>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center; color: white;'>Inscris-toi ou connecte-toi pour rejoindre l'aventure.</p>", unsafe_allow_html=True)
         
+        # --- MODE RÉCUPÉRATION DE MOT DE PASSE ---
+        if st.session_state.page_recup:
+            st.markdown("<p style='text-align: center; color: white;'>Réinitialisation de ton mot de passe</p>", unsafe_allow_html=True)
+            
+            user_recup = st.text_input("Entre ton Pseudo :", key="user_recup")
+            
+            if user_recup:
+                question = get_security_question(user_recup)
+                if question:
+                    st.info(f"❓ **Question de sécurité :** {question}")
+                    reponse = st.text_input("Ta réponse :", type="password", key="ans_recup")
+                    nouveau_mdp = st.text_input("Nouveau mot de passe :", type="password", key="new_pass_recup")
+                    
+                    if st.button("Modifier mon mot de passe", use_container_width=True):
+                        if reponse and nouveau_mdp:
+                            if update_password(user_recup, reponse, nouveau_mdp):
+                                st.success("🎉 Mot de passe modifié ! Tu peux maintenant te connecter.")
+                                st.session_state.page_recup = False
+                                st.rerun()
+                            else:
+                                st.error("La réponse à la question secrète est incorrecte.")
+                        else:
+                            st.error("Veuillez remplir tous les champs.")
+                else:
+                    st.error("Ce pseudo n'existe pas.")
+            
+            if st.button("⬅️ Retour à la connexion"):
+                st.session_state.page_recup = False
+                st.rerun()
+            st.stop()
+
+        # --- MODE NORMAL (CONNEXION / INSCRIPTION) ---
+        st.markdown("<p style='text-align: center; color: white;'>Inscris-toi ou connecte-toi pour rejoindre l'aventure.</p>", unsafe_allow_html=True)
         tab_login, tab_register = st.tabs(["🔒 Connexion", "📝 S'inscrire"])
         
         with tab_login:
             username = st.text_input("Pseudo", key="login_user")
             password = st.text_input("Mot de passe", type="password", key="login_pass")
+            
             if st.button("Se connecter", use_container_width=True):
                 if login_user(username, password):
                     st.session_state.authentifie = True
@@ -126,22 +188,38 @@ def systeme_authentification():
                     st.rerun()
                 else:
                     st.error("Pseudo ou mot de passe incorrect.")
+            
+            # Bouton mot de passe oublié
+            if st.button("Mot de passe oublié ?", variant="secondary"):
+                st.session_state.page_recup = True
+                st.rerun()
                     
         with tab_register:
             new_username = st.text_input("Choisis un Pseudo", key="reg_user")
             new_password = st.text_input("Choisis un Mot de passe", type="password", key="reg_pass")
             confirm_password = st.text_input("Confirme le mot de passe", type="password", key="reg_pass_conf")
             
+            st.markdown("---")
+            st.markdown("🔒 **Sécurité (en cas d'oubli de mot de passe) :**")
+            liste_questions = [
+                "Quel est le nom de ton premier animal de compagnie ?",
+                "Dans quelle ville es-tu né(e) ?",
+                "Quel était le nom de ton école primaire ?",
+                "Quelle est ta couleur préférée ou ton chiffre fétiche ?"
+            ]
+            q_choisie = st.selectbox("Choisis une question secrète :", liste_questions)
+            rep_choisie = st.text_input("Ta réponse secrète (ne l'oublie pas) :")
+            
             if st.button("Créer mon compte", use_container_width=True):
-                if not new_username or not new_password:
-                    st.error("Veuillez remplir tous les champs.")
+                if not new_username or not new_password or not rep_choisie:
+                    st.error("Veuillez remplir tous les champs, y compris la sécurité.")
                 elif new_password != confirm_password:
                     st.error("Les mots de passe ne correspondent pas.")
                 else:
-                    if add_user(new_username, new_password):
+                    if add_user(new_username, new_password, q_choisie, rep_choisie):
                         st.success("Compte créé avec succès ! Tu peux maintenant te connecter.")
                     else:
-                        st.error("❌ Ce pseudo est déjà pris par un autre joueur. Choisis-en un autre !")
+                        st.error("❌ Ce pseudo est déjà pris. Choisis-en un autre !")
         st.stop()
 
 systeme_authentification()
@@ -165,7 +243,7 @@ for cat in CATEGORIES:
             f.write("Tu es un personnage mystérieux et séduisant.")
 
 # ==========================================
-# 5. MENU LATÉRAL (PROFIL, SÉLECTION & CRÉATION)
+# 5. MENU LATÉRAL
 # ==========================================
 st.sidebar.markdown(f"<h3 style='color: white;'>👤 Joueur : {st.session_state.username}</h3>", unsafe_allow_html=True)
 if st.sidebar.button("🚪 Déconnexion"):
