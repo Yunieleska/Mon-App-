@@ -35,8 +35,9 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 # ==========================================
-# 2. GESTION DE LA BASE DE DONNÉES (UTILISATEURS)
+# 2. GESTION DE LA BASE DE DONNÉES (UTILISATEURS UNIQUE)
 # ==========================================
 DB_FILE = "storyia_users.db"
 
@@ -61,7 +62,7 @@ def user_exists(username):
     """Vérifie si un pseudo existe déjà (insensible à la casse)."""
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    # LOWER() permet de bloquer "Admin" si "admin" existe déjà
+    # LOWER() empêche de créer "Batman" si "batman" existe déjà
     c.execute('SELECT 1 FROM users WHERE LOWER(username) = LOWER(?)', (username.strip(),))
     result = c.fetchone()
     conn.close()
@@ -71,7 +72,7 @@ def add_user(username, password):
     """Ajoute un utilisateur unique dans la base de données."""
     username_clean = username.strip()
     if user_exists(username_clean):
-        return False # Le pseudo est déjà pris !
+        return False  # Le pseudo est déjà pris
         
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
@@ -85,22 +86,20 @@ def add_user(username, password):
     return success
 
 def login_user(username, password):
-    """Vérifie si les identifiants sont corrects (insensible à la casse pour le pseudo)."""
+    """Vérifie si les identifiants sont corrects (insensible à la casse)."""
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute('SELECT username FROM users WHERE LOWER(username) = LOWER(?) AND password = ?', (username.strip(), hash_password(password)))
     data = c.fetchone()
     conn.close()
     
-    # Si trouvé, on récupère la vraie orthographe du pseudo stockée en base
     if data:
-        st.session_state.username = data[0]
+        st.session_state.username = data[0]  # Récupère l'orthographe exacte du pseudo (ex: "MonPseudo")
         return True
     return False
 
-# Initialisation de la base de données au lancement
+# Initialisation automatique de la base de données
 init_db()
-
 
 # ==========================================
 # 3. INTERFACE D'INSCRIPTION / CONNEXION
@@ -115,7 +114,6 @@ def systeme_authentification():
         st.markdown("<h1 style='text-align: center; color: #ff4b4b; text-shadow: 2px 2px 4px #000;'>✨ Storyia ✨</h1>", unsafe_allow_html=True)
         st.markdown("<p style='text-align: center; color: white;'>Inscris-toi ou connecte-toi pour rejoindre l'aventure.</p>", unsafe_allow_html=True)
         
-        # Onglets pour basculer entre Connexion et Inscription
         tab_login, tab_register = st.tabs(["🔒 Connexion", "📝 S'inscrire"])
         
         with tab_login:
@@ -124,8 +122,7 @@ def systeme_authentification():
             if st.button("Se connecter", use_container_width=True):
                 if login_user(username, password):
                     st.session_state.authentifie = True
-                    st.session_state.username = username
-                    st.success(f"Ravi de te revoir, {username} !")
+                    st.success(f"Ravi de te revoir, {st.session_state.username} !")
                     st.rerun()
                 else:
                     st.error("Pseudo ou mot de passe incorrect.")
@@ -144,7 +141,7 @@ def systeme_authentification():
                     if add_user(new_username, new_password):
                         st.success("Compte créé avec succès ! Tu peux maintenant te connecter.")
                     else:
-                        st.error("Ce pseudo est déjà pris. Choisis-en un autre !")
+                        st.error("❌ Ce pseudo est déjà pris par un autre joueur. Choisis-en un autre !")
         st.stop()
 
 systeme_authentification()
@@ -189,7 +186,6 @@ if not liste_persos:
 
 choix_perso = st.sidebar.selectbox("Avec qui veux-tu RP ?", liste_persos)
 
-# Gestion de l'historique de chat propre à l'utilisateur actuel
 if "personnage_actuel" not in st.session_state or st.session_state.personnage_actuel != choix_perso:
     if choix_perso != "Aucun personnage":
         st.session_state.personnage_actuel = choix_perso
