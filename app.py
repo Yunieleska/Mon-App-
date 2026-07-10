@@ -15,6 +15,11 @@ def hash_pass(p): return hashlib.sha256(p.encode()).hexdigest()
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
 if "pseudo" not in st.session_state: st.session_state.pseudo = ""
 
+def logout():
+    st.session_state.logged_in = False
+    st.session_state.pseudo = ""
+    st.rerun()
+
 # --- LOGIQUE DE CONNEXION (AFFICHÉE AVANT TOUT) ---
 if not st.session_state.logged_in:
     col1, col2, col3 = st.columns([1, 2, 1])
@@ -123,6 +128,10 @@ for chat in get_user_chats(st.session_state.pseudo):
         st.session_state.char_select = chat
         st.session_state.page = "chat"
         st.rerun()
+
+st.sidebar.markdown("---")
+if st.sidebar.button("🚪 Déconnexion"):
+    logout()
 
 # --- PAGES ---
 if "page" not in st.session_state: st.session_state.page = "home"
