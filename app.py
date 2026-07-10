@@ -15,9 +15,10 @@ if "pseudo" not in st.session_state: st.session_state.pseudo = ""
 if not st.session_state.logged_in:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        # Remplace 'banniere.png' par le nom de ton fichier image réel
-        if os.path.exists("banniere.png"):
-            st.image("banniere.png", use_container_width=True)
+        # Affichage de ta bannière
+        if os.path.exists("bg.png.png"):
+            st.image("bg.png.png", use_container_width=True)
+            
         st.title("Bienvenue sur Storyia")
         
         tab1, tab2 = st.tabs(["Connexion", "Inscription"])
@@ -43,8 +44,10 @@ if not st.session_state.logged_in:
 def init_db():
     conn = sqlite3.connect('storyia_v3.db')
     c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS messages (user_pseudo TEXT, char_name TEXT, role TEXT, content TEXT)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS custom_characters (name TEXT PRIMARY KEY, prompt TEXT, start TEXT, visibility TEXT, image_path TEXT, creator TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS messages 
+                  (user_pseudo TEXT, char_name TEXT, role TEXT, content TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS custom_characters 
+                  (name TEXT PRIMARY KEY, prompt TEXT, start TEXT, visibility TEXT, image_path TEXT, creator TEXT)''')
     conn.commit()
     conn.close()
 
@@ -106,7 +109,6 @@ for chat in get_user_chats(st.session_state.pseudo):
 # --- PAGES ---
 if "page" not in st.session_state: st.session_state.page = "home"
 
-# (Le reste de tes pages suit ici sans modification...)
 if st.session_state.page == "profile":
     st.title("Ton Profil")
     col1, col2 = st.columns([1, 3])
