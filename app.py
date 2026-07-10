@@ -130,3 +130,4 @@ elif st.session_state.page == "chat":
         response = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=messages_db)
         save_msg(st.session_state.pseudo, char, "assistant", response.choices[0].message.content)
         st.rerun()
+        
