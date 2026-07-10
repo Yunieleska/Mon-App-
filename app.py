@@ -13,8 +13,9 @@ def init_db():
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS messages 
                  (user_pseudo TEXT, char_name TEXT, role TEXT, content TEXT)''')
+    # Table avec colonne image_path
     c.execute('''CREATE TABLE IF NOT EXISTS custom_characters 
-                 (name TEXT PRIMARY KEY, prompt TEXT, start TEXT, visibility TEXT)''')
+                 (name TEXT PRIMARY KEY, prompt TEXT, start TEXT, visibility TEXT, image_path TEXT)''')
     conn.commit()
     conn.close()
 
@@ -46,8 +47,7 @@ def get_user_chats(pseudo):
     except: return []
     finally: conn.close()
 
-# --- DONNÉES PERSONNAGES ---
-# Tes personnages par défaut
+# --- DONNÉES ---
 CHARACTERS = {
     "Caelum": {"img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", "prompt": "Tu es Caelum, Prince des Ténèbres.", "start": "*Tu bouscules accidentellement Caelum.*\n\nTu es sur mon chemin, humaine.", "accroche": "Tu es sur mon chemin."},
     "Noah": {"img": "Noah.png", "prompt": "Tu es Noah, quaterback star.", "start": "*Ton téléphone vibre.*\n\nHey... Le match était d'un ennui mortel.", "accroche": "Une façade."},
@@ -79,30 +79,47 @@ if "page" not in st.session_state: st.session_state.page = "home"
 
 if st.session_state.page == "create":
     st.title("Créer ton personnage")
+    if not os.path.exists("images"): os.makedirs("images")
     with st.form("create_char"):
         name = st.text_input("Nom du personnage")
         prompt = st.text_area("Prompt système")
         start = st.text_area("Phrase d'accroche")
+        uploaded_file = st.file_uploader("Ajouter une image", type=['png', 'jpg', 'jpeg'])
         vis = st.selectbox("Visibilité", ["Privé", "Public"])
+        
         if st.form_submit_button("Sauvegarder"):
+            path = ""
+            if uploaded_file:
+                path = f"images/{name}.png"
+                with open(path, "wb") as f: f.write(uploaded_file.getbuffer())
+            
             conn = sqlite3.connect('storyia.db')
             c = conn.cursor()
-            c.execute("INSERT OR REPLACE INTO custom_characters VALUES (?, ?, ?, ?)", (name, prompt, start, vis))
+            c.execute("INSERT OR REPLACE INTO custom_characters VALUES (?, ?, ?, ?, ?)", (name, prompt, start, vis, path))
             conn.commit()
             conn.close()
-            st.success(f"{name} créé !")
+            st.success(f"{name} a été créé !")
 
 elif st.session_state.page == "home":
     st.title("Choisis ton personnage")
+    
+    # Fusionner persos par défaut et custom
+    display_chars = CHARACTERS.copy()
+    conn = sqlite3.connect('storyia.db')
+    c = conn.cursor()
+    c.execute("SELECT name, prompt, start, image_path FROM custom_characters")
+    for row in c.fetchall():
+        display_chars[row[0]] = {"img": row[3], "prompt": row[1], "start": row[2], "accroche": "Personnage personnalisé"}
+    conn.close()
+    
     cols = st.columns(4)
-    for i, (name, data) in enumerate(CHARACTERS.items()):
+    for i, (name, data) in enumerate(display_chars.items()):
         with cols[i % 4]:
             st.image(data["img"], use_container_width=True)
             st.subheader(name)
             st.caption(data["accroche"])
             if st.button(f"Chatter avec {name}", key=name):
                 st.session_state.char_select = name
-                # Initialisation de la discussion si elle est vide
                 if not load_msgs(st.session_state.pseudo, name):
                     save_msg(st.session_state.pseudo, name, "system", data["prompt"])
                     save_msg(st.session_state.pseudo, name, "assistant", data["start"])
