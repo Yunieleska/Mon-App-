@@ -64,7 +64,7 @@ if not st.session_state.logged_in:
                         new_pass = st.text_input("Nouveau mot de passe", type="password")
                         if st.button("Réinitialiser"):
                             if hash_pass(ans_input) == res.data[0]["répondre"]:
-                                supabase.table("utilisateurs").update({"mot de passe": hash_pass(new_pass)}).eq("pseudo", rec_user).execute()
+                                supabase.table("users").update({"mot de passe": hash_pass(new_pass)}).eq("pseudo", rec_user).execute()
                                 st.success("Mot de passe mis à jour !")
         with tab2:
             new_user = st.text_input("Choisis un pseudo", key="sign_in")
@@ -72,10 +72,10 @@ if not st.session_state.logged_in:
             quest = st.selectbox("Question secrète", ["Animal favori ?", "Ville de naissance ?"])
             ans = st.text_input("Réponse")
             if st.button("S'inscrire"):
-                res = supabase.table("utilisateurs").select("pseudo").eq("pseudo", new_user).execute()
+                res = supabase.table("users").select("pseudo").eq("pseudo", new_user).execute()
                 if res.data: st.error("Pseudo déjà utilisé.")
                 else:
-                    supabase.table("utilisateurs").insert({"pseudo": new_user, "mot de passe": hash_pass(new_pass), "question": quest, "répondre": hash_pass(ans)}).execute()
+                    supabase.table("users").insert({"pseudo": new_user, "mot de passe": hash_pass(new_pass), "question": quest, "répondre": hash_pass(ans)}).execute()
                     st.success("Compte créé !")
     st.stop()
 
