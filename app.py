@@ -38,6 +38,7 @@ if not st.session_state.logged_in:
         if "forgot_step" not in st.session_state: st.session_state.forgot_step = 0
 
         if st.session_state.forgot_step == 0:
+            # Correction effectuée ici
             tab1, tab2 = st.tabs(["Connexion", "Inscription"])
             with tab1:
                 user_login = st.text_input("Ton pseudo", key="login_in")
