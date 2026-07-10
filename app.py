@@ -33,101 +33,11 @@ def load_msgs(pseudo, char):
     conn.close()
     return [{"role": r, "content": c} for r, c in data]
 
-# --- DONNÉES PAR DÉFAUT ---
+# --- DONNÉES ET ACCROCHES ---
 CHARACTERS = {
-    "Caelum": {"img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", "prompt": "Tu es Caelum, Prince des Ténèbres.", "start": "*Tu bouscules accidentellement Caelum.*\n\nTu es sur mon chemin, humaine.", "accroche": "Tu es sur mon chemin."},
-    "Noah": {"img": "Noah.png", "prompt": "Tu es Noah, quaterback star.", "start": "*Ton téléphone vibre.*\n\nHey... Le match était d'un ennui mortel.", "accroche": "Une façade."},
-    "Ethan": {"img": "Ethan.png", "prompt": "Tu es Ethan, Loup Alpha.", "start": "*Ethan émerge de la pénombre.*\n\nLa forêt cache des prédateurs... Reste près de moi.", "accroche": "La forêt est dangereuse."},
-    "Léo": {"img": "Léo.png", "prompt": "Tu es Léo, streameur.", "start": "*Discord retentit.*\n\nTu es enfin là !", "accroche": "Tu es enfin là."},
-    "Liam": {"img": "Liam.png", "prompt": "Tu es Liam, le grand frère.", "start": "*Tu es sur le tapis du salon.*\n\nSalut, l'amie de ma sœur.", "accroche": "Calme de ma maison."},
-    "Alexei": {"img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg", "prompt": "Tu es Alexei, mafieux.", "start": "*Musique club VIP.*\n\nRegardez qui s'est perdue sur mon territoire.", "accroche": "La mafia n'attend personne."},
-    "Lucas": {"img": "Lucas.png", "prompt": "Tu es Lucas, populaire.", "start": "*Fin des cours.*\n\nOn va squatter ton canapé ?", "accroche": "On squatte ton canapé ?"},
-    "Killian": {"img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg", "prompt": "Tu es Killian, motard.", "start": "*Capot broyé.*\n\nRespire, c'est fini.", "accroche": "Je t'ai sortie de là."}
-}
-
-# --- SIDEBAR ---
-st.sidebar.title("Storyia")
-st.session_state.pseudo = st.sidebar.text_input("Ton pseudo :", st.session_state.get("pseudo", "User"))
-
-if st.sidebar.button("🏠 Accueil"): st.session_state.current_char = None; st.session_state.page = "home"; st.rerun()
-if st.sidebar.button("✨ Créer un personnage"): st.session_state.page = "create"; st.rerun()
-
-st.sidebar.markdown("---")
-st.sidebar.subheader("Tes discussions")
-
-# Récupérer les chats depuis la DB pour la sidebar
-conn = sqlite3.connect('storyia_v3.db')
-c = conn.cursor()
-c.execute("SELECT DISTINCT char_name FROM messages WHERE user_pseudo=?", (st.session_state.pseudo,))
-chats = [row[0] for row in c.fetchall()]
-conn.close()
-
-for chat in chats:
-    if st.sidebar.button(f"💬 {chat}"):
-        st.session_state.current_char = chat
-        st.session_state.page = "chat"
-        st.rerun()
-
-# --- LOGIQUE PRINCIPALE ---
-if "page" not in st.session_state: st.session_state.page = "home"
-
-if st.session_state.page == "create":
-    st.title("Créer ton personnage")
-    with st.form("create_char"):
-        name = st.text_input("Nom")
-        prompt = st.text_area("Prompt système")
-        start = st.text_area("Phrase d'accroche")
-        uploaded_file = st.file_uploader("Image", type=['png', 'jpg', 'jpeg'])
-        if st.form_submit_button("Sauvegarder"):
-            path = f"images/{name}.png"
-            if uploaded_file:
-                if not os.path.exists("images"): os.makedirs("images")
-                with open(path, "wb") as f: f.write(uploaded_file.getbuffer())
-            conn = sqlite3.connect('storyia_v3.db')
-            c = conn.cursor()
-            c.execute("INSERT OR REPLACE INTO custom_characters VALUES (?, ?, ?, 'Public', ?, ?)", (name, prompt, start, path, st.session_state.pseudo))
-            conn.commit()
-            conn.close()
-            st.rerun()
-
-elif st.session_state.page == "home":
-    st.title("Choisis ton personnage")
-    cols = st.columns(4)
-    all_chars = CHARACTERS.copy()
-    # Ajout des persos DB
-    conn = sqlite3.connect('storyia_v3.db')
-    c = conn.cursor()
-    c.execute("SELECT name, prompt, start, image_path FROM custom_characters")
-    for row in c.fetchall(): all_chars[row[0]] = {"img": row[3], "prompt": row[1], "start": row[2]}
-    conn.close()
-    
-    for i, (name, data) in enumerate(all_chars.items()):
-        with cols[i % 4]:
-            st.image(data["img"], use_container_width=True)
-            if st.button(f"Chatter avec {name}", key=name):
-                st.session_state.current_char = name
-                st.session_state.page = "chat"
-                st.rerun()
-
-elif st.session_state.page == "chat":
-    char = st.session_state.current_char
-    st.title(f"Discussion avec {char}")
-    
-    # Init chat si vide
-    if not load_msgs(st.session_state.pseudo, char):
-        data = CHARACTERS.get(char, {"prompt": "...", "start": "..."})
-        save_msg(st.session_state.pseudo, char, "system", data["prompt"])
-        save_msg(st.session_state.pseudo, char, "assistant", data["start"])
-    
-    with st.container(height=500):
-        for msg in load_msgs(st.session_state.pseudo, char):
-            if msg["role"] != "system":
-                with st.chat_message(msg["role"]): st.write(msg["content"])
-    
-    if prompt := st.chat_input("Répondre..."):
-        save_msg(st.session_state.pseudo, char, "user", prompt)
-        messages_db = load_msgs(st.session_state.pseudo, char)
-        response = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=messages_db)
-        save_msg(st.session_state.pseudo, char, "assistant", response.choices[0].message.content)
-        st.rerun()
-        
+    "Caelum": {"img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", "prompt": "Tu es Caelum, Prince des Ténèbres.", "start": "*Tu viens d'arriver à l'académie. En marchant rapidement dans le couloir, tu bouscules accidentellement quelqu'un et tes affaires s'éparpillent au sol. Tu lèves les yeux et croises un regard bleu glacier. Caelum te regarde de haut, avec une indifférence totale.*\n\nTu es sur mon chemin, humaine. Ramasse tes affaires et disparais."},
+    "Noah": {"img": "Noah.png", "prompt": "Tu es Noah, quaterback star.", "start": "*Ton téléphone vibre sur ton bureau au milieu de la nuit. Noah t'écrit sous son pseudonyme secret.*\n\nHey... Désolé de t'écrire si tard. Le match de ce soir était d'un ennui mortel et tout le monde fait la fête en bas, mais je préfère de loin te parler ici. Dis, tu crois qu'on est tous obligés de jouer un rôle pour plaire aux autres, ou il y a un endroit où on peut juste être soi-même ?"},
+    "Ethan": {"img": "Ethan.png", "prompt": "Tu es Ethan, Loup Alpha.", "start": "*La nuit est tombée sur la petite ville de Blackwood. Tu t'es perdue en lisière de forêt et la silhouette athlétique d'Ethan émerge de la pénombre. Ses yeux sombres se fixent sur toi avec une intensité animale.*\n\nTu ne devrais pas te promener seule ici à cette heure, humaine. La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines... Reste près de moi si tu veux rentrer entière."},
+    "Léo": {"img": "Léo.png", "prompt": "Tu es Léo, streameur.", "start": "*Le signal sonore de Discord retentit. La voix grave de Léo (Neo) résonne dans ton casque.*\n\nAh, te voilà enfin ! Je t'attendais pour lancer la partie. Ma session de stream était d'un ennui mortel sans toi... Prête à ce qu'on détruise l'équipe d'en face ? D'ailleurs, t'as pas l'air en forme, t'as une petite voix. Dis-moi pas que tu stresses encore pour le nouveau de ta classe demain ?"},
+    "Liam": {"img": "Liam.png", "prompt": "Tu es Liam, le grand frère.", "start": "*Tu es installée sur le tapis du salon. Liam entre dans la pièce, retire sa veste en cuir révélant ses tatouages, et plante ses yeux dans les tiens avec une froideur totale.*\n\nSalut, l'amie de ma sœur. Essaie de ne pas faire trop de bruit, l'orage arrive et j'ai besoin de dormir."},
+    "Alexei": {"img": "
