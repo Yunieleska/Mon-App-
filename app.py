@@ -16,9 +16,9 @@ if not st.session_state.logged_in:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         try:
-            st.image("bg.png.png", use_container_width=True)
+            st.image("bg.png", use_container_width=True)
         except:
-            st.warning("Bannière en cours de chargement...")
+            st.warning("Bannière non trouvée (vérifie le nom : bg.png)")
             
         st.title("Bienvenue sur Storyia")
         
@@ -45,10 +45,8 @@ if not st.session_state.logged_in:
 def init_db():
     conn = sqlite3.connect('storyia_v3.db')
     c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS messages 
-                  (user_pseudo TEXT, char_name TEXT, role TEXT, content TEXT)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS custom_characters 
-                  (name TEXT PRIMARY KEY, prompt TEXT, start TEXT, visibility TEXT, image_path TEXT, creator TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS messages (user_pseudo TEXT, char_name TEXT, role TEXT, content TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS custom_characters (name TEXT PRIMARY KEY, prompt TEXT, start TEXT, visibility TEXT, image_path TEXT, creator TEXT)''')
     conn.commit()
     conn.close()
 
@@ -92,7 +90,7 @@ CHARACTERS = {
     "Killian": {"img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg", "prompt": "Tu es Killian, motard.", "start": "*Capot broyé.*\n\nRespire, c'est fini.", "accroche": "Je t'ai sortie de là."}
 }
 
-# --- SIDEBAR ---
+# --- SIDEBAR & PAGES ---
 st.sidebar.title("Storyia")
 st.sidebar.info(f"Connecté en tant que : **{st.session_state.pseudo}**")
 
@@ -107,7 +105,6 @@ for chat in get_user_chats(st.session_state.pseudo):
         st.session_state.page = "chat"
         st.rerun()
 
-# --- PAGES ---
 if "page" not in st.session_state: st.session_state.page = "home"
 
 if st.session_state.page == "profile":
