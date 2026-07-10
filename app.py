@@ -110,7 +110,7 @@ CHARACTERS = {
 }
 
 # --- SIDEBAR ---
-st.sidebar.title("Storyia")
+st.sidebar.image("couple.png", use_container_width=True)
 st.sidebar.info(f"Connecté en tant que : **{st.session_state.pseudo}**")
 
 if st.sidebar.button("🏠 Accueil"): st.session_state.page = "home"; st.rerun()
@@ -165,7 +165,6 @@ elif st.session_state.page == "create":
             st.success("Personnage créé !")
 
 elif st.session_state.page == "home":
-    st.image("couple.png", use_container_width=True)
     st.title("Choisis ton personnage")
     display_chars = CHARACTERS.copy()
     conn = sqlite3.connect('storyia_v3.db')
