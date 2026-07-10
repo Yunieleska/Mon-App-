@@ -9,11 +9,10 @@ st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="e
 
 # --- BASE DE DONNÉES ---
 def init_db():
-    conn = sqlite3.connect('storyia.db')
+    conn = sqlite3.connect('storyia_v3.db') # Utilisation d'une nouvelle version de DB
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS messages 
                  (user_pseudo TEXT, char_name TEXT, role TEXT, content TEXT)''')
-    # Ajout d'une colonne 'creator' pour lier le personnage à l'utilisateur
     c.execute('''CREATE TABLE IF NOT EXISTS custom_characters 
                  (name TEXT PRIMARY KEY, prompt TEXT, start TEXT, visibility TEXT, image_path TEXT, creator TEXT)''')
     conn.commit()
@@ -22,14 +21,14 @@ def init_db():
 init_db()
 
 def save_msg(pseudo, char, role, content):
-    conn = sqlite3.connect('storyia.db')
+    conn = sqlite3.connect('storyia_v3.db')
     c = conn.cursor()
     c.execute("INSERT INTO messages VALUES (?, ?, ?, ?)", (pseudo, char, role, content))
     conn.commit()
     conn.close()
 
 def load_msgs(pseudo, char):
-    conn = sqlite3.connect('storyia.db')
+    conn = sqlite3.connect('storyia_v3.db')
     c = conn.cursor()
     c.execute("SELECT role, content FROM messages WHERE user_pseudo=? AND char_name=?", (pseudo, char))
     data = c.fetchall()
@@ -37,8 +36,8 @@ def load_msgs(pseudo, char):
     return [{"role": r, "content": c} for r, c in data]
 
 def get_user_chats(pseudo):
-    if not os.path.exists('storyia.db'): return []
-    conn = sqlite3.connect('storyia.db')
+    if not os.path.exists('storyia_v3.db'): return []
+    conn = sqlite3.connect('storyia_v3.db')
     c = conn.cursor()
     try:
         c.execute("SELECT DISTINCT char_name FROM messages WHERE user_pseudo=?", (pseudo,))
@@ -86,7 +85,7 @@ if st.session_state.page == "profile":
         st.subheader(st.session_state.pseudo)
     with col2:
         st.subheader("Tes créations partagées")
-        conn = sqlite3.connect('storyia.db')
+        conn = sqlite3.connect('storyia_v3.db')
         c = conn.cursor()
         c.execute("SELECT name, visibility FROM custom_characters WHERE creator=?", (st.session_state.pseudo,))
         my_chars = c.fetchall()
@@ -107,7 +106,7 @@ elif st.session_state.page == "create":
             path = f"images/{name}.png" if uploaded_file else ""
             if uploaded_file:
                 with open(path, "wb") as f: f.write(uploaded_file.getbuffer())
-            conn = sqlite3.connect('storyia.db')
+            conn = sqlite3.connect('storyia_v3.db')
             c = conn.cursor()
             c.execute("INSERT OR REPLACE INTO custom_characters VALUES (?, ?, ?, ?, ?, ?)", 
                       (name, prompt, start, vis, path, st.session_state.pseudo))
@@ -118,7 +117,7 @@ elif st.session_state.page == "create":
 elif st.session_state.page == "home":
     st.title("Choisis ton personnage")
     display_chars = CHARACTERS.copy()
-    conn = sqlite3.connect('storyia.db')
+    conn = sqlite3.connect('storyia_v3.db')
     c = conn.cursor()
     c.execute("SELECT name, prompt, start, image_path FROM custom_characters WHERE visibility='Public'")
     for row in c.fetchall():
@@ -139,4 +138,16 @@ elif st.session_state.page == "home":
                 st.session_state.page = "chat"
                 st.rerun()
 
-elif st.session_state.page == "
+elif st.session_state.page == "chat":
+    st.title(f"Chat avec {st.session_state.char_select}")
+    with st.container(border=True, height=500):
+        for msg in load_msgs(st.session_state.pseudo, st.session_state.char_select):
+            if msg["role"] != "system":
+                with st.chat_message(msg["role"]): st.write(msg["content"])
+    
+    if prompt := st.chat_input("Répondre..."):
+        save_msg(st.session_state.pseudo, st.session_state.char_select, "user", prompt)
+        messages_db = load_msgs(st.session_state.pseudo, st.session_state.char_select)
+        response = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=messages_db)
+        save_msg(st.session_state.pseudo, st.session_state.char_select, "assistant", response.choices[0].message.content)
+        st.rerun()
