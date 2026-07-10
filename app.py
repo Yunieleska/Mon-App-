@@ -13,7 +13,6 @@ def init_db():
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS messages 
                  (user_pseudo TEXT, char_name TEXT, role TEXT, content TEXT)''')
-    # Table pour les persos créés par l'utilisateur
     c.execute('''CREATE TABLE IF NOT EXISTS custom_characters 
                  (name TEXT PRIMARY KEY, prompt TEXT, start TEXT, visibility TEXT)''')
     conn.commit()
@@ -47,16 +46,17 @@ def get_user_chats(pseudo):
     except: return []
     finally: conn.close()
 
-# --- PERSONNALITÉS ---
+# --- DONNÉES PERSONNAGES ---
+# Tes personnages par défaut
 CHARACTERS = {
-    "Caelum": {"prompt": "Tu es Caelum, Prince des Ténèbres. Froid, arrogant, distant.", "start": "*Tu bouscules accidentellement Caelum.*\n\nTu es sur mon chemin, humaine."},
-    "Noah": {"prompt": "Tu es Noah, quaterback star.", "start": "*Ton téléphone vibre.*\n\nHey... Le match était d'un ennui mortel."},
-    "Ethan": {"prompt": "Tu es Ethan, Loup Alpha.", "start": "*Ethan émerge de la pénombre.*\n\nLa forêt cache des prédateurs... Reste près de moi."},
-    "Léo": {"prompt": "Tu es Léo, streameur.", "start": "*Discord retentit.*\n\nTu es enfin là !"},
-    "Liam": {"prompt": "Tu es Liam, le grand frère.", "start": "*Tu es sur le tapis du salon.*\n\nSalut, l'amie de ma sœur."},
-    "Alexei": {"prompt": "Tu es Alexei, mafieux.", "start": "*Musique club VIP.*\n\nRegardez qui s'est perdue sur mon territoire."},
-    "Lucas": {"prompt": "Tu es Lucas, populaire.", "start": "*Fin des cours.*\n\nOn va squatter ton canapé ?"},
-    "Killian": {"prompt": "Tu es Killian, motard.", "start": "*Capot broyé.*\n\nRespire, c'est fini."}
+    "Caelum": {"img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", "prompt": "Tu es Caelum, Prince des Ténèbres.", "start": "*Tu bouscules accidentellement Caelum.*\n\nTu es sur mon chemin, humaine.", "accroche": "Tu es sur mon chemin."},
+    "Noah": {"img": "Noah.png", "prompt": "Tu es Noah, quaterback star.", "start": "*Ton téléphone vibre.*\n\nHey... Le match était d'un ennui mortel.", "accroche": "Une façade."},
+    "Ethan": {"img": "Ethan.png", "prompt": "Tu es Ethan, Loup Alpha.", "start": "*Ethan émerge de la pénombre.*\n\nLa forêt cache des prédateurs... Reste près de moi.", "accroche": "La forêt est dangereuse."},
+    "Léo": {"img": "Léo.png", "prompt": "Tu es Léo, streameur.", "start": "*Discord retentit.*\n\nTu es enfin là !", "accroche": "Tu es enfin là."},
+    "Liam": {"img": "Liam.png", "prompt": "Tu es Liam, le grand frère.", "start": "*Tu es sur le tapis du salon.*\n\nSalut, l'amie de ma sœur.", "accroche": "Calme de ma maison."},
+    "Alexei": {"img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg", "prompt": "Tu es Alexei, mafieux.", "start": "*Musique club VIP.*\n\nRegardez qui s'est perdue sur mon territoire.", "accroche": "La mafia n'attend personne."},
+    "Lucas": {"img": "Lucas.png", "prompt": "Tu es Lucas, populaire.", "start": "*Fin des cours.*\n\nOn va squatter ton canapé ?", "accroche": "On squatte ton canapé ?"},
+    "Killian": {"img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg", "prompt": "Tu es Killian, motard.", "start": "*Capot broyé.*\n\nRespire, c'est fini.", "accroche": "Je t'ai sortie de là."}
 }
 
 # --- SIDEBAR ---
@@ -64,48 +64,48 @@ st.sidebar.title("Storyia")
 if "pseudo" not in st.session_state: st.session_state.pseudo = "User"
 st.session_state.pseudo = st.sidebar.text_input("Ton pseudo :", st.session_state.pseudo)
 
-if st.sidebar.button("➕ Nouvelle rencontre"):
-    st.session_state.page = "home"
-    st.rerun()
-
-if st.sidebar.button("✨ Créer un personnage"):
-    st.session_state.page = "create"
-    st.rerun()
+if st.sidebar.button("➕ Nouvelle rencontre"): st.session_state.page = "home"; st.rerun()
+if st.sidebar.button("✨ Créer un personnage"): st.session_state.page = "create"; st.rerun()
 
 st.sidebar.markdown("---")
-active_chats = get_user_chats(st.session_state.pseudo)
-for char in active_chats:
+for char in get_user_chats(st.session_state.pseudo):
     if st.sidebar.button(f"💬 {char}"):
         st.session_state.char_select = char
         st.session_state.page = "chat"
         st.rerun()
 
-# --- LOGIQUE ---
+# --- PAGES ---
+if "page" not in st.session_state: st.session_state.page = "home"
+
 if st.session_state.page == "create":
     st.title("Créer ton personnage")
     with st.form("create_char"):
         name = st.text_input("Nom du personnage")
-        prompt = st.text_area("Prompt système (personnalité)")
+        prompt = st.text_area("Prompt système")
         start = st.text_area("Phrase d'accroche")
         vis = st.selectbox("Visibilité", ["Privé", "Public"])
         if st.form_submit_button("Sauvegarder"):
             conn = sqlite3.connect('storyia.db')
             c = conn.cursor()
-            c.execute("INSERT INTO custom_characters VALUES (?, ?, ?, ?)", (name, prompt, start, vis))
+            c.execute("INSERT OR REPLACE INTO custom_characters VALUES (?, ?, ?, ?)", (name, prompt, start, vis))
             conn.commit()
             conn.close()
-            st.success(f"{name} a été créé !")
+            st.success(f"{name} créé !")
 
 elif st.session_state.page == "home":
     st.title("Choisis ton personnage")
-    # Affichage des persos (défaut + custom)
     cols = st.columns(4)
-    all_chars = list(CHARACTERS.keys())
-    # Ajout des persos custom ici si besoin...
-    for i, name in enumerate(all_chars):
+    for i, (name, data) in enumerate(CHARACTERS.items()):
         with cols[i % 4]:
-            if st.button(f"Chatter avec {name}"):
+            st.image(data["img"], use_container_width=True)
+            st.subheader(name)
+            st.caption(data["accroche"])
+            if st.button(f"Chatter avec {name}", key=name):
                 st.session_state.char_select = name
+                # Initialisation de la discussion si elle est vide
+                if not load_msgs(st.session_state.pseudo, name):
+                    save_msg(st.session_state.pseudo, name, "system", data["prompt"])
+                    save_msg(st.session_state.pseudo, name, "assistant", data["start"])
                 st.session_state.page = "chat"
                 st.rerun()
 
