@@ -4,12 +4,13 @@ from groq import Groq
 import os
 
 # --- CONFIGURATION ---
+# Remplace par ta vraie clé API ou utilise st.secrets
 client = Groq(api_key="TON_API_KEY") 
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="expanded")
 
 # --- BASE DE DONNÉES ---
 def init_db():
-    conn = sqlite3.connect('storyia_v3.db') # Utilisation d'une nouvelle version de DB
+    conn = sqlite3.connect('storyia_v3.db')
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS messages 
                  (user_pseudo TEXT, char_name TEXT, role TEXT, content TEXT)''')
