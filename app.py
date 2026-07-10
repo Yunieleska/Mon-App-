@@ -11,6 +11,18 @@ st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="e
 # Fonction hachage
 def hash_pass(p): return hashlib.sha256(p.encode()).hexdigest()
 
+# --- INITIALISATION BASE DE DONNÉES (CORRECTIF : APPELÉ ICI) ---
+def init_db():
+    conn = sqlite3.connect('storyia_v3.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS users (pseudo TEXT PRIMARY KEY, password TEXT, question TEXT, answer TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS messages (user_pseudo TEXT, char_name TEXT, role TEXT, content TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS custom_characters (name TEXT PRIMARY KEY, prompt TEXT, start TEXT, visibility TEXT, image_path TEXT, creator TEXT)''')
+    conn.commit()
+    conn.close()
+
+init_db()
+
 # --- INITIALISATION SESSION ---
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
 if "pseudo" not in st.session_state: st.session_state.pseudo = ""
@@ -87,18 +99,6 @@ if not st.session_state.logged_in:
     st.stop()
 
 # --- SI CONNECTÉ, ON CONTINUE AVEC LE RESTE DE TON CODE ---
-
-# --- BASE DE DONNÉES ---
-def init_db():
-    conn = sqlite3.connect('storyia_v3.db')
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS users (pseudo TEXT PRIMARY KEY, password TEXT, question TEXT, answer TEXT)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS messages (user_pseudo TEXT, char_name TEXT, role TEXT, content TEXT)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS custom_characters (name TEXT PRIMARY KEY, prompt TEXT, start TEXT, visibility TEXT, image_path TEXT, creator TEXT)''')
-    conn.commit()
-    conn.close()
-
-init_db()
 
 def save_msg(pseudo, char, role, content):
     conn = sqlite3.connect('storyia_v3.db')
