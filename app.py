@@ -4,7 +4,6 @@ from groq import Groq
 import os
 
 # --- CONFIGURATION ---
-# Remplace par ta vraie clé API ou utilise st.secrets
 client = Groq(api_key="TON_API_KEY") 
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="expanded")
 
@@ -12,10 +11,8 @@ st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="e
 def init_db():
     conn = sqlite3.connect('storyia_v3.db')
     c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS messages 
-                  (user_pseudo TEXT, char_name TEXT, role TEXT, content TEXT)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS custom_characters 
-                  (name TEXT PRIMARY KEY, prompt TEXT, start TEXT, visibility TEXT, image_path TEXT, creator TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS messages (user_pseudo TEXT, char_name TEXT, role TEXT, content TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS custom_characters (name TEXT PRIMARY KEY, prompt TEXT, start TEXT, visibility TEXT, image_path TEXT, creator TEXT)''')
     conn.commit()
     conn.close()
 
@@ -49,14 +46,14 @@ def get_user_chats(pseudo):
 
 # --- DONNÉES PAR DÉFAUT ---
 CHARACTERS = {
-    "Caelum": {"img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", "prompt": "Tu es Caelum, Prince des Ténèbres.", "start": "*Tu bouscules accidentellement Caelum.*\n\nTu es sur mon chemin, humaine.", "accroche": "Tu es sur mon chemin."},
-    "Noah": {"img": "Noah.png", "prompt": "Tu es Noah, quaterback star.", "start": "*Ton téléphone vibre.*\n\nHey... Le match était d'un ennui mortel.", "accroche": "Une façade."},
-    "Ethan": {"img": "Ethan.png", "prompt": "Tu es Ethan, Loup Alpha.", "start": "*Ethan émerge de la pénombre.*\n\nLa forêt cache des prédateurs... Reste près de moi.", "accroche": "La forêt est dangereuse."},
-    "Léo": {"img": "Léo.png", "prompt": "Tu es Léo, streameur.", "start": "*Discord retentit.*\n\nTu es enfin là !", "accroche": "Tu es enfin là."},
-    "Liam": {"img": "Liam.png", "prompt": "Tu es Liam, le grand frère.", "start": "*Tu es sur le tapis du salon.*\n\nSalut, l'amie de ma sœur.", "accroche": "Calme de ma maison."},
-    "Alexei": {"img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg", "prompt": "Tu es Alexei, mafieux.", "start": "*Musique club VIP.*\n\nRegardez qui s'est perdue sur mon territoire.", "accroche": "La mafia n'attend personne."},
-    "Lucas": {"img": "Lucas.png", "prompt": "Tu es Lucas, populaire.", "start": "*Fin des cours.*\n\nOn va squatter ton canapé ?", "accroche": "On squatte ton canapé ?"},
-    "Killian": {"img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg", "prompt": "Tu es Killian, motard.", "start": "*Capot broyé.*\n\nRespire, c'est fini.", "accroche": "Je t'ai sortie de là."}
+    "Caelum": {"img": "https://i.pinimg.com/1200x/21/90/e3/2190e375ce1e7be5bb2e8106de99b9df.jpg", "prompt": "Tu es Caelum, Prince des Ténèbres...", "start": "*Tu viens d'arriver à l'académie...* Tu es sur mon chemin, humaine. Ramasse tes affaires et disparais.", "accroche": "Tu es sur mon chemin."},
+    "Noah": {"img": "https://i.pinimg.com/736x/3a/ec/bd/3aecbd.jpg", "prompt": "Tu es Noah, quaterback star...", "start": "*Ton téléphone vibre...* Dis, tu crois qu'on est tous obligés de jouer un rôle pour plaire aux autres ?", "accroche": "Dis, tu crois qu'on est obligés de jouer un rôle ?"},
+    "Ethan": {"img": "https://i.pinimg.com/736x/39/9f/5d/399f5d.jpg", "prompt": "Tu es Ethan, le Loup Alpha...", "start": "*La nuit est tombée...* Tu ne devrais pas te promener seule ici à cette heure, humaine. Reste près de moi.", "accroche": "La forêt cache des prédateurs."},
+    "Léo": {"img": "https://i.pinimg.com/736x/3a/0b/df/3a0bdf.jpg", "prompt": "Tu es Léo, un streameur gaming...", "start": "*Le signal sonore de Discord retentit...* Ah, te voilà enfin ! Prête à ce qu'on détruise l'équipe d'en face ?", "accroche": "Prête à ce qu'on détruise l'équipe d'en face ?"},
+    "Liam": {"img": "https://i.pinimg.com/736x/3a/78/bc/3a78bc.jpg", "prompt": "Tu es Liam, le grand frère...", "start": "*Liam entre dans la pièce...* Salut, l'amie de ma sœur. Essaie de ne pas faire trop de bruit, l'orage arrive.", "accroche": "Essaie de ne pas faire trop de bruit."},
+    "Alexei": {"img": "https://i.pinimg.com/736x/9c/46/99/9c4699b3c19b43c4c910c1a018210431.jpg", "prompt": "Tu es Alexei, successeur du clan mafieux...", "start": "*La musique du club VIP résonne...* Regardez qui s'est perdue sur mon territoire. La petite princesse des Volkov...", "accroche": "Regardez qui s'est perdue sur mon territoire."},
+    "Lucas": {"img": "https://i.pinimg.com/736x/39/36/24/393624.jpg", "prompt": "Tu es Lucas, garçon populaire...", "start": "*La sonnerie annonce la fin du cours...* Hey, ma partenaire préférée ! On s'esquive et on va squatter ton canapé ?", "accroche": "On s'esquive et on va squatter ton canapé ?"},
+    "Killian": {"img": "https://i.pinimg.com/736x/2d/d2/a6/2dd2a6a826b7c58984f44ae0dddf0678.jpg", "prompt": "Tu es Killian, motard solitaire...", "start": "*La fumée s'échappe du capot...* Respire, c'est fini... T'as pas changé, toujours aussi maladroite.", "accroche": "Respire, c'est fini."}
 }
 
 # --- SIDEBAR ---
@@ -105,7 +102,7 @@ elif st.session_state.page == "home":
     c = conn.cursor()
     c.execute("SELECT name, prompt, start, image_path FROM custom_characters WHERE visibility='Public'")
     for row in c.fetchall():
-        display_chars[row[0]] = {"img": row[3], "prompt": row[1], "start": row[2], "accroche": "Personnage créé par la communauté"}
+        display_chars[row[0]] = {"img": row[3], "prompt": row[1], "start": row[2], "accroche": row[2]}
     conn.close()
     
     cols = st.columns(4)
@@ -114,6 +111,7 @@ elif st.session_state.page == "home":
             img_src = data["img"] if (data["img"] and (data["img"].startswith("http") or os.path.exists(data["img"]))) else "https://via.placeholder.com/150"
             st.image(img_src, use_container_width=True)
             st.subheader(name)
+            st.caption(data["accroche"]) # Affiche ton accroche personnalisée
             if st.button(f"Chatter avec {name}", key=name):
                 st.session_state.char_select = name
                 if not load_msgs(st.session_state.pseudo, name):
