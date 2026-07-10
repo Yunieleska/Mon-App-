@@ -71,7 +71,6 @@ def init_db():
 
 init_db()
 
-# ... (le reste de ton code original inchangé à partir d'ici) ...
 def save_msg(pseudo, char, role, content):
     conn = sqlite3.connect('storyia_v3.db')
     c = conn.cursor()
@@ -166,6 +165,7 @@ elif st.session_state.page == "create":
             st.success("Personnage créé !")
 
 elif st.session_state.page == "home":
+    st.image("couple.png", use_container_width=True)
     st.title("Choisis ton personnage")
     display_chars = CHARACTERS.copy()
     conn = sqlite3.connect('storyia_v3.db')
