@@ -36,9 +36,8 @@ def logout():
 if not st.session_state.logged_in:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        # Rétablissement de la bannière
         try: st.image("bg.png", use_container_width=True)
-        except: st.empty() 
+        except: st.empty()
         
         st.title("Bienvenue sur Storyia")
         tab1, tab2 = st.tabs(["Connexion", "Inscription"])
@@ -47,8 +46,9 @@ if not st.session_state.logged_in:
             user_login = st.text_input("Ton pseudo", key="login_in")
             pass_login = st.text_input("Mot de passe", type="password", key="pass_in")
             if st.button("Se connecter"):
-                res = supabase.table("users").select("pseudo, password, question, answer").eq("pseudo", user_login).execute()
-                if res.data and res.data[0].get("password") == hash_pass(pass_login):
+                # On utilise "utilisateurs" et "mot de passe"
+                res = supabase.table("utilisateurs").select("pseudo, mot de passe, question, répondre").eq("pseudo", user_login).execute()
+                if res.data and res.data[0].get("mot de passe") == hash_pass(pass_login):
                     st.session_state.pseudo = user_login
                     st.session_state.logged_in = True
                     st.rerun()
@@ -57,30 +57,30 @@ if not st.session_state.logged_in:
             with st.expander("Mot de passe oublié ?"):
                 rec_user = st.text_input("Entre ton pseudo pour récupérer")
                 if rec_user:
-                    res = supabase.table("users").select("question, answer").eq("pseudo", rec_user).execute()
+                    res = supabase.table("utilisateurs").select("question, répondre").eq("pseudo", rec_user).execute()
                     if res.data:
                         st.write(f"Question : **{res.data[0]['question']}**")
                         ans_input = st.text_input("Réponse à la question")
                         new_pass = st.text_input("Nouveau mot de passe", type="password")
                         if st.button("Réinitialiser"):
-                            if hash_pass(ans_input) == res.data[0]["answer"]:
-                                supabase.table("users").update({"password": hash_pass(new_pass)}).eq("pseudo", rec_user).execute()
+                            if hash_pass(ans_input) == res.data[0]["répondre"]:
+                                supabase.table("utilisateurs").update({"mot de passe": hash_pass(new_pass)}).eq("pseudo", rec_user).execute()
                                 st.success("Mot de passe mis à jour !")
-        
         with tab2:
             new_user = st.text_input("Choisis un pseudo", key="sign_in")
             new_pass = st.text_input("Mot de passe", type="password")
             quest = st.selectbox("Question secrète", ["Animal favori ?", "Ville de naissance ?"])
             ans = st.text_input("Réponse")
             if st.button("S'inscrire"):
-                res = supabase.table("users").select("pseudo").eq("pseudo", new_user).execute()
+                res = supabase.table("utilisateurs").select("pseudo").eq("pseudo", new_user).execute()
                 if res.data: st.error("Pseudo déjà utilisé.")
                 else:
-                    supabase.table("users").insert({"pseudo": new_user, "password": hash_pass(new_pass), "question": quest, "answer": hash_pass(ans)}).execute()
+                    # On insère avec les noms de colonnes exacts
+                    supabase.table("utilisateurs").insert({"pseudo": new_user, "mot de passe": hash_pass(new_pass), "question": quest, "répondre": hash_pass(ans)}).execute()
                     st.success("Compte créé !")
     st.stop()
 
-# --- INTERFACE ---
+# --- INTERFACE (Reste du code identique...) ---
 CHARACTERS = {"Caelum": {"img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", "prompt": "Tu es Caelum, Prince des Ténèbres.", "start": "Tu es sur mon chemin."}, "Noah": {"img": "Noah.png", "prompt": "Tu es Noah, quaterback star.", "start": "Une façade."}, "Ethan": {"img": "Ethan.png", "prompt": "Tu es Ethan, Loup Alpha.", "start": "La forêt est dangereuse."}, "Léo": {"img": "Léo.png", "prompt": "Tu es Léo, streameur.", "start": "Tu es enfin là."}, "Liam": {"img": "Liam.png", "prompt": "Tu es Liam, le grand frère.", "start": "Calme de ma maison."}, "Alexei": {"img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg", "prompt": "Tu es Alexei, mafieux.", "start": "La mafia n'attend personne."}, "Lucas": {"img": "Lucas.png", "prompt": "Tu es Lucas, populaire.", "start": "On squatte ton canapé ?"}, "Killian": {"img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg", "prompt": "Tu es Killian, motard.", "start": "Je t'ai sortie de là."}}
 
 st.sidebar.image("couple.png", use_container_width=True)
