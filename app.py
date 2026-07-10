@@ -15,9 +15,10 @@ if "pseudo" not in st.session_state: st.session_state.pseudo = ""
 if not st.session_state.logged_in:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        # Affichage de ta bannière
-        if os.path.exists("bg.png.png"):
+        try:
             st.image("bg.png.png", use_container_width=True)
+        except:
+            st.warning("Bannière en cours de chargement...")
             
         st.title("Bienvenue sur Storyia")
         
