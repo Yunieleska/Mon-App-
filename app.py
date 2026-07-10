@@ -13,9 +13,9 @@ def init_db():
     conn = sqlite3.connect('storyia_v3.db')
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS messages 
-                 (user_pseudo TEXT, char_name TEXT, role TEXT, content TEXT)''')
+                  (user_pseudo TEXT, char_name TEXT, role TEXT, content TEXT)''')
     c.execute('''CREATE TABLE IF NOT EXISTS custom_characters 
-                 (name TEXT PRIMARY KEY, prompt TEXT, start TEXT, visibility TEXT, image_path TEXT, creator TEXT)''')
+                  (name TEXT PRIMARY KEY, prompt TEXT, start TEXT, visibility TEXT, image_path TEXT, creator TEXT)''')
     conn.commit()
     conn.close()
 
@@ -65,7 +65,6 @@ if "pseudo" not in st.session_state: st.session_state.pseudo = "User"
 st.session_state.pseudo = st.sidebar.text_input("Ton pseudo :", st.session_state.pseudo)
 
 if st.sidebar.button("🏠 Accueil"): st.session_state.page = "home"; st.rerun()
-if st.sidebar.button("👤 Mon Profil"): st.session_state.page = "profile"; st.rerun()
 if st.sidebar.button("✨ Créer un personnage"): st.session_state.page = "create"; st.rerun()
 
 st.sidebar.markdown("---")
@@ -77,22 +76,6 @@ for char in get_user_chats(st.session_state.pseudo):
 
 # --- PAGES ---
 if "page" not in st.session_state: st.session_state.page = "home"
-
-if st.session_state.page == "profile":
-    st.title("Ton Profil")
-    col1, col2 = st.columns([1, 3])
-    with col1:
-        st.image(f"https://api.dicebear.com/7.x/adventurer/png?seed={st.session_state.pseudo}", width=150)
-        st.subheader(st.session_state.pseudo)
-    with col2:
-        st.subheader("Tes créations partagées")
-        conn = sqlite3.connect('storyia_v3.db')
-        c = conn.cursor()
-        c.execute("SELECT name, visibility FROM custom_characters WHERE creator=?", (st.session_state.pseudo,))
-        my_chars = c.fetchall()
-        conn.close()
-        for char in my_chars:
-            st.write(f"- **{char[0]}** (Visibilité: {char[1]})")
 
 elif st.session_state.page == "create":
     st.title("Créer ton personnage")
