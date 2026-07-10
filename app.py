@@ -3,10 +3,9 @@ from supabase import create_client
 from groq import Groq
 import hashlib
 
-# --- CONFIGURATION ---
+# Configuration de base
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
-
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="expanded")
 
 def hash_pass(p): return hashlib.sha256(p.encode()).hexdigest()
