@@ -56,7 +56,7 @@ CHARACTERS = {
     "Killian": {"img": "https://i.pinimg.com/736x/2d/d2/a6/2dd2a6a826b7c58984f44ae0dddf0678.jpg", "prompt": "Tu es Killian, motard.", "start": "Respire, c'est fini... T'as pas changé.", "accroche": "Je t'ai sortie de là."}
 }
 
-# --- SIDEBAR ---
+# --- NAVIGATION ---
 st.sidebar.title("Storyia")
 if "pseudo" not in st.session_state: st.session_state.pseudo = "User"
 st.session_state.pseudo = st.sidebar.text_input("Ton pseudo :", st.session_state.pseudo)
@@ -94,12 +94,11 @@ elif st.session_state.page == "create":
             conn.commit()
             conn.close()
             st.success("Personnage créé !")
+            st.rerun()
 
 elif st.session_state.page == "home":
     st.title("Choisis ton personnage")
     display_chars = CHARACTERS.copy()
-    
-    # Chargement des persos depuis DB
     conn = sqlite3.connect('storyia_v3.db')
     c = conn.cursor()
     c.execute("SELECT name, prompt, start, image_path FROM custom_characters WHERE visibility='Public'")
@@ -108,13 +107,11 @@ elif st.session_state.page == "home":
     conn.close()
     
     cols = st.columns(4)
-    i = 0
-    for name, data in display_chars.items():
+    for i, (name, data) in enumerate(display_chars.items()):
         with cols[i % 4]:
-            # Logique de chargement d'image
             img = data["img"]
-            # Si le lien est local et existe, on l'affiche, sinon placeholder
-            if img and (img.startswith("http") or os.path.exists(img)):
+            # Vérification de sécurité pour afficher l'image
+            if img and (img.startswith("http") or (os.path.exists(img))):
                 st.image(img, use_container_width=True)
             else:
                 st.image("https://via.placeholder.com/150", use_container_width=True)
@@ -128,7 +125,6 @@ elif st.session_state.page == "home":
                     save_msg(st.session_state.pseudo, name, "assistant", data["start"])
                 st.session_state.page = "chat"
                 st.rerun()
-        i += 1
 
 elif st.session_state.page == "chat":
     st.title(f"Chat avec {st.session_state.char_select}")
