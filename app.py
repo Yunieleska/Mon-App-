@@ -1,27 +1,29 @@
 import streamlit as st
-import sqlite3
+from supabase import create_client
 from groq import Groq
 import os
 import hashlib
 
 # --- CONFIGURATION ---
-client = Groq(api_key="TON_API_KEY") 
+# On utilise st.secrets pour sécuriser tes clés sur le Cloud
+client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="expanded")
 
-# Fonction hachage
 def hash_pass(p): return hashlib.sha256(p.encode()).hexdigest()
 
-# --- INITIALISATION BASE DE DONNÉES (CORRECTIF : APPELÉ ICI) ---
-def init_db():
-    conn = sqlite3.connect('storyia_v3.db')
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS users (pseudo TEXT PRIMARY KEY, password TEXT, question TEXT, answer TEXT)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS messages (user_pseudo TEXT, char_name TEXT, role TEXT, content TEXT)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS custom_characters (name TEXT PRIMARY KEY, prompt TEXT, start TEXT, visibility TEXT, image_path TEXT, creator TEXT)''')
-    conn.commit()
-    conn.close()
+# --- FONCTIONS SUPABASE (Remplace SQLite) ---
+def save_msg(pseudo, char, role, content):
+    supabase.table("messages").insert({"user_pseudo": pseudo, "char_name": char, "role": role, "content": content}).execute()
 
-init_db()
+def load_msgs(pseudo, char):
+    res = supabase.table("messages").select("role, content").eq("user_pseudo", pseudo).eq("char_name", char).execute()
+    return [{"role": r["role"], "content": r["content"]} for r in res.data]
+
+def get_user_chats(pseudo):
+    res = supabase.table("messages").select("char_name").eq("user_pseudo", pseudo).execute()
+    return list(set([row["char_name"] for row in res.data]))
 
 # --- INITIALISATION SESSION ---
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
@@ -32,99 +34,34 @@ def logout():
     st.session_state.pseudo = ""
     st.rerun()
 
-# --- LOGIQUE DE CONNEXION (AFFICHÉE AVANT TOUT) ---
+# --- LOGIQUE DE CONNEXION ---
 if not st.session_state.logged_in:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        try: st.image("bg.png", use_container_width=True)
-        except: st.warning("Bannière non trouvée.")
-            
         st.title("Bienvenue sur Storyia")
         tab1, tab2 = st.tabs(["Connexion", "Inscription"])
-        
         with tab1:
             user_login = st.text_input("Ton pseudo", key="login_in")
             pass_login = st.text_input("Mot de passe", type="password", key="pass_in")
             if st.button("Se connecter"):
-                conn = sqlite3.connect('storyia_v3.db')
-                c = conn.cursor()
-                c.execute("SELECT password FROM users WHERE pseudo=?", (user_login,))
-                res = c.fetchone()
-                if res and res[0] == hash_pass(pass_login):
+                res = supabase.table("users").select("*").eq("pseudo", user_login).execute()
+                if res.data and res.data[0]["password"] == hash_pass(pass_login):
                     st.session_state.pseudo = user_login
                     st.session_state.logged_in = True
                     st.rerun()
                 else: st.error("Pseudo ou mot de passe incorrect.")
-                conn.close()
-            
-            with st.expander("Mot de passe oublié ?"):
-                rec_user = st.text_input("Entre ton pseudo pour récupérer")
-                if rec_user:
-                    conn = sqlite3.connect('storyia_v3.db')
-                    c = conn.cursor()
-                    c.execute("SELECT question FROM users WHERE pseudo=?", (rec_user,))
-                    res = c.fetchone()
-                    if res:
-                        st.write(f"Question secrète : **{res[0]}**")
-                        ans_input = st.text_input("Réponse à la question")
-                        new_pass = st.text_input("Nouveau mot de passe", type="password")
-                        if st.button("Réinitialiser le mot de passe"):
-                            c.execute("SELECT answer FROM users WHERE pseudo=?", (rec_user,))
-                            correct_ans = c.fetchone()[0]
-                            if correct_ans == hash_pass(ans_input):
-                                c.execute("UPDATE users SET password=? WHERE pseudo=?", (hash_pass(new_pass), rec_user))
-                                conn.commit()
-                                st.success("Mot de passe mis à jour !")
-                            else:
-                                st.error("Réponse incorrecte.")
-                    else:
-                        st.error("Pseudo non trouvé.")
-                    conn.close()
-                
         with tab2:
             new_user = st.text_input("Choisis un pseudo", key="sign_in")
             new_pass = st.text_input("Mot de passe", type="password")
             quest = st.selectbox("Question secrète", ["Animal favori ?", "Ville de naissance ?"])
             ans = st.text_input("Réponse")
             if st.button("S'inscrire"):
-                conn = sqlite3.connect('storyia_v3.db')
-                c = conn.cursor()
-                c.execute("SELECT * FROM users WHERE pseudo=?", (new_user,))
-                if c.fetchone(): st.error("Pseudo déjà utilisé.")
+                res = supabase.table("users").select("*").eq("pseudo", new_user).execute()
+                if res.data: st.error("Pseudo déjà utilisé.")
                 else:
-                    c.execute("INSERT INTO users VALUES (?, ?, ?, ?)", (new_user, hash_pass(new_pass), quest, hash_pass(ans)))
-                    conn.commit()
+                    supabase.table("users").insert({"pseudo": new_user, "password": hash_pass(new_pass), "question": quest, "answer": hash_pass(ans)}).execute()
                     st.success("Compte créé !")
-                conn.close()
     st.stop()
-
-# --- SI CONNECTÉ, ON CONTINUE AVEC LE RESTE DE TON CODE ---
-
-def save_msg(pseudo, char, role, content):
-    conn = sqlite3.connect('storyia_v3.db')
-    c = conn.cursor()
-    c.execute("INSERT INTO messages VALUES (?, ?, ?, ?)", (pseudo, char, role, content))
-    conn.commit()
-    conn.close()
-
-def load_msgs(pseudo, char):
-    conn = sqlite3.connect('storyia_v3.db')
-    c = conn.cursor()
-    c.execute("SELECT role, content FROM messages WHERE user_pseudo=? AND char_name=?", (pseudo, char))
-    data = c.fetchall()
-    conn.close()
-    return [{"role": r, "content": c} for r, c in data]
-
-def get_user_chats(pseudo):
-    if not os.path.exists('storyia_v3.db'): return []
-    conn = sqlite3.connect('storyia_v3.db')
-    c = conn.cursor()
-    try:
-        c.execute("SELECT DISTINCT char_name FROM messages WHERE user_pseudo=?", (pseudo,))
-        data = c.fetchall()
-        return [row[0] for row in data]
-    except: return []
-    finally: conn.close()
 
 # --- DONNÉES PAR DÉFAUT ---
 CHARACTERS = {
@@ -139,9 +76,7 @@ CHARACTERS = {
 }
 
 # --- SIDEBAR ---
-st.sidebar.image("couple.png", use_container_width=True)
 st.sidebar.info(f"Connecté en tant que : **{st.session_state.pseudo}**")
-
 if st.sidebar.button("🏠 Accueil"): st.session_state.page = "home"; st.rerun()
 if st.sidebar.button("👤 Mon Profil"): st.session_state.page = "profile"; st.rerun()
 if st.sidebar.button("✨ Créer un personnage"): st.session_state.page = "create"; st.rerun()
@@ -153,65 +88,39 @@ for chat in get_user_chats(st.session_state.pseudo):
         st.session_state.page = "chat"
         st.rerun()
 
-st.sidebar.markdown("---")
-if st.sidebar.button("🚪 Déconnexion"):
-    logout()
+if st.sidebar.button("🚪 Déconnexion"): logout()
 
 # --- PAGES ---
 if "page" not in st.session_state: st.session_state.page = "home"
 
 if st.session_state.page == "profile":
     st.title("Ton Profil")
-    col1, col2 = st.columns([1, 3])
-    with col1:
-        st.image(f"https://api.dicebear.com/7.x/adventurer/png?seed={st.session_state.pseudo}", width=150)
-        st.subheader(st.session_state.pseudo)
-    with col2:
-        st.subheader("Tes créations partagées")
-        conn = sqlite3.connect('storyia_v3.db')
-        c = conn.cursor()
-        c.execute("SELECT name, visibility FROM custom_characters WHERE creator=?", (st.session_state.pseudo,))
-        my_chars = c.fetchall()
-        conn.close()
-        for char in my_chars:
-            st.write(f"- **{char[0]}** (Visibilité: {char[1]})")
+    res = supabase.table("custom_characters").select("name, visibility").eq("creator", st.session_state.pseudo).execute()
+    for char in res.data:
+        st.write(f"- **{char['name']}** (Visibilité: {char['visibility']})")
 
 elif st.session_state.page == "create":
     st.title("Créer ton personnage")
-    if not os.path.exists("images"): os.makedirs("images")
     with st.form("create_char"):
         name = st.text_input("Nom")
         prompt = st.text_area("Prompt système")
         start = st.text_area("Phrase d'accroche")
-        uploaded_file = st.file_uploader("Image", type=['png', 'jpg', 'jpeg'])
         vis = st.selectbox("Visibilité", ["Privé", "Public"])
         if st.form_submit_button("Sauvegarder"):
-            path = f"images/{name}.png" if uploaded_file else ""
-            if uploaded_file:
-                with open(path, "wb") as f: f.write(uploaded_file.getbuffer())
-            conn = sqlite3.connect('storyia_v3.db')
-            c = conn.cursor()
-            c.execute("INSERT OR REPLACE INTO custom_characters VALUES (?, ?, ?, ?, ?, ?)", 
-                      (name, prompt, start, vis, path, st.session_state.pseudo))
-            conn.commit()
-            conn.close()
+            supabase.table("custom_characters").insert({"name": name, "prompt": prompt, "start": start, "visibility": vis, "creator": st.session_state.pseudo}).execute()
             st.success("Personnage créé !")
 
 elif st.session_state.page == "home":
     st.title("Choisis ton personnage")
     display_chars = CHARACTERS.copy()
-    conn = sqlite3.connect('storyia_v3.db')
-    c = conn.cursor()
-    c.execute("SELECT name, prompt, start, image_path FROM custom_characters WHERE visibility='Public'")
-    for row in c.fetchall():
-        display_chars[row[0]] = {"img": row[3], "prompt": row[1], "start": row[2], "accroche": "Personnage créé par la communauté"}
-    conn.close()
+    res = supabase.table("custom_characters").select("*").eq("visibility", "Public").execute()
+    for row in res.data:
+        display_chars[row["name"]] = {"img": "https://via.placeholder.com/150", "prompt": row["prompt"], "start": row["start"]}
     
     cols = st.columns(4)
     for i, (name, data) in enumerate(display_chars.items()):
         with cols[i % 4]:
-            img_src = data["img"] if (data["img"] and (data["img"].startswith("http") or os.path.exists(data["img"]))) else "https://via.placeholder.com/150"
-            st.image(img_src, use_container_width=True)
+            st.image(data["img"], use_container_width=True)
             st.subheader(name)
             if st.button(f"Chatter avec {name}", key=name):
                 st.session_state.char_select = name
