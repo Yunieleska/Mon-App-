@@ -4,18 +4,47 @@ from groq import Groq
 import os
 
 # --- CONFIGURATION ---
-# Remplace par ta vraie clé API ou utilise st.secrets
 client = Groq(api_key="TON_API_KEY") 
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="expanded")
+
+# --- INITIALISATION SESSION ---
+if "logged_in" not in st.session_state: st.session_state.logged_in = False
+if "pseudo" not in st.session_state: st.session_state.pseudo = ""
+
+# --- LOGIQUE DE CONNEXION (AFFICHÉE AVANT TOUT) ---
+if not st.session_state.logged_in:
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        # Remplace 'banniere.png' par le nom de ton fichier image réel
+        if os.path.exists("banniere.png"):
+            st.image("banniere.png", use_container_width=True)
+        st.title("Bienvenue sur Storyia")
+        
+        tab1, tab2 = st.tabs(["Connexion", "Inscription"])
+        
+        with tab1:
+            user_login = st.text_input("Ton pseudo", key="login_in")
+            if st.button("Se connecter"):
+                st.session_state.pseudo = user_login
+                st.session_state.logged_in = True
+                st.rerun()
+                
+        with tab2:
+            user_sign = st.text_input("Choisis un pseudo", key="sign_in")
+            if st.button("S'inscrire"):
+                st.session_state.pseudo = user_sign
+                st.session_state.logged_in = True
+                st.rerun()
+    st.stop()
+
+# --- SI CONNECTÉ, ON CONTINUE AVEC LE RESTE DE TON CODE ---
 
 # --- BASE DE DONNÉES ---
 def init_db():
     conn = sqlite3.connect('storyia_v3.db')
     c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS messages 
-                 (user_pseudo TEXT, char_name TEXT, role TEXT, content TEXT)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS custom_characters 
-                 (name TEXT PRIMARY KEY, prompt TEXT, start TEXT, visibility TEXT, image_path TEXT, creator TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS messages (user_pseudo TEXT, char_name TEXT, role TEXT, content TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS custom_characters (name TEXT PRIMARY KEY, prompt TEXT, start TEXT, visibility TEXT, image_path TEXT, creator TEXT)''')
     conn.commit()
     conn.close()
 
@@ -61,23 +90,23 @@ CHARACTERS = {
 
 # --- SIDEBAR ---
 st.sidebar.title("Storyia")
-if "pseudo" not in st.session_state: st.session_state.pseudo = "User"
-st.session_state.pseudo = st.sidebar.text_input("Ton pseudo :", st.session_state.pseudo)
+st.sidebar.info(f"Connecté en tant que : **{st.session_state.pseudo}**")
 
 if st.sidebar.button("🏠 Accueil"): st.session_state.page = "home"; st.rerun()
 if st.sidebar.button("👤 Mon Profil"): st.session_state.page = "profile"; st.rerun()
 if st.sidebar.button("✨ Créer un personnage"): st.session_state.page = "create"; st.rerun()
 
 st.sidebar.markdown("---")
-for char in get_user_chats(st.session_state.pseudo):
-    if st.sidebar.button(f"💬 {char}"):
-        st.session_state.char_select = char
+for chat in get_user_chats(st.session_state.pseudo):
+    if st.sidebar.button(f"💬 {chat}"):
+        st.session_state.char_select = chat
         st.session_state.page = "chat"
         st.rerun()
 
 # --- PAGES ---
 if "page" not in st.session_state: st.session_state.page = "home"
 
+# (Le reste de tes pages suit ici sans modification...)
 if st.session_state.page == "profile":
     st.title("Ton Profil")
     col1, col2 = st.columns([1, 3])
