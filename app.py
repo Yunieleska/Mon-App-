@@ -46,8 +46,8 @@ if not st.session_state.logged_in:
             user_login = st.text_input("Ton pseudo", key="login_in")
             pass_login = st.text_input("Mot de passe", type="password", key="pass_in")
             if st.button("Se connecter"):
-                # On utilise "utilisateurs" et "mot de passe"
-                res = supabase.table("utilisateurs").select("pseudo, mot de passe, question, répondre").eq("pseudo", user_login).execute()
+                # Utilisation de \" pour les colonnes avec espaces/accents
+                res = supabase.table("utilisateurs").select("pseudo, \"mot de passe\", question, répondre").eq("pseudo", user_login).execute()
                 if res.data and res.data[0].get("mot de passe") == hash_pass(pass_login):
                     st.session_state.pseudo = user_login
                     st.session_state.logged_in = True
@@ -75,12 +75,11 @@ if not st.session_state.logged_in:
                 res = supabase.table("utilisateurs").select("pseudo").eq("pseudo", new_user).execute()
                 if res.data: st.error("Pseudo déjà utilisé.")
                 else:
-                    # On insère avec les noms de colonnes exacts
                     supabase.table("utilisateurs").insert({"pseudo": new_user, "mot de passe": hash_pass(new_pass), "question": quest, "répondre": hash_pass(ans)}).execute()
                     st.success("Compte créé !")
     st.stop()
 
-# --- INTERFACE (Reste du code identique...) ---
+# --- INTERFACE ---
 CHARACTERS = {"Caelum": {"img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", "prompt": "Tu es Caelum, Prince des Ténèbres.", "start": "Tu es sur mon chemin."}, "Noah": {"img": "Noah.png", "prompt": "Tu es Noah, quaterback star.", "start": "Une façade."}, "Ethan": {"img": "Ethan.png", "prompt": "Tu es Ethan, Loup Alpha.", "start": "La forêt est dangereuse."}, "Léo": {"img": "Léo.png", "prompt": "Tu es Léo, streameur.", "start": "Tu es enfin là."}, "Liam": {"img": "Liam.png", "prompt": "Tu es Liam, le grand frère.", "start": "Calme de ma maison."}, "Alexei": {"img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg", "prompt": "Tu es Alexei, mafieux.", "start": "La mafia n'attend personne."}, "Lucas": {"img": "Lucas.png", "prompt": "Tu es Lucas, populaire.", "start": "On squatte ton canapé ?"}, "Killian": {"img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg", "prompt": "Tu es Killian, motard.", "start": "Je t'ai sortie de là."}}
 
 st.sidebar.image("couple.png", use_container_width=True)
