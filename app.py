@@ -44,6 +44,30 @@ if not st.session_state.logged_in:
                     st.rerun()
                 else: st.error("Pseudo ou mot de passe incorrect.")
                 conn.close()
+            
+            with st.expander("Mot de passe oublié ?"):
+                rec_user = st.text_input("Entre ton pseudo pour récupérer")
+                if rec_user:
+                    conn = sqlite3.connect('storyia_v3.db')
+                    c = conn.cursor()
+                    c.execute("SELECT question FROM users WHERE pseudo=?", (rec_user,))
+                    res = c.fetchone()
+                    if res:
+                        st.write(f"Question secrète : **{res[0]}**")
+                        ans_input = st.text_input("Réponse à la question")
+                        new_pass = st.text_input("Nouveau mot de passe", type="password")
+                        if st.button("Réinitialiser le mot de passe"):
+                            c.execute("SELECT answer FROM users WHERE pseudo=?", (rec_user,))
+                            correct_ans = c.fetchone()[0]
+                            if correct_ans == hash_pass(ans_input):
+                                c.execute("UPDATE users SET password=? WHERE pseudo=?", (hash_pass(new_pass), rec_user))
+                                conn.commit()
+                                st.success("Mot de passe mis à jour !")
+                            else:
+                                st.error("Réponse incorrecte.")
+                    else:
+                        st.error("Pseudo non trouvé.")
+                    conn.close()
                 
         with tab2:
             new_user = st.text_input("Choisis un pseudo", key="sign_in")
