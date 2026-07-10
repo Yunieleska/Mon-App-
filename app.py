@@ -44,7 +44,7 @@ def get_user_chats(pseudo):
     except: return []
     finally: conn.close()
 
-# --- CONFIGURATION DES PERSONNALITÉS (TES TEXTES ORIGINAUX) ---
+# --- CONFIGURATION DES PERSONNALITÉS ---
 CHARACTERS = {
     "Caelum": {"prompt": "Tu es Caelum, Prince des Ténèbres. Froid, arrogant, distant. Déteste ton alliance forcée.", "start": "*Tu bouscules accidentellement Caelum dans le couloir.*\n\nTu es sur mon chemin, humaine. Ramasse tes affaires et disparais."},
     "Noah": {"prompt": "Tu es Noah, quaterback star. En public : arrogant. Par message anonyme : profond, attentionné.", "start": "*Ton téléphone vibre en pleine nuit.*\n\nHey... Le match de ce soir était d'un ennui mortel. Tu crois qu'on est tous obligés de jouer un rôle ?"},
@@ -101,12 +101,17 @@ if st.session_state.page == "home":
                 st.rerun()
 
 elif st.session_state.page == "chat":
-    st.title(f"Chat avec {st.session_state.char_select}")
-    for msg in load_msgs(st.session_state.pseudo, st.session_state.char_select):
-        if msg["role"] != "system":
-            with st.chat_message(msg["role"]): st.write(msg["content"])
+    st.title(f"Discussion avec {st.session_state.char_select}")
     
-    if prompt := st.chat_input("Répondre..."):
+    # Fenêtre de discussion stylisée
+    with st.container(border=True, height=500):
+        for msg in load_msgs(st.session_state.pseudo, st.session_state.char_select):
+            if msg["role"] != "system":
+                with st.chat_message(msg["role"]): 
+                    st.write(msg["content"])
+    
+    # Input en bas
+    if prompt := st.chat_input("Répondre à " + st.session_state.char_select + "..."):
         save_msg(st.session_state.pseudo, st.session_state.char_select, "user", prompt)
         messages_db = load_msgs(st.session_state.pseudo, st.session_state.char_select)
         response = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=messages_db)
