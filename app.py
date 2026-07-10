@@ -2,10 +2,14 @@ import streamlit as st
 import sqlite3
 from groq import Groq
 import os
+import hashlib
 
 # --- CONFIGURATION ---
 client = Groq(api_key="TON_API_KEY") 
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="expanded")
+
+# Fonction hachage
+def hash_pass(p): return hashlib.sha256(p.encode()).hexdigest()
 
 # --- INITIALISATION SESSION ---
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
@@ -15,28 +19,42 @@ if "pseudo" not in st.session_state: st.session_state.pseudo = ""
 if not st.session_state.logged_in:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        try:
-            st.image("bg.png", use_container_width=True)
-        except:
-            st.warning("Bannière non trouvée (vérifie le nom : bg.png)")
+        try: st.image("bg.png", use_container_width=True)
+        except: st.warning("Bannière non trouvée.")
             
         st.title("Bienvenue sur Storyia")
-        
         tab1, tab2 = st.tabs(["Connexion", "Inscription"])
         
         with tab1:
             user_login = st.text_input("Ton pseudo", key="login_in")
+            pass_login = st.text_input("Mot de passe", type="password", key="pass_in")
             if st.button("Se connecter"):
-                st.session_state.pseudo = user_login
-                st.session_state.logged_in = True
-                st.rerun()
+                conn = sqlite3.connect('storyia_v3.db')
+                c = conn.cursor()
+                c.execute("SELECT password FROM users WHERE pseudo=?", (user_login,))
+                res = c.fetchone()
+                if res and res[0] == hash_pass(pass_login):
+                    st.session_state.pseudo = user_login
+                    st.session_state.logged_in = True
+                    st.rerun()
+                else: st.error("Pseudo ou mot de passe incorrect.")
+                conn.close()
                 
         with tab2:
-            user_sign = st.text_input("Choisis un pseudo", key="sign_in")
+            new_user = st.text_input("Choisis un pseudo", key="sign_in")
+            new_pass = st.text_input("Mot de passe", type="password")
+            quest = st.selectbox("Question secrète", ["Animal favori ?", "Ville de naissance ?"])
+            ans = st.text_input("Réponse")
             if st.button("S'inscrire"):
-                st.session_state.pseudo = user_sign
-                st.session_state.logged_in = True
-                st.rerun()
+                conn = sqlite3.connect('storyia_v3.db')
+                c = conn.cursor()
+                c.execute("SELECT * FROM users WHERE pseudo=?", (new_user,))
+                if c.fetchone(): st.error("Pseudo déjà utilisé.")
+                else:
+                    c.execute("INSERT INTO users VALUES (?, ?, ?, ?)", (new_user, hash_pass(new_pass), quest, hash_pass(ans)))
+                    conn.commit()
+                    st.success("Compte créé !")
+                conn.close()
     st.stop()
 
 # --- SI CONNECTÉ, ON CONTINUE AVEC LE RESTE DE TON CODE ---
@@ -45,6 +63,7 @@ if not st.session_state.logged_in:
 def init_db():
     conn = sqlite3.connect('storyia_v3.db')
     c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS users (pseudo TEXT PRIMARY KEY, password TEXT, question TEXT, answer TEXT)''')
     c.execute('''CREATE TABLE IF NOT EXISTS messages (user_pseudo TEXT, char_name TEXT, role TEXT, content TEXT)''')
     c.execute('''CREATE TABLE IF NOT EXISTS custom_characters (name TEXT PRIMARY KEY, prompt TEXT, start TEXT, visibility TEXT, image_path TEXT, creator TEXT)''')
     conn.commit()
@@ -52,6 +71,7 @@ def init_db():
 
 init_db()
 
+# ... (le reste de ton code original inchangé à partir d'ici) ...
 def save_msg(pseudo, char, role, content):
     conn = sqlite3.connect('storyia_v3.db')
     c = conn.cursor()
@@ -90,7 +110,7 @@ CHARACTERS = {
     "Killian": {"img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg", "prompt": "Tu es Killian, motard.", "start": "*Capot broyé.*\n\nRespire, c'est fini.", "accroche": "Je t'ai sortie de là."}
 }
 
-# --- SIDEBAR & PAGES ---
+# --- SIDEBAR ---
 st.sidebar.title("Storyia")
 st.sidebar.info(f"Connecté en tant que : **{st.session_state.pseudo}**")
 
@@ -105,6 +125,7 @@ for chat in get_user_chats(st.session_state.pseudo):
         st.session_state.page = "chat"
         st.rerun()
 
+# --- PAGES ---
 if "page" not in st.session_state: st.session_state.page = "home"
 
 if st.session_state.page == "profile":
