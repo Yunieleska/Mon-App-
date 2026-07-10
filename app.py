@@ -50,7 +50,7 @@ if "char_select" not in st.session_state: st.session_state.char_select = None
 personnages = [
     {"nom": "Caelum", "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", "accroche": "Tu es sur mon chemin, humaine. Disparais."},
     {"nom": "Alexei", "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg", "accroche": "La mafia n'attend personne, surtout pas une Volkov."},
-    {"nom": "Killian", "img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg", "accroche": "On joue selon mes règles."},
+    {"nom": "Killian", "img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg", "accroche": "Je t'ai sortie de là, c'est tout ce qui compte."},
     {"nom": "Noah", "img": "Noah.png", "accroche": "C'est fou comme je peux être moi-même avec toi, alors qu'en vrai, je ne suis qu'une façade."},
     {"nom": "Lucas", "img": "Lucas.png", "accroche": "On s'esquive tous les deux et on va squatter ton canapé comme d'habitude ?"},
     {"nom": "Ethan", "img": "Ethan.png", "accroche": "Tu es nouvelle en ville, n'est-ce pas ? La forêt est dangereuse pour quelqu'un qui ne connaît pas les lieux."},
