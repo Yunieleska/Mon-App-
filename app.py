@@ -5,7 +5,6 @@ import os
 import hashlib
 
 # --- CONFIGURATION ---
-# On utilise st.secrets pour sécuriser tes clés sur le Cloud
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
@@ -13,7 +12,7 @@ st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="e
 
 def hash_pass(p): return hashlib.sha256(p.encode()).hexdigest()
 
-# --- FONCTIONS SUPABASE (Remplace SQLite) ---
+# --- FONCTIONS SUPABASE ---
 def save_msg(pseudo, char, role, content):
     supabase.table("messages").insert({"user_pseudo": pseudo, "char_name": char, "role": role, "content": content}).execute()
 
@@ -38,8 +37,12 @@ def logout():
 if not st.session_state.logged_in:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
+        try: st.image("bg.png", use_container_width=True)
+        except: st.warning("Bannière non trouvée.")
+        
         st.title("Bienvenue sur Storyia")
         tab1, tab2 = st.tabs(["Connexion", "Inscription"])
+        
         with tab1:
             user_login = st.text_input("Ton pseudo", key="login_in")
             pass_login = st.text_input("Mot de passe", type="password", key="pass_in")
@@ -50,6 +53,21 @@ if not st.session_state.logged_in:
                     st.session_state.logged_in = True
                     st.rerun()
                 else: st.error("Pseudo ou mot de passe incorrect.")
+            
+            with st.expander("Mot de passe oublié ?"):
+                rec_user = st.text_input("Entre ton pseudo pour récupérer")
+                if rec_user:
+                    res = supabase.table("users").select("question").eq("pseudo", rec_user).execute()
+                    if res.data:
+                        st.write(f"Question secrète : **{res.data[0]['question']}**")
+                        ans_input = st.text_input("Réponse à la question")
+                        new_pass = st.text_input("Nouveau mot de passe", type="password")
+                        if st.button("Réinitialiser le mot de passe"):
+                            res_ans = supabase.table("users").select("answer").eq("pseudo", rec_user).execute()
+                            if res_ans.data[0]["answer"] == hash_pass(ans_input):
+                                supabase.table("users").update({"password": hash_pass(new_pass)}).eq("pseudo", rec_user).execute()
+                                st.success("Mot de passe mis à jour !")
+        
         with tab2:
             new_user = st.text_input("Choisis un pseudo", key="sign_in")
             new_pass = st.text_input("Mot de passe", type="password")
@@ -63,19 +81,10 @@ if not st.session_state.logged_in:
                     st.success("Compte créé !")
     st.stop()
 
-# --- DONNÉES PAR DÉFAUT ---
-CHARACTERS = {
-    "Caelum": {"img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", "prompt": "Tu es Caelum, Prince des Ténèbres.", "start": "*Tu bouscules accidentellement Caelum.*\n\nTu es sur mon chemin, humaine.", "accroche": "Tu es sur mon chemin."},
-    "Noah": {"img": "Noah.png", "prompt": "Tu es Noah, quaterback star.", "start": "*Ton téléphone vibre.*\n\nHey... Le match était d'un ennui mortel.", "accroche": "Une façade."},
-    "Ethan": {"img": "Ethan.png", "prompt": "Tu es Ethan, Loup Alpha.", "start": "*Ethan émerge de la pénombre.*\n\nLa forêt cache des prédateurs... Reste près de moi.", "accroche": "La forêt est dangereuse."},
-    "Léo": {"img": "Léo.png", "prompt": "Tu es Léo, streameur.", "start": "*Discord retentit.*\n\nTu es enfin là !", "accroche": "Tu es enfin là."},
-    "Liam": {"img": "Liam.png", "prompt": "Tu es Liam, le grand frère.", "start": "*Tu es sur le tapis du salon.*\n\nSalut, l'amie de ma sœur.", "accroche": "Calme de ma maison."},
-    "Alexei": {"img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg", "prompt": "Tu es Alexei, mafieux.", "start": "*Musique club VIP.*\n\nRegardez qui s'est perdue sur mon territoire.", "accroche": "La mafia n'attend personne."},
-    "Lucas": {"img": "Lucas.png", "prompt": "Tu es Lucas, populaire.", "start": "*Fin des cours.*\n\nOn va squatter ton canapé ?", "accroche": "On squatte ton canapé ?"},
-    "Killian": {"img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg", "prompt": "Tu es Killian, motard.", "start": "*Capot broyé.*\n\nRespire, c'est fini.", "accroche": "Je t'ai sortie de là."}
-}
+# --- DONNÉES ET INTERFACE ---
+CHARACTERS = {"Caelum": {"img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", "prompt": "Tu es Caelum, Prince des Ténèbres.", "start": "*Tu bouscules accidentellement Caelum.*\n\nTu es sur mon chemin, humaine.", "accroche": "Tu es sur mon chemin."}, "Noah": {"img": "Noah.png", "prompt": "Tu es Noah, quaterback star.", "start": "*Ton téléphone vibre.*\n\nHey... Le match était d'un ennui mortel.", "accroche": "Une façade."}, "Ethan": {"img": "Ethan.png", "prompt": "Tu es Ethan, Loup Alpha.", "start": "*Ethan émerge de la pénombre.*\n\nLa forêt cache des prédateurs... Reste près de moi.", "accroche": "La forêt est dangereuse."}, "Léo": {"img": "Léo.png", "prompt": "Tu es Léo, streameur.", "start": "*Discord retentit.*\n\nTu es enfin là !", "accroche": "Tu es enfin là."}, "Liam": {"img": "Liam.png", "prompt": "Tu es Liam, le grand frère.", "start": "*Tu es sur le tapis du salon.*\n\nSalut, l'amie de ma sœur.", "accroche": "Calme de ma maison."}, "Alexei": {"img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg", "prompt": "Tu es Alexei, mafieux.", "start": "*Musique club VIP.*\n\nRegardez qui s'est perdue sur mon territoire.", "accroche": "La mafia n'attend personne."}, "Lucas": {"img": "Lucas.png", "prompt": "Tu es Lucas, populaire.", "start": "*Fin des cours.*\n\nOn va squatter ton canapé ?", "accroche": "On squatte ton canapé ?"}, "Killian": {"img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg", "prompt": "Tu es Killian, motard.", "start": "*Capot broyé.*\n\nRespire, c'est fini.", "accroche": "Je t'ai sortie de là."}}
 
-# --- SIDEBAR ---
+st.sidebar.image("couple.png", use_container_width=True)
 st.sidebar.info(f"Connecté en tant que : **{st.session_state.pseudo}**")
 if st.sidebar.button("🏠 Accueil"): st.session_state.page = "home"; st.rerun()
 if st.sidebar.button("👤 Mon Profil"): st.session_state.page = "profile"; st.rerun()
@@ -90,11 +99,12 @@ for chat in get_user_chats(st.session_state.pseudo):
 
 if st.sidebar.button("🚪 Déconnexion"): logout()
 
-# --- PAGES ---
 if "page" not in st.session_state: st.session_state.page = "home"
 
+# --- PAGES ---
 if st.session_state.page == "profile":
     st.title("Ton Profil")
+    st.image(f"https://api.dicebear.com/7.x/adventurer/png?seed={st.session_state.pseudo}", width=150)
     res = supabase.table("custom_characters").select("name, visibility").eq("creator", st.session_state.pseudo).execute()
     for char in res.data:
         st.write(f"- **{char['name']}** (Visibilité: {char['visibility']})")
