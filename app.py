@@ -13,7 +13,7 @@ def init_db():
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS messages 
                  (user_pseudo TEXT, char_name TEXT, role TEXT, content TEXT)''')
-    # Table avec colonne image_path
+    # Table avec la colonne image_path incluse
     c.execute('''CREATE TABLE IF NOT EXISTS custom_characters 
                  (name TEXT PRIMARY KEY, prompt TEXT, start TEXT, visibility TEXT, image_path TEXT)''')
     conn.commit()
@@ -47,7 +47,7 @@ def get_user_chats(pseudo):
     except: return []
     finally: conn.close()
 
-# --- DONNÉES ---
+# --- DONNÉES PAR DÉFAUT ---
 CHARACTERS = {
     "Caelum": {"img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", "prompt": "Tu es Caelum, Prince des Ténèbres.", "start": "*Tu bouscules accidentellement Caelum.*\n\nTu es sur mon chemin, humaine.", "accroche": "Tu es sur mon chemin."},
     "Noah": {"img": "Noah.png", "prompt": "Tu es Noah, quaterback star.", "start": "*Ton téléphone vibre.*\n\nHey... Le match était d'un ennui mortel.", "accroche": "Une façade."},
@@ -103,19 +103,26 @@ if st.session_state.page == "create":
 elif st.session_state.page == "home":
     st.title("Choisis ton personnage")
     
-    # Fusionner persos par défaut et custom
+    # 1. Copie des persos par défaut
     display_chars = CHARACTERS.copy()
-    conn = sqlite3.connect('storyia.db')
-    c = conn.cursor()
-    c.execute("SELECT name, prompt, start, image_path FROM custom_characters")
-    for row in c.fetchall():
-        display_chars[row[0]] = {"img": row[3], "prompt": row[1], "start": row[2], "accroche": "Personnage personnalisé"}
-    conn.close()
+    
+    # 2. Ajout des persos custom depuis la DB
+    try:
+        conn = sqlite3.connect('storyia.db')
+        c = conn.cursor()
+        c.execute("SELECT name, prompt, start, image_path FROM custom_characters")
+        for row in c.fetchall():
+            display_chars[row[0]] = {"img": row[3], "prompt": row[1], "start": row[2], "accroche": "Personnage personnalisé"}
+        conn.close()
+    except: pass
     
     cols = st.columns(4)
+    # Affichage
     for i, (name, data) in enumerate(display_chars.items()):
         with cols[i % 4]:
-            st.image(data["img"], use_container_width=True)
+            # Vérifie si l'image existe localement ou est une URL
+            img_src = data["img"] if (data["img"] and (data["img"].startswith("http") or os.path.exists(data["img"]))) else "https://via.placeholder.com/150"
+            st.image(img_src, use_container_width=True)
             st.subheader(name)
             st.caption(data["accroche"])
             if st.button(f"Chatter avec {name}", key=name):
