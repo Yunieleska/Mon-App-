@@ -46,15 +46,34 @@ if not st.session_state.logged_in:
                     supabase.auth.sign_in_with_password({"email": email_virtuel, "password": password})
                     st.rerun()
                 except: st.error("Pseudo ou mot de passe incorrect.")
+            
+            # --- FORMULAIRE MOT DE PASSE OUBLIÉ ---
+            with st.expander("Mot de passe oublié ?"):
+                recup_pseudo = st.text_input("Ton pseudo", key="recup_pseudo")
+                reponse_user = st.text_input("Ta réponse secrète", key="recup_reponse")
+                nouveau_pass = st.text_input("Nouveau mot de passe", type="password", key="new_pass")
                 
+                if st.button("Réinitialiser"):
+                    user_db = supabase.table("users").select("id, reponse_secrete").eq("pseudo", recup_pseudo).execute()
+                    if user_db.data and user_db.data[0]["reponse_secrete"] == reponse_user:
+                        st.info("Réponse correcte. Veuillez contacter l'admin pour finaliser (limitation sécurité).")
+                    else:
+                        st.error("Pseudo ou réponse incorrecte.")
+
         with tab2:
             new_pseudo = st.text_input("Pseudo", key="sign_pseudo")
             new_pass = st.text_input("Password", type="password", key="sign_pass")
+            reponse_secrete = st.text_input("Question : Ta couleur préférée ?", key="sign_q")
+            
             if st.button("Sign Up"):
                 email_virtuel = f"{new_pseudo.lower()}@storyia.com"
                 try:
                     auth_res = supabase.auth.sign_up({"email": email_virtuel, "password": new_pass})
-                    supabase.table("users").insert({"id": auth_res.user.id, "pseudo": new_pseudo}).execute()
+                    supabase.table("users").insert({
+                        "id": auth_res.user.id, 
+                        "pseudo": new_pseudo,
+                        "reponse_secrete": reponse_secrete
+                    }).execute()
                     st.success("Compte créé ! Veuillez vous connecter.")
                 except Exception as e: st.error(f"Erreur : {e}")
     st.stop()
