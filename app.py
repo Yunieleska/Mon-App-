@@ -31,7 +31,6 @@ def load_msgs(pseudo, char):
 if not st.session_state.logged_in:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        # Affichage de l'image de fond
         try: st.image("bg.png", use_container_width=True)
         except: st.info("Image 'bg.png' manquante.")
         
@@ -39,47 +38,40 @@ if not st.session_state.logged_in:
         tab1, tab2 = st.tabs(["Login", "Sign Up"])
         
         with tab1:
-            pseudo_log = st.text_input("Pseudo", key="login_pseudo")
+            email_log = st.text_input("E-mail", key="login_email")
             password = st.text_input("Password", type="password", key="login_pass")
             if st.button("Log In"):
-                # Utilisation de @example.com pour un format valide accepté par Supabase
-                email_virtuel = f"{pseudo_log.lower()}@example.com"
                 try:
-                    supabase.auth.sign_in_with_password({"email": email_virtuel, "password": password})
+                    supabase.auth.sign_in_with_password({"email": email_log, "password": password})
                     st.rerun()
-                except: st.error("Pseudo ou mot de passe incorrect.")
+                except: st.error("E-mail ou mot de passe incorrect.")
             
-            # --- FORMULAIRE MOT DE PASSE OUBLIÉ ---
             with st.expander("Mot de passe oublié ?"):
-                recup_pseudo = st.text_input("Ton pseudo", key="recup_pseudo")
+                recup_email = st.text_input("Ton e-mail", key="recup_email")
                 reponse_user = st.text_input("Ta réponse secrète", key="recup_reponse")
                 nouveau_pass = st.text_input("Nouveau mot de passe", type="password", key="new_pass")
-                
                 if st.button("Réinitialiser"):
-                    user_db = supabase.table("users").select("id, reponse_secrete").eq("pseudo", recup_pseudo).execute()
+                    user_db = supabase.table("users").select("id, reponse_secrete").eq("email", recup_email).execute()
                     if user_db.data and user_db.data[0]["reponse_secrete"] == reponse_user:
                         try:
-                            supabase.functions.invoke("reset-password", body={
-                                "user_id": user_db.data[0]["id"],
-                                "new_password": nouveau_pass
-                            })
-                            st.success("Mot de passe mis à jour ! Vous pouvez vous connecter.")
+                            supabase.functions.invoke("reset-password", body={"user_id": user_db.data[0]["id"], "new_password": nouveau_pass})
+                            st.success("Mot de passe mis à jour !")
                         except Exception as e: st.error(f"Erreur : {e}")
-                    else: st.error("Pseudo ou réponse secrète incorrecte.")
+                    else: st.error("E-mail ou réponse incorrecte.")
 
         with tab2:
             new_pseudo = st.text_input("Pseudo", key="sign_pseudo")
+            new_email = st.text_input("E-mail", key="sign_email")
             new_pass = st.text_input("Password", type="password", key="sign_pass")
             reponse_secrete = st.text_input("Question : Ta couleur préférée ?", key="sign_q")
             
             if st.button("Sign Up"):
-                # Utilisation de @example.com pour un format valide accepté par Supabase
-                email_virtuel = f"{new_pseudo.lower()}@example.com"
                 try:
-                    auth_res = supabase.auth.sign_up({"email": email_virtuel, "password": new_pass})
+                    auth_res = supabase.auth.sign_up({"email": new_email, "password": new_pass})
                     supabase.table("users").insert({
                         "id": auth_res.user.id, 
                         "pseudo": new_pseudo,
+                        "email": new_email,
                         "reponse_secrete": reponse_secrete
                     }).execute()
                     st.success("Compte créé ! Veuillez vous connecter.")
