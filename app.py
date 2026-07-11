@@ -47,9 +47,9 @@ if not st.session_state.logged_in:
             user_login = st.text_input("Username", key="login_in")
             pass_login = st.text_input("Password", type="password", key="pass_in")
             if st.button("Log In"):
-                # Using \" for columns with spaces
-                res = supabase.table("users").select("pseudo, \"mot de passe\", question, répondre").eq("pseudo", user_login).execute()
-                if res.data and res.data[0].get("mot de passe") == hash_pass(pass_login):
+                # Matches database columns: pseudo, password, question, answer
+                res = supabase.table("users").select("pseudo, password, question, answer").eq("pseudo", user_login).execute()
+                if res.data and res.data[0].get("password") == hash_pass(pass_login):
                     st.session_state.pseudo = user_login
                     st.session_state.logged_in = True
                     st.rerun()
@@ -58,14 +58,14 @@ if not st.session_state.logged_in:
             with st.expander("Forgot password?"):
                 rec_user = st.text_input("Enter your username")
                 if rec_user:
-                    res = supabase.table("users").select("question, répondre").eq("pseudo", rec_user).execute()
+                    res = supabase.table("users").select("question, answer").eq("pseudo", rec_user).execute()
                     if res.data:
                         st.write(f"Question : **{res.data[0]['question']}**")
                         ans_input = st.text_input("Answer")
                         new_pass = st.text_input("New password", type="password")
                         if st.button("Reset"):
-                            if hash_pass(ans_input) == res.data[0]["répondre"]:
-                                supabase.table("users").update({"mot de passe": hash_pass(new_pass)}).eq("pseudo", rec_user).execute()
+                            if hash_pass(ans_input) == res.data[0]["answer"]:
+                                supabase.table("users").update({"password": hash_pass(new_pass)}).eq("pseudo", rec_user).execute()
                                 st.success("Password updated!")
         with tab2:
             new_user = st.text_input("Choose a username", key="sign_in")
@@ -76,7 +76,12 @@ if not st.session_state.logged_in:
                 res = supabase.table("users").select("pseudo").eq("pseudo", new_user).execute()
                 if res.data: st.error("Username already taken.")
                 else:
-                    supabase.table("users").insert({"pseudo": new_user, "mot de passe": hash_pass(new_pass), "question": quest, "répondre": hash_pass(ans)}).execute()
+                    supabase.table("users").insert({
+                        "pseudo": new_user, 
+                        "password": hash_pass(new_pass), 
+                        "question": quest, 
+                        "answer": hash_pass(ans)
+                    }).execute()
                     st.success("Account created!")
     st.stop()
 
