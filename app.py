@@ -55,10 +55,19 @@ if not st.session_state.logged_in:
                 
                 if st.button("Réinitialiser"):
                     user_db = supabase.table("users").select("id, reponse_secrete").eq("pseudo", recup_pseudo).execute()
+                    
                     if user_db.data and user_db.data[0]["reponse_secrete"] == reponse_user:
-                        st.info("Réponse correcte. Veuillez contacter l'admin pour finaliser (limitation sécurité).")
+                        try:
+                            # Appel de la fonction sécurisée déployée sur Supabase
+                            res = supabase.functions.invoke("reset-password", body={
+                                "user_id": user_db.data[0]["id"],
+                                "new_password": nouveau_pass
+                            })
+                            st.success("Mot de passe mis à jour ! Vous pouvez vous connecter.")
+                        except Exception as e:
+                            st.error(f"Erreur technique : {e}")
                     else:
-                        st.error("Pseudo ou réponse incorrecte.")
+                        st.error("Pseudo ou réponse secrète incorrecte.")
 
         with tab2:
             new_pseudo = st.text_input("Pseudo", key="sign_pseudo")
