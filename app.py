@@ -15,6 +15,7 @@ if "pseudo" not in st.session_state: st.session_state.pseudo = "Invité"
 
 if session:
     st.session_state.logged_in = True
+    # On récupère le pseudo depuis la table 'users' en utilisant l'ID unique
     user_data = supabase.table("users").select("pseudo").eq("id", session.user.id).execute()
     if user_data.data:
         st.session_state.pseudo = user_data.data[0]["pseudo"]
@@ -48,7 +49,6 @@ if not st.session_state.logged_in:
             
             with st.expander("Mot de passe oublié ?"):
                 recup_email = st.text_input("Ton e-mail", key="recup_email")
-                # Attention: colonne base de données = 'secret_answer'
                 reponse_user = st.text_input("Ta réponse secrète", key="recup_reponse")
                 nouveau_pass = st.text_input("Nouveau mot de passe", type="password", key="new_pass")
                 if st.button("Réinitialiser"):
@@ -67,17 +67,23 @@ if not st.session_state.logged_in:
             reponse_secrete = st.text_input("Question : Ta couleur préférée ?", key="sign_q")
             
             if st.button("Sign Up"):
-                try:
-                    auth_res = supabase.auth.sign_up({"email": new_email, "password": new_pass})
-                    # Correction ici : les noms correspondent désormais à tes colonnes Supabase
-                    supabase.table("users").insert({
-                        "id": auth_res.user.id, 
-                        "pseudo": new_pseudo,
-                        "email": new_email,
-                        "secret_answer": reponse_secrete 
-                    }).execute()
-                    st.success("Compte créé ! Veuillez vous connecter.")
-                except Exception as e: st.error(f"Erreur : {e}")
+                # Vérification pour éviter les envois vides
+                if not new_email or not new_pass or not new_pseudo:
+                    st.error("Veuillez remplir tous les champs.")
+                else:
+                    try:
+                        auth_res = supabase.auth.sign_up({"email": new_email, "password": new_pass})
+                        if auth_res.user:
+                            supabase.table("users").insert({
+                                "id": auth_res.user.id, 
+                                "pseudo": new_pseudo,
+                                "email": new_email,
+                                "secret_answer": reponse_secrete 
+                            }).execute()
+                            st.success("Compte créé ! Veuillez vous connecter.")
+                        else:
+                            st.error("Erreur à la création du compte.")
+                    except Exception as e: st.error(f"Erreur : {e}")
     st.stop()
 
 # --- INTERFACE ---
