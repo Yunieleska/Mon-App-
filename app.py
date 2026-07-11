@@ -6,14 +6,16 @@ from groq import Groq
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
-st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="expanded")
-
 # --- SESSION INITIALIZATION ---
 session = supabase.auth.get_session()
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
 if session:
     st.session_state.logged_in = True
-    st.session_state.pseudo = session.user.email
+    # On récupère le pseudo depuis la table 'users' de Supabase
+    user_data = supabase.table("users").select("pseudo").eq("id", session.user.id).execute()
+    st.session_state.pseudo = user_data.data[0]["pseudo"] if user_data.data else session.user.email
+
+st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="expanded")
 
 # --- SUPABASE FUNCTIONS ---
 def save_msg(pseudo, char, role, content):
@@ -27,59 +29,46 @@ def get_user_chats(pseudo):
     res = supabase.table("messages").select("char_name").eq("user_pseudo", pseudo).execute()
     return list(set([row["char_name"] for row in res.data]))
 
-def logout():
-    supabase.auth.sign_out()
-    st.session_state.logged_in = False
-    st.session_state.pseudo = ""
-    st.rerun()
-
 # --- LOGIN LOGIC ---
 if not st.session_state.logged_in:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        try: st.image("bg.png", use_container_width=True)
-        except: st.empty()
-        
         st.title("Welcome to Storyia")
         tab1, tab2 = st.tabs(["Login", "Sign Up"])
-        
         with tab1:
             email = st.text_input("Email", key="login_email")
             password = st.text_input("Password", type="password", key="login_pass")
             if st.button("Log In"):
                 try:
                     res = supabase.auth.sign_in_with_password({"email": email, "password": password})
-                    st.session_state.pseudo = res.user.email
                     st.session_state.logged_in = True
                     st.rerun()
                 except: st.error("Email ou mot de passe incorrect.")
-            
-            with st.expander("Forgot password?"):
-                st.write("Veuillez contacter l'administrateur pour réinitialiser votre mot de passe.")
-
         with tab2:
+            new_pseudo = st.text_input("Pseudo", key="sign_pseudo")
             new_email = st.text_input("Email", key="sign_email")
             new_pass = st.text_input("Password", type="password", key="sign_pass")
             if st.button("Sign Up"):
                 try:
-                    supabase.auth.sign_up({"email": new_email, "password": new_pass})
-                    st.success("Compte créé ! Vous pouvez maintenant vous connecter.")
+                    auth_res = supabase.auth.sign_up({"email": new_email, "password": new_pass})
+                    # Enregistrement du pseudo dans la table 'users'
+                    supabase.table("users").insert({"id": auth_res.user.id, "pseudo": new_pseudo}).execute()
+                    st.success("Compte créé ! Vous pouvez vous connecter.")
                 except Exception as e: st.error(f"Erreur : {e}")
     st.stop()
 
 # --- INTERFACE ---
 CHARACTERS = {"Caelum": {"img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", "prompt": "Tu es Caelum, Prince des Ténèbres.", "start": "Tu es sur mon chemin."}, "Noah": {"img": "Noah.png", "prompt": "Tu es Noah, quaterback star.", "start": "Une façade."}, "Ethan": {"img": "Ethan.png", "prompt": "Tu es Ethan, Loup Alpha.", "start": "La forêt est dangereuse."}, "Léo": {"img": "Léo.png", "prompt": "Tu es Léo, streameur.", "start": "Tu es enfin là."}, "Liam": {"img": "Liam.png", "prompt": "Tu es Liam, le grand frère.", "start": "Calme de ma maison."}, "Alexei": {"img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg", "prompt": "Tu es Alexei, mafieux.", "start": "La mafia n'attend personne."}, "Lucas": {"img": "Lucas.png", "prompt": "Tu es Lucas, populaire.", "start": "On squatte ton canapé ?"}, "Killian": {"img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg", "prompt": "Tu es Killian, motard.", "start": "Je t'ai sortie de là."}}
 
-st.sidebar.image("couple.png", use_container_width=True)
 st.sidebar.info(f"Connecté : **{st.session_state.pseudo}**")
-if st.sidebar.button("🏠 Home"): st.session_state.page = "home"; st.rerun()
-if st.sidebar.button("🚪 Logout"): logout()
-st.sidebar.markdown("---")
+if st.sidebar.button("🚪 Logout"):
+    supabase.auth.sign_out()
+    st.session_state.logged_in = False
+    st.rerun()
 
-for chat in get_user_chats(st.session_state.pseudo):
-    if st.sidebar.button(f"💬 {chat}"): st.session_state.char_select = chat; st.session_state.page = "chat"; st.rerun()
-
+# --- NAVIGATION ---
 if "page" not in st.session_state: st.session_state.page = "home"
+if st.sidebar.button("🏠 Home"): st.session_state.page = "home"; st.rerun()
 
 if st.session_state.page == "home":
     st.title("Choose your character")
@@ -95,6 +84,8 @@ elif st.session_state.page == "chat":
         with st.chat_message(msg["role"]): st.write(msg["content"])
     if prompt := st.chat_input():
         save_msg(st.session_state.pseudo, st.session_state.char_select, "user", prompt)
-        res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=load_msgs(st.session_state.pseudo, st.session_state.char_select))
+        # Appel Groq
+        messages = load_msgs(st.session_state.pseudo, st.session_state.char_select)
+        res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=messages)
         save_msg(st.session_state.pseudo, st.session_state.char_select, "assistant", res.choices[0].message.content)
         st.rerun()
