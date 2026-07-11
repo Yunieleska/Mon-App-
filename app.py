@@ -48,11 +48,12 @@ if not st.session_state.logged_in:
             
             with st.expander("Mot de passe oublié ?"):
                 recup_email = st.text_input("Ton e-mail", key="recup_email")
+                # Attention: colonne base de données = 'secret_answer'
                 reponse_user = st.text_input("Ta réponse secrète", key="recup_reponse")
                 nouveau_pass = st.text_input("Nouveau mot de passe", type="password", key="new_pass")
                 if st.button("Réinitialiser"):
-                    user_db = supabase.table("users").select("id, reponse_secrete").eq("email", recup_email).execute()
-                    if user_db.data and user_db.data[0]["reponse_secrete"] == reponse_user:
+                    user_db = supabase.table("users").select("id, secret_answer").eq("email", recup_email).execute()
+                    if user_db.data and user_db.data[0]["secret_answer"] == reponse_user:
                         try:
                             supabase.functions.invoke("reset-password", body={"user_id": user_db.data[0]["id"], "new_password": nouveau_pass})
                             st.success("Mot de passe mis à jour !")
@@ -68,11 +69,12 @@ if not st.session_state.logged_in:
             if st.button("Sign Up"):
                 try:
                     auth_res = supabase.auth.sign_up({"email": new_email, "password": new_pass})
+                    # Correction ici : les noms correspondent désormais à tes colonnes Supabase
                     supabase.table("users").insert({
                         "id": auth_res.user.id, 
                         "pseudo": new_pseudo,
                         "email": new_email,
-                        "reponse_secrete": reponse_secrete
+                        "secret_answer": reponse_secrete 
                     }).execute()
                     st.success("Compte créé ! Veuillez vous connecter.")
                 except Exception as e: st.error(f"Erreur : {e}")
