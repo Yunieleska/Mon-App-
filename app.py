@@ -15,7 +15,6 @@ if "pseudo" not in st.session_state: st.session_state.pseudo = "Invité"
 
 if session:
     st.session_state.logged_in = True
-    # Récupération sécurisée du pseudo
     user_data = supabase.table("users").select("pseudo").eq("id", session.user.id).execute()
     if user_data.data:
         st.session_state.pseudo = user_data.data[0]["pseudo"]
@@ -28,39 +27,35 @@ def load_msgs(pseudo, char):
     res = supabase.table("messages").select("role, content").eq("user_pseudo", pseudo).eq("char_name", char).execute()
     return [{"role": r["role"], "content": r["content"]} for r in res.data]
 
-def get_user_chats(pseudo):
-    res = supabase.table("messages").select("char_name").eq("user_pseudo", pseudo).execute()
-    return list(set([row["char_name"] for row in res.data]))
-
 # --- LOGIN LOGIC ---
 if not st.session_state.logged_in:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        # Bannière remise ici
         try: st.image("bg.png", use_container_width=True)
-        except: st.info("Image 'bg.png' manquante dans le dossier.")
+        except: st.info("Image 'bg.png' manquante.")
         
         st.title("Welcome to Storyia")
         tab1, tab2 = st.tabs(["Login", "Sign Up"])
         
         with tab1:
-            email = st.text_input("Email", key="login_email")
+            pseudo_log = st.text_input("Pseudo", key="login_pseudo")
             password = st.text_input("Password", type="password", key="login_pass")
             if st.button("Log In"):
+                email_virtuel = f"{pseudo_log.lower()}@storyia.com"
                 try:
-                    supabase.auth.sign_in_with_password({"email": email, "password": password})
+                    supabase.auth.sign_in_with_password({"email": email_virtuel, "password": password})
                     st.rerun()
-                except: st.error("Email ou mot de passe incorrect.")
+                except: st.error("Pseudo ou mot de passe incorrect.")
                 
         with tab2:
             new_pseudo = st.text_input("Pseudo", key="sign_pseudo")
-            new_email = st.text_input("Email", key="sign_email")
             new_pass = st.text_input("Password", type="password", key="sign_pass")
             if st.button("Sign Up"):
+                email_virtuel = f"{new_pseudo.lower()}@storyia.com"
                 try:
-                    auth_res = supabase.auth.sign_up({"email": new_email, "password": new_pass})
+                    auth_res = supabase.auth.sign_up({"email": email_virtuel, "password": new_pass})
                     supabase.table("users").insert({"id": auth_res.user.id, "pseudo": new_pseudo}).execute()
-                    st.success("Compte créé ! Veuillez vous connecter.")
+                    st.success("Compte créé ! Vous pouvez vous connecter.")
                 except Exception as e: st.error(f"Erreur : {e}")
     st.stop()
 
@@ -73,7 +68,6 @@ if st.sidebar.button("🚪 Logout"):
     st.session_state.logged_in = False
     st.rerun()
 
-# --- NAVIGATION ---
 if "page" not in st.session_state: st.session_state.page = "home"
 if st.sidebar.button("🏠 Home"): st.session_state.page = "home"; st.rerun()
 
