@@ -55,7 +55,7 @@ if not st.session_state.logged_in:
                 try:
                     auth_res = supabase.auth.sign_up({"email": email_virtuel, "password": new_pass})
                     supabase.table("users").insert({"id": auth_res.user.id, "pseudo": new_pseudo}).execute()
-                    st.success("Compte créé ! Vous pouvez vous connecter.")
+                    st.success("Compte créé ! Veuillez vous connecter.")
                 except Exception as e: st.error(f"Erreur : {e}")
     st.stop()
 
