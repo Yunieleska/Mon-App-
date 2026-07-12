@@ -83,7 +83,8 @@ if not st.session_state.logged_in:
                             st.success("Compte créé ! Veuillez vous connecter.")
                         else:
                             st.error("Erreur à la création du compte.")
-                    except Exception as e: st.error(f"Erreur : {e}")
+                    except Exception as e: 
+                        st.error(f"Erreur Supabase : {e}")
     st.stop()
 
 # --- INTERFACE ---
