@@ -3,12 +3,8 @@ from supabase import create_client
 from groq import Groq
 
 # --- CONFIGURATION ---
-try:
-    client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-    supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
-except Exception as e:
-    st.error(f"Erreur de connexion aux services : {e}")
-    st.stop()
+client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="expanded")
 
@@ -31,7 +27,7 @@ def save_msg(pseudo, char, role, content):
     try:
         supabase.table("messages").insert({"user_pseudo": pseudo, "char_name": char, "role": role, "content": content}).execute()
     except Exception as e:
-        st.error(f"Erreur sauvegarde : {e}")
+        st.error(f"Erreur de sauvegarde : {e}")
 
 def load_msgs(pseudo, char):
     try:
@@ -44,6 +40,9 @@ def load_msgs(pseudo, char):
 if not st.session_state.logged_in:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
+        try: st.image("bg.png", use_container_width=True)
+        except: st.info("Image 'bg.png' manquante.")
+        
         st.title("Welcome to Storyia")
         tab1, tab2 = st.tabs(["Login", "Sign Up"])
         
@@ -62,18 +61,19 @@ if not st.session_state.logged_in:
             new_pseudo = st.text_input("Pseudo", key="sign_pseudo")
             new_email = st.text_input("E-mail", key="sign_email")
             new_pass = st.text_input("Password", type="password", key="sign_pass")
+            reponse_secrete = st.text_input("Question : Ta couleur préférée ?", key="sign_q")
             if st.button("Sign Up"):
                 try:
                     auth_res = supabase.auth.sign_up({"email": new_email, "password": new_pass})
                     if auth_res.user:
-                        supabase.table("users").insert({"id": auth_res.user.id, "pseudo": new_pseudo, "email": new_email}).execute()
+                        supabase.table("users").insert({"id": auth_res.user.id, "pseudo": new_pseudo, "email": new_email, "secret_answer": reponse_secrete}).execute()
                         st.success("Compte créé ! Veuillez vous connecter.")
                 except Exception as e:
                     st.error(f"Erreur : {e}")
     st.stop()
 
 # --- INTERFACE ---
-CHARACTERS = {"Caelum": {"img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", "prompt": "Tu es Caelum, Prince des Ténèbres."}, "Noah": {"img": "https://via.placeholder.com/150", "prompt": "Tu es Noah, quaterback."}, "Ethan": {"img": "https://via.placeholder.com/150", "prompt": "Tu es Ethan, Loup Alpha."}, "Alexei": {"img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg", "prompt": "Tu es Alexei, mafieux."}}
+CHARACTERS = {"Caelum": {"img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", "prompt": "Tu es Caelum, Prince des Ténèbres."}, "Noah": {"img": "Noah.png", "prompt": "Tu es Noah, quaterback star."}, "Ethan": {"img": "Ethan.png", "prompt": "Tu es Ethan, Loup Alpha."}, "Léo": {"img": "Léo.png", "prompt": "Tu es Léo, streameur."}, "Liam": {"img": "Liam.png", "prompt": "Tu es Liam, le grand frère."}, "Alexei": {"img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg", "prompt": "Tu es Alexei, mafieux."}, "Lucas": {"img": "Lucas.png", "prompt": "Tu es Lucas, populaire."}, "Killian": {"img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg", "prompt": "Tu es Killian, motard."}}
 
 st.sidebar.info(f"Connecté : **{st.session_state.pseudo}**")
 if st.sidebar.button("🚪 Logout"):
