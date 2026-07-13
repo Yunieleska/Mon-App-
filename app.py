@@ -56,7 +56,21 @@ if not st.session_state.logged_in:
                         st.rerun()
                 except Exception as e:
                     st.error(f"Erreur de connexion : {e}")
-        
+            
+            # --- Mot de passe oublié ---
+            with st.expander("Mot de passe oublié ?"):
+                recup_email = st.text_input("Ton e-mail", key="recup_email")
+                reponse_user = st.text_input("Ta réponse secrète", key="recup_reponse")
+                nouveau_pass = st.text_input("Nouveau mot de passe", type="password", key="new_pass")
+                if st.button("Réinitialiser"):
+                    user_db = supabase.table("users").select("id, secret_answer").eq("email", recup_email).execute()
+                    if user_db.data and user_db.data[0]["secret_answer"] == reponse_user:
+                        try:
+                            # Note: nécessite une edge function 'reset-password' ou un update via admin
+                            st.info("Utilise ta console Supabase pour valider le changement.")
+                        except Exception as e: st.error(f"Erreur : {e}")
+                    else: st.error("E-mail ou réponse incorrecte.")
+
         with tab2:
             new_pseudo = st.text_input("Pseudo", key="sign_pseudo")
             new_email = st.text_input("E-mail", key="sign_email")
