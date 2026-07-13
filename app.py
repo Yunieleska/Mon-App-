@@ -43,9 +43,12 @@ if not st.session_state.logged_in:
             password = st.text_input("Password", type="password", key="login_pass")
             if st.button("Log In"):
                 try:
-                    supabase.auth.sign_in_with_password({"email": email_log, "password": password})
-                    st.rerun()
-                except: st.error("E-mail ou mot de passe incorrect.")
+                    res = supabase.auth.sign_in_with_password({"email": email_log, "password": password})
+                    if res.user:
+                        st.rerun()
+                except Exception as e:
+                    # Ici, l'erreur exacte s'affichera en rouge si la connexion échoue
+                    st.error(f"Erreur de connexion : {e}")
             
             with st.expander("Mot de passe oublié ?"):
                 recup_email = st.text_input("Ton e-mail", key="recup_email")
@@ -67,7 +70,6 @@ if not st.session_state.logged_in:
             reponse_secrete = st.text_input("Question : Ta couleur préférée ?", key="sign_q")
             
             if st.button("Sign Up"):
-                # Vérification pour éviter les envois vides
                 if not new_email or not new_pass or not new_pseudo:
                     st.error("Veuillez remplir tous les champs.")
                 else:
