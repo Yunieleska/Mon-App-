@@ -16,10 +16,13 @@ try:
     session = supabase.auth.get_session()
     if session:
         st.session_state.logged_in = True
-        user_data = supabase.table("users").select("pseudo").eq("id", session.user.id).execute()
-        if user_data.data:
+        # Récupération sécurisée du pseudo
+        user_data = supabase.table("users").select("pseudo").eq("id", session.user.id).limit(1).execute()
+        if user_data.data and len(user_data.data) > 0:
             st.session_state.pseudo = user_data.data[0]["pseudo"]
-except Exception:
+        else:
+            st.session_state.pseudo = "Utilisateur"
+except Exception as e:
     st.session_state.logged_in = False
 
 # --- SUPABASE FUNCTIONS ---
@@ -57,18 +60,13 @@ if not st.session_state.logged_in:
                 except Exception as e:
                     st.error(f"Erreur de connexion : {e}")
             
-            # --- Mot de passe oublié ---
             with st.expander("Mot de passe oublié ?"):
                 recup_email = st.text_input("Ton e-mail", key="recup_email")
                 reponse_user = st.text_input("Ta réponse secrète", key="recup_reponse")
-                nouveau_pass = st.text_input("Nouveau mot de passe", type="password", key="new_pass")
                 if st.button("Réinitialiser"):
                     user_db = supabase.table("users").select("id, secret_answer").eq("email", recup_email).execute()
                     if user_db.data and user_db.data[0]["secret_answer"] == reponse_user:
-                        try:
-                            # Note: nécessite une edge function 'reset-password' ou un update via admin
-                            st.info("Utilise ta console Supabase pour valider le changement.")
-                        except Exception as e: st.error(f"Erreur : {e}")
+                        st.info("Utilise ta console Supabase pour valider le changement.")
                     else: st.error("E-mail ou réponse incorrecte.")
 
         with tab2:
