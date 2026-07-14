@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit as st
 from supabase import create_client
 from groq import Groq
 
@@ -52,7 +51,6 @@ if not st.session_state.logged_in:
                     res = supabase.auth.sign_in_with_password({"email": email_log, "password": password})
                     if res.user:
                         st.session_state.logged_in = True
-                        # Récupérer le pseudo pour la session
                         user_data = supabase.table("users").select("pseudo").eq("id", res.user.id).single().execute()
                         st.session_state.pseudo = user_data.data["pseudo"]
                         st.rerun()
@@ -81,8 +79,13 @@ if not st.session_state.logged_in:
 
 # --- INTERFACE ---
 CHARACTERS = {
-    "Caelum": {"img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", "prompt": "Tu es Caelum, Prince des Ténèbres."}, 
+    "Caelum": {"img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", "prompt": "Tu es Caelum, Prince des Ténèbres."},
+    "Noah": {"img": "Noah.png", "prompt": "Tu es Noah, quaterback star."},
+    "Ethan": {"img": "Ethan.png", "prompt": "Tu es Ethan, Loup Alpha."},
+    "Léo": {"img": "Léo.png", "prompt": "Tu es Léo, streameur."},
+    "Liam": {"img": "Liam.png", "prompt": "Tu es Liam, le grand frère."},
     "Alexei": {"img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg", "prompt": "Tu es Alexei, mafieux."},
+    "Lucas": {"img": "Lucas.png", "prompt": "Tu es Lucas, populaire."},
     "Killian": {"img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg", "prompt": "Tu es Killian, motard."}
 }
 
@@ -97,9 +100,9 @@ if st.sidebar.button("🏠 Home"): st.session_state.page = "home"; st.rerun()
 
 if st.session_state.page == "home":
     st.title("Choose your character")
-    cols = st.columns(3)
+    cols = st.columns(4) # Affichage sur 4 colonnes
     for i, (name, data) in enumerate(CHARACTERS.items()):
-        with cols[i % 3]:
+        with cols[i % 4]:
             st.image(data["img"], use_container_width=True)
             if st.button(name): 
                 st.session_state.char_select = name
