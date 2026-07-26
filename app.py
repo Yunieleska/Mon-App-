@@ -19,19 +19,38 @@ st.markdown("""
     h1, h2, h3, p, span, label {
         color: #ffffff !important;
     }
-    /* Style épuré pour imiter les cartes de type feed/flux */
+    .poly-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 16px;
+        margin-top: 15px;
+        margin-bottom: 10px;
+    }
     .poly-card {
         background-color: #161b22;
+        border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 16px;
         overflow: hidden;
-        margin-bottom: 20px;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.2s ease, border-color 0.2s ease;
     }
     .poly-card:hover {
-        transform: translateY(-4px;);
-        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-        border-color: rgba(255, 255, 255, 0.15);
+        transform: translateY(-4px);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+    .stButton>button {
+        background-color: #161b22 !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        border-radius: 10px !important;
+        width: 100%;
+        margin-top: 4px;
+        margin-bottom: 12px;
+    }
+    .stButton>button:hover {
+        background-color: #21262d !important;
+        border-color: #ffffff !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -131,7 +150,7 @@ def get_all_characters():
             for item in res.data:
                 if item["is_public"] or item["creator"] == st.session_state.pseudo:
                     chars[item["name"]] = {
-                        "img": item["img_url"] if item["img_url"] and os.path.exists(item["img_url"]) else "couple.png",
+                        "img": item["img_url"] if item["img_url"] and (item["img_url"].startswith("http") or os.path.exists(item["img_url"])) else "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
                         "prompt": f"Tu es {item['name']}, un personnage {item['sex']}. Description : {item['description']}. Personnages secondaires / Contexte additionnel : {item['secondary_chars']}",
                         "quote": item["quote"] if "quote" in item and item["quote"] else f"Bonjour, je suis {item['name']}."
                     }
@@ -220,25 +239,33 @@ if st.session_state.page == "home":
     
     items = list(CHARACTERS.items())
     
-    # Disposition en grille multi-colonnes responsive type Polybuzz (Pinterest-like feed)
-    num_cols = 4  # Ajuste à 2 ou 3 si tu préfères des cartes plus larges sur PC
-    cols = st.columns(num_cols)
-    
+    # Grille responsive fluide type Polybuzz
+    html_grid = '<div class="poly-grid">'
     for index, (name, data) in enumerate(items):
-        target_col = cols[index % num_cols]
-        with target_col:
-            st.markdown(f"""
-                <div class="poly-card">
-                    <img src="{data['img']}" style="width: 100%; height: 260px; object-fit: cover; display: block;">
-                    <div style="padding: 12px;">
-                        <div style="font-weight: 700; font-size: 15px; margin-bottom: 4px; color: #ffffff;">{name}</div>
-                        <div style="font-size: 11px; color: #8b949e; font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">"{data['quote']}"</div>
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
+        img_src = data['img']
+        if not img_src.startswith("http") and not os.path.exists(img_src):
+            img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
             
-            # Bouton minimaliste discret intégré sous la carte
-            if st.button("💬 Discuter", key=f"poly_feed_{index}"):
+        quote_text = data['quote']
+        
+        html_grid += f"""
+        <div class="poly-card">
+            <img src="{img_src}" style="width: 100%; height: 260px; object-fit: cover; display: block;">
+            <div style="padding: 12px 12px 6px 12px;">
+                <div style="font-weight: 700; font-size: 15px; color: #ffffff; margin-bottom: 4px;">{name}</div>
+                <div style="font-size: 11px; color: #8b949e; font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">"{quote_text}"</div>
+            </div>
+        </div>
+        """
+    html_grid += '</div>'
+    st.markdown(html_grid, unsafe_allow_html=True)
+
+    # Boutons d'action alignés proprement sous chaque carte
+    cols = st.columns(4)
+    for index, (name, data) in enumerate(items):
+        target_col = cols[index % len(cols)]
+        with target_col:
+            if st.button(f"💬 Discuter", key=f"poly_action_{index}", use_container_width=True):
                 st.session_state.char_select = name
                 st.session_state.page = "chat"
                 st.rerun()
@@ -374,7 +401,7 @@ elif st.session_state.page == "chat":
     bg_image = CHARACTERS[current_char]["img"]
     char_quote = CHARACTERS[current_char]["quote"]
 
-    if not os.path.exists(str(bg_image)):
+    if not os.path.exists(str(bg_image)) and not str(bg_image).startswith("http"):
         bg_image = "couple.png"
 
     st.markdown(f"""
