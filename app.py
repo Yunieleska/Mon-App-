@@ -74,7 +74,7 @@ def get_user_conversations(pseudo):
         return {}
 
 def get_all_characters():
-    # Personnages par défaut
+    # Personnages par défaut avec les images locales pour éviter les bugs mobiles
     chars = {
         "Caelum": {
             "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", 
@@ -97,28 +97,28 @@ def get_all_characters():
             "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série ?"
         },
         "Ethan": {
-            "img": "https://i.pinimg.com/736x/d9/67/d2/d967d237f7127d2b7a60180639d7c447.jpg", 
+            "img": "Ethan.png", 
             "prompt": "Tu es Ethan, Loup Alpha.",
             "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines..."
         },
         "Léo": {
-            "img": "https://i.pinimg.com/736x/c1/b7/68/c1b768a0366e73394825679aa81810c4.jpg", 
+            "img": "Léo.png", 
             "prompt": "Tu es Léo, streameur.",
             "quote": "Prête à ce qu'on détruise l'équipe d'en face ?"
         },
         "Liam": {
-            "img": "https://i.pinimg.com/736x/f7/86/59/f786594b9a4a21a010bd06a119378235.jpg", 
+            "img": "Liam.png", 
             "prompt": "Tu es Liam, le grand frère.",
             "quote": "Salut, l'amie de ma sœur. Essaie de ne pas faire trop de bruit."
         },
         "Noah": {
-            "img": "https://i.pinimg.com/736x/b4/ee/02/b4ee020d6481d35d02b0ac2c8c5830a7.jpg", 
+            "img": "Noah.png", 
             "prompt": "Tu es Noah, quarterback star.",
             "quote": "Dis, tu crois qu'on est tous obligés de jouer un rôle pour plaire ?"
         }
     }
     
-    # Récupération des personnages personnalisés (publics ou créés par l'utilisateur connecté)
+    # Récupération des personnages personnalisés
     try:
         res = supabase.table("custom_characters").select("*").execute()
         if res.data:
@@ -208,10 +208,11 @@ if st.sidebar.button("🚪 Logout"):
 # --- NAVIGATION ENTRE PAGES ---
 if st.session_state.page == "home":
     st.title("Choose your character")
+    
     cols = st.columns(4)
     for i, (name, data) in enumerate(CHARACTERS.items()):
         with cols[i % 4]:
-            st.image(data["img"], use_container_width=True)
+            st.image(data["img"], width=150)
             st.caption(f"*{data['quote']}*")
             if st.button(f"Discuter avec {name}", key=f"chat_btn_{name}__"):
                 st.session_state.char_select = name
