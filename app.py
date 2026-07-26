@@ -126,10 +126,9 @@ CHARACTERS = {
 st.sidebar.info(f"Connecté : **{st.session_state.pseudo}**")
 selected_char = st.sidebar.selectbox("Choisir un personnage", list(CHARACTERS.keys()), key="sidebar_char")
 
-# --- NOUVELLE LOGIQUE DE MISE À JOUR ---
-# Si le personnage change, on met à jour la session, mais sans forcer un rerun complet
 if selected_char != st.session_state.char_select:
     st.session_state.char_select = selected_char
+    st.rerun()
 
 if st.sidebar.button("🚪 Logout"):
     supabase.auth.sign_out()
@@ -141,20 +140,14 @@ current_char = st.session_state.char_select
 bg_image = CHARACTERS[current_char]["img"]
 char_quote = CHARACTERS[current_char]["quote"]
 
-# Injection dynamique du CSS pour le fond d'écran
-# (L'utilisation de .stEditor et .stMarkdown permet de cibler le fond du chat)
+# CSS optimisé pour appliquer l'image en fond sans masquer les textes
 st.markdown(f"""
     <style>
-    /* Cible le conteneur principal de la page de chat pour changer le fond */
-    div[data-testid="stAppViewContainer"] {{
-        background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url("{bg_image}");
+    .stApp {{
+        background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("{bg_image}");
         background-size: cover;
         background-position: center;
         background-attachment: fixed;
-    }}
-    /* Change la couleur du texte pour qu'il soit visible sur le nouveau fond */
-    div.stMarkdown, p, li, h1, h2, h3, span {{
-        color: white !important;
     }}
     </style>
 """, unsafe_allow_html=True)
@@ -167,12 +160,10 @@ messages = load_msgs(st.session_state.pseudo, current_char)
 char_prompt = CHARACTERS[current_char]["prompt"]
 full_messages = [{"role": "system", "content": char_prompt}] + messages
 
-# Affichage des messages avec le nouveau style de police
 for msg in messages:
     with st.chat_message(msg["role"]): 
         st.write(msg["content"])
 
-# Saisie du message
 if prompt := st.chat_input("Écris ton message ici..."):
     save_msg(st.session_state.pseudo, current_char, "user", prompt)
     full_messages.append({"role": "user", "content": prompt})
