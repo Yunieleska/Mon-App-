@@ -86,7 +86,9 @@ CHARACTERS = {
 if not st.session_state.logged_in:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.title("Welcome to Storyia")
+        # Affichage de l'image bg.png sur la page de connexion
+        st.image("bg.png", use_container_width=True)
+        
         tab1, tab2 = st.tabs(["Login", "Sign Up"])
         
         with tab1:
