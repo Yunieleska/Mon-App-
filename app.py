@@ -143,11 +143,26 @@ if st.session_state.page == "home":
                 st.rerun()
 
 elif st.session_state.page == "chat":
-    st.title(f"Chat with {st.session_state.char_select}")
+    current_char = st.session_state.char_select
+    bg_image = CHARACTERS[current_char]["img"]
+    
+    # Injection du CSS pour le fond d'écran du chat avec un filtre sombre pour la lisibilité
+    st.markdown(f"""
+        <style>
+        .stApp {{
+            background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url("{bg_image}");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }}
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.title(f"Chat with {current_char}")
     
     # Injection du prompt système du personnage sélectionné si l'historique est vide
-    messages = load_msgs(st.session_state.pseudo, st.session_state.char_select)
-    char_prompt = CHARACTERS[st.session_state.char_select]["prompt"]
+    messages = load_msgs(st.session_state.pseudo, current_char)
+    char_prompt = CHARACTERS[current_char]["prompt"]
     
     full_messages = [{"role": "system", "content": char_prompt}] + messages
 
@@ -155,11 +170,11 @@ elif st.session_state.page == "chat":
         with st.chat_message(msg["role"]): st.write(msg["content"])
     
     if prompt := st.chat_input():
-        save_msg(st.session_state.pseudo, st.session_state.char_select, "user", prompt)
+        save_msg(st.session_state.pseudo, current_char, "user", prompt)
         full_messages.append({"role": "user", "content": prompt})
         
         res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=full_messages)
         assistant_reply = res.choices[0].message.content
         
-        save_msg(st.session_state.pseudo, st.session_state.char_select, "assistant", assistant_reply)
+        save_msg(st.session_state.pseudo, current_char, "assistant", assistant_reply)
         st.rerun()
