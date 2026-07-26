@@ -4,7 +4,6 @@ from groq import Groq
 import os
 
 # --- CONFIGURATION ---
-# Récupération sécurisée de la clé Groq (depuis les secrets Streamlit Cloud ou variables d'environnement)
 groq_key = os.getenv("GROQ_API_KEY")
 if not groq_key and "GROQ_API_KEY" in st.secrets:
     groq_key = st.secrets["GROQ_API_KEY"]
@@ -517,5 +516,4 @@ elif st.session_state.page == "chat":
             save_msg(st.session_state.pseudo, current_char, "assistant", assistant_reply)
             st.rerun()
         except Exception as e:
-            st.error(f"Erreur lors de l'envoi du message : {e}")", assistant_reply)
-        st.rerun()
+            st.error(f"Erreur lors de l'envoi du message : {e}")
