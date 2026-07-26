@@ -43,17 +43,6 @@ st.markdown("""
         justify-content: space-between;
         height: 100%;
     }
-    .stButton>button {
-        background-color: #21262d !important;
-        color: #ffffff !important;
-        border: 1px solid rgba(255, 255, 255, 0.15) !important;
-        border-radius: 8px !important;
-        width: 100%;
-    }
-    .stButton>button:hover {
-        background-color: #30363d !important;
-        border-color: #ffffff !important;
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -248,7 +237,7 @@ if st.session_state.page == "home":
     end_idx = start_idx + ITEMS_PER_PAGE
     current_items = items[start_idx:end_idx]
 
-    # Utilisation d'une grille CSS complète pour afficher proprement les cartes par 2 sur mobile et par 4 sur PC
+    # Utilisation d'une grille CSS complète avec st.html()
     grid_html = '<div class="storyia-grid">'
     for idx, (name, data) in enumerate(current_items):
         img_src = data['img']
@@ -271,9 +260,9 @@ if st.session_state.page == "home":
         """
     grid_html += '</div>'
     
-    st.markdown(grid_html, unsafe_allow_html=True)
+    st.html(grid_html)
 
-    # Gestion du clic sur les boutons de discussion en HTML/Query Param pour fluidifier le tout
+    # Gestion du clic sur les boutons de discussion en HTML/Query Param
     query_params = st.query_params
     if "chat_target" in query_params:
         target_char = query_params["chat_target"]
