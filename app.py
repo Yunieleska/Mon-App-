@@ -4,7 +4,12 @@ from groq import Groq
 import os
 
 # --- CONFIGURATION ---
-client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+# Récupération sécurisée de la clé Groq (depuis les secrets Streamlit Cloud ou variables d'environnement)
+groq_key = os.getenv("GROQ_API_KEY")
+if not groq_key and "GROQ_API_KEY" in st.secrets:
+    groq_key = st.secrets["GROQ_API_KEY"]
+
+client = Groq(api_key=groq_key)
 supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="expanded")
@@ -453,10 +458,11 @@ elif st.session_state.page == "chat":
     if not str(bg_image).startswith("http"):
         bg_image = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
 
+    # Application de l'image de fond sur toute la page avec assombrissement
     st.markdown(f"""
         <style>
         .stApp {{
-            background-image: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)), url("{bg_image}");
+            background-image: linear-gradient(rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.75)), url("{bg_image}");
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -464,12 +470,13 @@ elif st.session_state.page == "chat":
         </style>
     """, unsafe_allow_html=True)
 
-    st.title(f"Chat avec {current_char}")
-    st.markdown(f"*{char_quote}*")
+    # Affichage propre du titre en haut de la conversation
+    st.markdown(f"## Chat avec {current_char}")
+    st.markdown(f"<p style='color: #a0a0a0; font-style: italic; margin-bottom: 20px;'>{char_quote}</p>", unsafe_allow_html=True)
 
     messages = load_msgs(st.session_state.pseudo, current_char)
 
-    # --- INITIAL MESSAGE GENERATION (POLYZBUZ STYLE) ---
+    # --- INITIAL MESSAGE GENERATION ---
     if not messages:
         intro_system_prompt = [
             {"role": "system", "content": f"{char_prompt} Commence l'histoire en envoyant un premier message d'accroche immersif en incarnant ton personnage, en te basant sur cette citation : '{char_quote}'."}
