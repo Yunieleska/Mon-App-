@@ -1,6 +1,7 @@
 import streamlit as st
 from supabase import create_client
 from groq import Groq
+import os
 
 # --- CONFIGURATION ---
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
@@ -223,7 +224,6 @@ elif st.session_state.page == "profile":
     st.title("Mon Profil")
     
     try:
-        # Récupération des infos utilisateur basées sur le pseudo stocké en session
         user_db = supabase.table("users").select("*").eq("pseudo", st.session_state.pseudo).single().execute()
         user_info = user_db.data if user_db.data else {}
         
@@ -231,23 +231,24 @@ elif st.session_state.page == "profile":
         user_id = user_info.get("id")
         avatar_path = user_info.get("avatar_url", "couple.png")
 
-        # Calcul du nombre de personnages collectionnés (discussions actives)
         convs = get_user_conversations(st.session_state.pseudo)
         nb_collected = len(convs)
         
         col1, col2 = st.columns([1, 3])
         
         with col1:
-            try:
+            if avatar_path and os.path.exists(avatar_path):
                 st.image(avatar_path, use_container_width=True)
-            except:
-                st.image("couple.png", use_container_width=True)
+            else:
+                try:
+                    st.image(avatar_path, use_container_width=True)
+                except:
+                    st.image("couple.png", use_container_width=True)
             
         with col2:
             st.subheader(st.session_state.pseudo)
             st.write(f"📧 {user_email}")
             
-            # Statistiques (Personnages dynamiques, Abonnés et Abonnements à 0)
             stat1, stat2, stat3 = st.columns(3)
             with stat1:
                 st.metric(label="Personnages", value=nb_collected)
@@ -258,19 +259,20 @@ elif st.session_state.page == "profile":
 
         st.markdown("---")
         
-        # Pseudo non modifiable (affiché en texte simple)
         st.text_input("Pseudo (non modifiable)", value=st.session_state.pseudo, disabled=True)
         
-        # Upload d'une nouvelle photo de profil
         uploaded_file = st.file_uploader("Changer votre photo de profil", type=["png", "jpg", "jpeg"])
         
         if st.button("Mettre à jour la photo de profil"):
             if uploaded_file is not None and user_id:
-                file_path = uploaded_file.name
-                with open(file_path, "wb") as f:
+                # Création d'un nom de fichier unique basé sur l'ID utilisateur
+                file_extension = uploaded_file.name.split(".")[-1]
+                file_name = f"avatar_{user_id}.{file_extension}"
+                
+                with open(file_name, "wb") as f:
                     f.write(uploaded_file.getbuffer())
                 
-                supabase.table("users").update({"avatar_url": file_path}).eq("id", user_id).execute()
+                supabase.table("users").update({"avatar_url": file_name}).eq("id", user_id).execute()
                 st.success("Photo de profil mise à jour avec succès !")
                 st.rerun()
             else:
@@ -284,7 +286,6 @@ elif st.session_state.page == "chat":
     bg_image = CHARACTERS[current_char]["img"]
     char_quote = CHARACTERS[current_char]["quote"]
 
-    # Fond d'écran du chat assombri pour garder la lisibilité
     st.markdown(f"""
         <style>
         .stApp {{
@@ -299,7 +300,6 @@ elif st.session_state.page == "chat":
     st.title(f"Chat avec {current_char}")
     st.markdown(f"*{char_quote}*")
 
-    # Chargement et affichage de l'historique
     messages = load_msgs(st.session_state.pseudo, current_char)
     char_prompt = CHARACTERS[current_char]["prompt"]
     full_messages = [{"role": "system", "content": char_prompt}] + messages
@@ -317,3 +317,5 @@ elif st.session_state.page == "chat":
         
         save_msg(st.session_state.pseudo, current_char, "assistant", assistant_reply)
         st.rerun()
+
+        
