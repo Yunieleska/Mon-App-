@@ -79,14 +79,46 @@ if not st.session_state.logged_in:
 
 # --- INTERFACE ---
 CHARACTERS = {
-    "Caelum": {"img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", "prompt": "Tu es Caelum, Prince des Ténèbres."},
-    "Noah": {"img": "Noah.png", "prompt": "Tu es Noah, quaterback star."},
-    "Ethan": {"img": "Ethan.png", "prompt": "Tu es Ethan, Loup Alpha."},
-    "Léo": {"img": "Léo.png", "prompt": "Tu es Léo, streameur."},
-    "Liam": {"img": "Liam.png", "prompt": "Tu es Liam, le grand frère."},
-    "Alexei": {"img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg", "prompt": "Tu es Alexei, mafieux."},
-    "Lucas": {"img": "Lucas.png", "prompt": "Tu es Lucas, populaire."},
-    "Killian": {"img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg", "prompt": "Tu es Killian, motard."}
+    "Caelum": {
+        "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", 
+        "prompt": "Tu es Caelum, Prince des Ténèbres.",
+        "quote": "Ne t'approche pas de moi. Ma vie est déjà tracée, et tu n'as rien à y faire."
+    },
+    "Alexei": {
+        "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg", 
+        "prompt": "Tu es Alexei, mafieux.",
+        "quote": "Regardez qui s'est perdue sur mon territoire. La petite princesse des Volkov... Ton père est devenu tellement faible qu'il envoie sa fille faire son sale boulot, ou tu as juste envie de jouer avec le feu ?"
+    },
+    "Killian": {
+        "img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg", 
+        "prompt": "Tu es Killian, motard.",
+        "quote": "Respire, c'est fini... T'as pas changé, toujours aussi maladroite. Dis-moi que t'as rien de cassé, par pitié."
+    },
+    "Lucas": {
+        "img": "Lucas.png", 
+        "prompt": "Tu es Lucas, populaire.",
+        "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série comme d'habitude ?"
+    },
+    "Ethan": {
+        "img": "Ethan.png", 
+        "prompt": "Tu es Ethan, Loup Alpha.",
+        "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines..."
+    },
+    "Léo": {
+        "img": "Léo.png", 
+        "prompt": "Tu es Léo, streameur.",
+        "quote": "Prête à ce qu'on détruise l'équipe d'en face ?"
+    },
+    "Liam": {
+        "img": "Liam.png", 
+        "prompt": "Tu es Liam, le grand frère.",
+        "quote": "Salut, l'amie de ma sœur. Essaie de ne pas faire trop de bruit, l'orage arrive et j'ai besoin de dormir."
+    },
+    "Noah": {
+        "img": "Noah.png", 
+        "prompt": "Tu es Noah, quarterback star.",
+        "quote": "Dis, tu crois qu'on est tous obligés de jouer un rôle pour plaire aux autres, ou il y a un endroit où on peut juste être soi-même ?"
+    }
 }
 
 st.sidebar.info(f"Connecté : **{st.session_state.pseudo}**")
@@ -100,10 +132,11 @@ if st.sidebar.button("🏠 Home"): st.session_state.page = "home"; st.rerun()
 
 if st.session_state.page == "home":
     st.title("Choose your character")
-    cols = st.columns(4) # Affichage sur 4 colonnes
+    cols = st.columns(4)
     for i, (name, data) in enumerate(CHARACTERS.items()):
         with cols[i % 4]:
             st.image(data["img"], use_container_width=True)
+            st.caption(f"*{data['quote']}*")
             if st.button(name): 
                 st.session_state.char_select = name
                 st.session_state.page = "chat"
@@ -111,12 +144,22 @@ if st.session_state.page == "home":
 
 elif st.session_state.page == "chat":
     st.title(f"Chat with {st.session_state.char_select}")
-    for msg in load_msgs(st.session_state.pseudo, st.session_state.char_select):
+    
+    # Injection du prompt système du personnage sélectionné si l'historique est vide
+    messages = load_msgs(st.session_state.pseudo, st.session_state.char_select)
+    char_prompt = CHARACTERS[st.session_state.char_select]["prompt"]
+    
+    full_messages = [{"role": "system", "content": char_prompt}] + messages
+
+    for msg in messages:
         with st.chat_message(msg["role"]): st.write(msg["content"])
     
     if prompt := st.chat_input():
         save_msg(st.session_state.pseudo, st.session_state.char_select, "user", prompt)
-        messages = load_msgs(st.session_state.pseudo, st.session_state.char_select)
-        res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=messages)
-        save_msg(st.session_state.pseudo, st.session_state.char_select, "assistant", res.choices[0].message.content)
+        full_messages.append({"role": "user", "content": prompt})
+        
+        res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=full_messages)
+        assistant_reply = res.choices[0].message.content
+        
+        save_msg(st.session_state.pseudo, st.session_state.char_select, "assistant", assistant_reply)
         st.rerun()
