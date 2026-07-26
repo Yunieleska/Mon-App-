@@ -101,22 +101,22 @@ CHARACTERS = {
         "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série comme d'habitude ?"
     },
     "Ethan": {
-        "img": "Ethan.png", 
+        "img": "https://i.pinimg.com/736x/d9/67/d2/d967d237f7127d2b7a60180639d7c447.jpg", 
         "prompt": "Tu es Ethan, Loup Alpha.",
         "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines..."
     },
     "Léo": {
-        "img": "Léo.png", 
+        "img": "https://i.pinimg.com/736x/c1/b7/68/c1b768a0366e73394825679aa81810c4.jpg", 
         "prompt": "Tu es Léo, streameur.",
         "quote": "Prête à ce qu'on détruise l'équipe d'en face ?"
     },
     "Liam": {
-        "img": "Liam.png", 
+        "img": "https://i.pinimg.com/736x/f7/86/59/f786594b9a4a21a010bd06a119378235.jpg", 
         "prompt": "Tu es Liam, le grand frère.",
         "quote": "Salut, l'amie de ma sœur. Essaie de ne pas faire trop de bruit, l'orage arrive et j'ai besoin de dormir."
     },
     "Noah": {
-        "img": "Noah.png", 
+        "img": "https://i.pinimg.com/736x/b4/ee/02/b4ee020d6481d35d02b0ac2c8c5830a7.jpg", 
         "prompt": "Tu es Noah, quarterback star.",
         "quote": "Dis, tu crois qu'on est tous obligés de jouer un rôle pour plaire aux autres, ou il y a un endroit où on peut juste être soi-même ?"
     }
@@ -126,10 +126,10 @@ CHARACTERS = {
 st.sidebar.info(f"Connecté : **{st.session_state.pseudo}**")
 selected_char = st.sidebar.selectbox("Choisir un personnage", list(CHARACTERS.keys()), key="sidebar_char")
 
-# --- FIX ---
+# --- NOUVELLE LOGIQUE DE MISE À JOUR ---
+# Si le personnage change, on met à jour la session, mais sans forcer un rerun complet
 if selected_char != st.session_state.char_select:
     st.session_state.char_select = selected_char
-    st.rerun() # Cette ligne force le rechargement complet du script pour mettre à jour le fond
 
 if st.sidebar.button("🚪 Logout"):
     supabase.auth.sign_out()
@@ -139,31 +139,40 @@ if st.sidebar.button("🚪 Logout"):
 # --- CHAT PAGE ---
 current_char = st.session_state.char_select
 bg_image = CHARACTERS[current_char]["img"]
+char_quote = CHARACTERS[current_char]["quote"]
 
-# Injection du fond d'écran du personnage avec filtre sombre
+# Injection dynamique du CSS pour le fond d'écran
+# (L'utilisation de .stEditor et .stMarkdown permet de cibler le fond du chat)
 st.markdown(f"""
     <style>
-    .stApp {{
+    /* Cible le conteneur principal de la page de chat pour changer le fond */
+    div[data-testid="stAppViewContainer"] {{
         background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url("{bg_image}");
         background-size: cover;
         background-position: center;
         background-attachment: fixed;
     }}
+    /* Change la couleur du texte pour qu'il soit visible sur le nouveau fond */
+    div.stMarkdown, p, li, h1, h2, h3, span {{
+        color: white !important;
+    }}
     </style>
 """, unsafe_allow_html=True)
 
 st.title(f"Chat avec {current_char}")
-st.markdown(f"*{CHARACTERS[current_char]['quote']}*")
+st.markdown(f"*{char_quote}*")
 
-# Chargement de l'historique et des messages
+# Chargement de l'historique et affichage
 messages = load_msgs(st.session_state.pseudo, current_char)
 char_prompt = CHARACTERS[current_char]["prompt"]
 full_messages = [{"role": "system", "content": char_prompt}] + messages
 
+# Affichage des messages avec le nouveau style de police
 for msg in messages:
     with st.chat_message(msg["role"]): 
         st.write(msg["content"])
 
+# Saisie du message
 if prompt := st.chat_input("Écris ton message ici..."):
     save_msg(st.session_state.pseudo, current_char, "user", prompt)
     full_messages.append({"role": "user", "content": prompt})
