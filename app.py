@@ -140,7 +140,7 @@ CHARACTERS = get_all_characters()
 if not st.session_state.logged_in:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.image("bg.png", width=None)
+        st.image("bg.png")
         
         tab1, tab2 = st.tabs(["Login", "Sign Up"])
         
@@ -180,7 +180,7 @@ if not st.session_state.logged_in:
     st.stop()
 
 # --- SIDEBAR ---
-st.sidebar.image("couple.png", width=None)
+st.sidebar.image("couple.png")
 st.sidebar.info(f"Connecté : **{st.session_state.pseudo}**")
 
 if st.sidebar.button("🏠 Home"): 
