@@ -43,7 +43,7 @@ st.markdown("""
         justify-content: space-between;
     }
     .stButton>button {
-        background-color: #161b22 !important;
+        background-color: #21262d !important;
         color: #ffffff !important;
         border: 1px solid rgba(255, 255, 255, 0.15) !important;
         border-radius: 8px !important;
@@ -52,7 +52,7 @@ st.markdown("""
         margin-bottom: 8px;
     }
     .stButton>button:hover {
-        background-color: #21262d !important;
+        background-color: #30363d !important;
         border-color: #ffffff !important;
     }
     </style>
@@ -116,12 +116,12 @@ def get_all_characters():
             "quote": "Respire, c'est fini... T'as pas changé, toujours aussi maladroite."
         },
         "Lucas": {
-            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/sign/storyia-images/lucas.png.PNG?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85OTJlMjk3Yy0zMjkyLTQ3OWMtYTFhYi1kNTkwOGMzYzdmNzQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJzdG9yeWlhLWltYWdlcy9sdWNhcy5wbmcuUE5HIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4NTEwMjU2MSwiZXhwIjoxODE2NjM4NTYxfQ.h7NYUsCgq5MzFQSYx-e940tXOqZOf9GvaEVK56ouOdE", 
+            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/sign/storyia-images/lucas.png.PNG?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85OTJlMjk3Yy0zMjkyLTQ3OWMtYTFhYi1kNTkwOGMzYzdmNzQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJzdG9yeWlhLWltYWdlcy9sdWNhcy5wbmcuUE5HIic2Y29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzg1MTAyNTYxLCJleHAiOjE4MTY2Mzg1MxfQ.h7NYUsCgq5MzFQSYx-e940tXOqZOf9GvaEVK56ouOdE", 
             "prompt": "Tu es Lucas, populaire.",
             "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série ?"
         },
         "Ethan": {
-            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/sign/storyia-images/ethan.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85OTJlMjk3Yy0zMjkyLTQ3OWMtYTFhYi1kNTkwOGMzYzdmNzQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJzdG9yeWlhLWltYWdlcy9ldGhhbi5wbmciLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzg1MTAyMzk3LCJleHAiOjE4MTY2MzgzOTd9.qwJMbypu9ehzFbY7l89vvVSk9wHIGFWF5tiYiEQqdmY", 
+            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/sign/storyia-images/ethan.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85OTJlMjk3Yy0zMjkyLTQ3OWMtYTFhYi1kNTkwOGMzYzdmNzQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJzdG9yeWlhLWltYWdlcy9ldGhhbi5wbmgiLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzg1MTAyMzk3LCJleHAiOjE4MTY2MzgzOTd9.qwJMbypu9ehzFbY7l89vvVSk9wHIGFWF5tiYiEQqdmY", 
             "prompt": "Tu es Ethan, Loup Alpha.",
             "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines..."
         },
@@ -249,35 +249,32 @@ if st.session_state.page == "home":
     end_idx = start_idx + ITEMS_PER_PAGE
     current_items = items[start_idx:end_idx]
 
-    # Construction de la grille visuelle
-    cards_html = '<div class="storyia-grid">'
-    for name, data in current_items:
-        img_src = data['img']
-        if not img_src.startswith("http") and not os.path.exists(img_src):
-            img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-            
-        cards_html += f"""
-        <div class="storyia-card">
-            <div>
-                <img src="{img_src}" style="width: 100%; height: 160px; object-fit: cover; display: block;">
-                <div style="padding: 10px 10px 2px 10px;">
-                    <div style="font-weight: 700; font-size: 14px; color: #ffffff; margin-bottom: 2px;">{name}</div>
-                    <div style="font-size: 11px; color: #8b949e; font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 30px;">"{data['quote']}"</div>
-                </div>
-            </div>
-        </div>
-        """
-    cards_html += '</div>'
+    # Utilisation de colonnes Streamlit pures pour respecter la grille responsive et positionner les boutons proprement
+    num_cols = 2 if len(current_items) <= 4 else 4 # Ajustement auto ou 2 colonnes fixes sur mobile/tablette
     
-    st.html(cards_html)
-
-    # Boutons de discussion interactifs alignés sous chaque carte
+    # On fait des lignes de 2 colonnes pour mobile et PC
     for i in range(0, len(current_items), 2):
         row_items = current_items[i:i+2]
-        cols_row = st.columns(len(row_items))
+        cols = st.columns(len(row_items))
         for idx, (name, data) in enumerate(row_items):
-            with cols_row[idx]:
-                if st.button(f"💬 Discuter avec {name}", key=f"btn_chat_grid_{start_idx + i + idx}", use_container_width=True):
+            with cols[idx]:
+                img_src = data['img']
+                if not img_src.startswith("http") and not os.path.exists(img_src):
+                    img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+                
+                # Affichage de la carte en HTML propre
+                st.markdown(f"""
+                <div class="storyia-card" style="margin-bottom: 8px;">
+                    <img src="{img_src}" style="width: 100%; height: 160px; object-fit: cover; display: block;">
+                    <div style="padding: 10px 10px 4px 10px;">
+                        <div style="font-weight: 700; font-size: 14px; color: #ffffff; margin-bottom: 2px;">{name}</div>
+                        <div style="font-size: 11px; color: #8b949e; font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 30px;">"{data['quote']}"</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Bouton de discussion directement sous la carte
+                if st.button(f"💬 Discuter", key=f"btn_chat_grid_{start_idx + i + idx}", use_container_width=True):
                     st.session_state.char_select = name
                     st.session_state.page = "chat"
                     st.rerun()
