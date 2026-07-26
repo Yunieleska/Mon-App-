@@ -9,7 +9,7 @@ supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="expanded")
 
-# --- STYLE GLOBAL & GRILLE POLYBUZZ ---
+# --- STYLE GLOBAL ---
 st.markdown("""
     <style>
     .stApp {
@@ -30,22 +30,6 @@ st.markdown("""
     .stButton>button:hover {
         background-color: #333333 !important;
         border-color: #555555 !important;
-    }
-    /* Grille forcée à 2 colonnes sur mobile et PC */
-    .poly-grid-container {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-        margin-bottom: 20px;
-    }
-    .poly-card-item {
-        background-color: #161b22;
-        border: 1px solid #30363d;
-        border-radius: 12px;
-        padding: 8px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -227,38 +211,33 @@ if st.session_state.page == "home":
     
     items = list(CHARACTERS.items())
     
-    # Construction d'une grille propre en HTML/CSS pur pour forcer le 2 colonnes sans casser sur mobile
-    html_content = '<div class="poly-grid-container">'
-    for name, data in items:
-        html_content += f"""
-        <div class="poly-card-item">
-            <div>
-                <img src="{data['img']}" style="width: 100%; height: 140px; object-fit: cover; border-radius: 8px;">
-                <h3 style="font-size: 15px; margin: 6px 0 2px 0; color: white;">{name}</h3>
-                <p style="font-size: 11px; color: #8b949e; font-style: italic; margin-bottom: 8px; line-height: 1.2;">"{data['quote']}"</p>
-            </div>
-        </div>
-        """
-    html_content += '</div>'
-    st.markdown(html_content, unsafe_allow_html=True)
-    
-    # Boutons interactifs positionnés en grille pour que chaque carte ait son bouton "Discuter" cliquable
+    # Grille propre utilisant les composants natifs Streamlit (sans code HTML brut visible)
     for i in range(0, len(items), 2):
         col1, col2 = st.columns(2)
+        
         with col1:
             if i < len(items):
-                name_1 = items[i][0]
-                if st.button(f"💬 Discuter", key=f"btn_p_{i}"):
-                    st.session_state.char_select = name_1
+                name, data = items[i]
+                st.image(data["img"], use_container_width=True)
+                st.markdown(f"**{name}**")
+                st.markdown(f"<p style='color: #8b949e; font-style: italic; font-size: 12px; margin-bottom: 8px;'>\"{data['quote']}\"</p>", unsafe_allow_html=True)
+                if st.button(f"💬 Discuter", key=f"native_btn_{i}"):
+                    st.session_state.char_select = name
                     st.session_state.page = "chat"
                     st.rerun()
+                    
         with col2:
             if i + 1 < len(items):
-                name_2 = items[i+1][0]
-                if st.button(f"💬 Discuter", key=f"btn_p_{i+1}"):
-                    st.session_state.char_select = name_2
+                name, data = items[i+1]
+                st.image(data["img"], use_container_width=True)
+                st.markdown(f"**{name}**")
+                st.markdown(f"<p style='color: #8b949e; font-style: italic; font-size: 12px; margin-bottom: 8px;'>\"{data['quote']}\"</p>", unsafe_allow_html=True)
+                if st.button(f"💬 Discuter", key=f"native_btn_{i+1}"):
+                    st.session_state.char_select = name
                     st.session_state.page = "chat"
                     st.rerun()
+                    
+        st.markdown("<hr style='margin: 15px 0; border-color: #30363d;'>", unsafe_allow_html=True)
 
 elif st.session_state.page == "create_character":
     st.title("✨ Créer un nouveau personnage")
