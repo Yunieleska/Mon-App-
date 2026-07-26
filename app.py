@@ -458,21 +458,33 @@ elif st.session_state.page == "chat":
     if not str(bg_image).startswith("http"):
         bg_image = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
 
-    # Application de l'image de fond sur toute la page avec assombrissement
+    # Style pour l'arrière-plan de la discussion et la boîte d'en-tête dédiée
     st.markdown(f"""
         <style>
         .stApp {{
-            background-image: linear-gradient(rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.75)), url("{bg_image}");
+            background-image: linear-gradient(rgba(11, 14, 20, 0.85), rgba(11, 14, 20, 0.85)), url("{bg_image}");
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
         }}
+        .chat-header-container {{
+            background-color: rgba(22, 27, 34, 0.85);
+            padding: 18px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            margin-bottom: 25px;
+            backdrop-filter: blur(5px);
+        }}
         </style>
     """, unsafe_allow_html=True)
 
-    # Affichage propre du titre en haut de la conversation
-    st.markdown(f"## Chat avec {current_char}")
-    st.markdown(f"<p style='color: #a0a0a0; font-style: italic; margin-bottom: 20px;'>{char_quote}</p>", unsafe_allow_html=True)
+    # Affichage de l'en-tête proprement isolé pour ne pas masquer le visage du personnage en arrière-plan
+    st.markdown(f"""
+        <div class="chat-header-container">
+            <h2 style="margin: 0; color: #ffffff;">Chat avec {current_char}</h2>
+            <p style='color: #a0a0a0; font-style: italic; margin: 6px 0 0 0;'>"{char_quote}"</p>
+        </div>
+    """, unsafe_allow_html=True)
 
     messages = load_msgs(st.session_state.pseudo, current_char)
 
@@ -487,7 +499,7 @@ elif st.session_state.page == "chat":
             save_msg(st.session_state.pseudo, current_char, "assistant", first_message)
             messages = load_msgs(st.session_state.pseudo, current_char)
         except Exception as e:
-            st.error(f"Erreur lors de l'initialisation du message : {e}")
+            st.error(f"Erreur d'authentification Groq (Vérifie que ta clé 'GROQ_API_KEY' est bien configurée dans les Secrets de Streamlit Cloud) : {e}")
 
     full_messages = [{"role": "system", "content": char_prompt}] + messages
 
@@ -499,8 +511,11 @@ elif st.session_state.page == "chat":
         save_msg(st.session_state.pseudo, current_char, "user", prompt)
         full_messages.append({"role": "user", "content": prompt})
         
-        res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=full_messages)
-        assistant_reply = res.choices[0].message.content
-        
-        save_msg(st.session_state.pseudo, current_char, "assistant", assistant_reply)
+        try:
+            res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=full_messages)
+            assistant_reply = res.choices[0].message.content
+            save_msg(st.session_state.pseudo, current_char, "assistant", assistant_reply)
+            st.rerun()
+        except Exception as e:
+            st.error(f"Erreur lors de l'envoi du message : {e}")", assistant_reply)
         st.rerun()
