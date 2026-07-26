@@ -64,13 +64,10 @@ def load_msgs(pseudo, char):
 
 def get_user_conversations(pseudo):
     try:
-        # Récupère tous les messages de l'utilisateur pour identifier les personnages auxquels il a parlé
         res = supabase.table("messages").select("char_name, content, role").eq("user_pseudo", pseudo).execute()
         chars_met = {}
         for r in res.data:
-            c = r["char_name"]
-            # On garde une trace (le dernier message par exemple)
-            chars_met[c] = r["content"]
+            chars_met[r["char_name"]] = r["content"]
         return chars_met
     except:
         return {}
@@ -173,6 +170,10 @@ if st.sidebar.button("💬 Messages"):
     st.session_state.page = "messages"
     st.rerun()
 
+if st.sidebar.button("👤 Profil"):
+    st.session_state.page = "profile"
+    st.rerun()
+
 if st.sidebar.button("🚪 Logout"):
     supabase.auth.sign_out()
     st.session_state.logged_in = False
@@ -214,6 +215,51 @@ elif st.session_state.page == "messages":
                         st.session_state.page = "chat"
                         st.rerun()
                 st.markdown("---")
+
+elif st.session_state.page == "profile":
+    st.title("Mon Profil")
+    
+    try:
+        session = supabase.auth.get_session()
+        user_email = session.user.email if session else "Inconnu"
+        
+        # Calcul du nombre de personnages collectionnés (basé sur les discussions actives)
+        convs = get_user_conversations(st.session_state.pseudo)
+        nb_collected = len(convs)
+        
+        # Mise en page du profil type Polybuzz
+        col1, col2 = st.columns([1, 3])
+        
+        with col1:
+            # Photo de profil (par défaut on met couple.png ou une image par défaut)
+            st.image("couple.png", use_container_width=True)
+            
+        with col2:
+            st.subheader(st.session_state.pseudo)
+            st.write(f"📧 {user_email}")
+            
+            # Affichage des statistiques (Personnages collectionnés, Abonnés, Abonnements)
+            stat1, stat2, stat3 = st.columns(3)
+            with stat1:
+                st.metric(label="Personnages", value=nb_collected)
+            with stat2:
+                st.metric(label="Abonnés", value=142)  # Valeur modifiable ou liée à Supabase
+            with stat3:
+                st.metric(label="Abonnements", value=8)   # Valeur modifiable ou liée à Supabase
+
+        st.markdown("---")
+        
+        # Formulaire de modification
+        new_pseudo = st.text_input("Modifier votre pseudo", value=st.session_state.pseudo)
+        
+        if st.button("Mettre à jour le profil"):
+            supabase.table("users").update({"pseudo": new_pseudo}).eq("id", session.user.id).execute()
+            st.session_state.pseudo = new_pseudo
+            st.success("Profil mis à jour avec succès !")
+            st.rerun()
+            
+    except Exception as e:
+        st.error(f"Impossible de charger les données du profil : {e}")
 
 elif st.session_state.page == "chat":
     current_char = st.session_state.char_select
