@@ -31,17 +31,21 @@ st.markdown("""
     [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] p {
         color: #ffffff !important;
     }
-    /* Style des boutons de la sidebar */
-    [data-testid="stSidebar"] .stButton>button {
+    /* Style de TOUS les boutons de l'application (dont Log In / Sign Up) */
+    .stButton>button {
         background-color: #21262d !important;
         color: #ffffff !important;
         border: 1px solid rgba(255, 255, 255, 0.15) !important;
         border-radius: 8px !important;
         width: 100%;
     }
-    [data-testid="stSidebar"] .stButton>button:hover {
+    .stButton>button:hover {
         background-color: #30363d !important;
         border-color: #ffffff !important;
+        color: #ffffff !important;
+    }
+    .stButton>button p {
+        color: #ffffff !important;
     }
     /* Grille d'accueil */
     .storyia-grid {
@@ -479,3 +483,4 @@ elif st.session_state.page == "chat":
         
         save_msg(st.session_state.pseudo, current_char, "assistant", assistant_reply)
         st.rerun()
+        
