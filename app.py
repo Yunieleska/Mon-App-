@@ -19,14 +19,15 @@ st.markdown("""
     h1, h2, h3, p, span, label {
         color: #ffffff !important;
     }
-    /* Correction de la boîte "Connecté : Yuna" dans la sidebar pour la rendre sombre et lisible */
-    [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] div {
+    /* Correction radicale pour forcer la boîte d'info de la sidebar en mode sombre */
+    [data-testid="stSidebar"] [data-testid="stInfoBox"], 
+    [data-testid="stSidebar"] div[data-baseweb="notification"],
+    [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] {
         background-color: #161b22 !important;
         color: #ffffff !important;
-        padding: 10px;
-        border-radius: 8px;
-        border: 1px solid rgba(255, 255, 255, 0.15);
     }
+    [data-testid="stSidebar"] [data-testid="stInfoBox"] *, 
+    [data-testid="stSidebar"] div[data-baseweb="notification"] *,
     [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] p {
         color: #ffffff !important;
     }
@@ -137,7 +138,7 @@ def get_all_characters():
             "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines..."
         },
         "Léo": {
-            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/leo.png", 
+            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/leo.png.PNG", 
             "prompt": "Tu es Léo, streameur.",
             "quote": "Prête à ce qu'on détruise l'équipe d'en face ?"
         },
