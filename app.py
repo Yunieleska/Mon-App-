@@ -23,14 +23,14 @@ st.markdown("""
     .storyia-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
+        gap: 16px;
         margin-top: 10px;
         margin-bottom: 20px;
     }
     @media (min-width: 900px) {
         .storyia-grid {
             grid-template-columns: repeat(4, 1fr);
-            gap: 16px;
+            gap: 20px;
         }
     }
     .storyia-card {
@@ -41,19 +41,16 @@ st.markdown("""
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        margin-bottom: 10px;
     }
     .stButton>button {
-        background-color: #161b22 !important;
+        background-color: #21262d !important;
         color: #ffffff !important;
         border: 1px solid rgba(255, 255, 255, 0.15) !important;
         border-radius: 8px !important;
         width: 100%;
-        margin-top: 2px;
-        margin-bottom: 12px;
     }
     .stButton>button:hover {
-        background-color: #21262d !important;
+        background-color: #30363d !important;
         border-color: #ffffff !important;
     }
     </style>
@@ -117,7 +114,7 @@ def get_all_characters():
             "quote": "Respire, c'est fini... T'as pas changé, toujours aussi maladroite."
         },
         "Lucas": {
-            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/sign/storyia-images/lucas.png.PNG?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85OTJlMjk3Yy0zMjkyLTQ3OWMtYTFhYi1kNTkwOGMzYzdmNzQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJzdG9yeWlhLWltYWdlcy9sdWNhcy5wbmcuUE5HIic2Y29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzg1MTAyNTYxLCJleHAiOjE4MTY2Mzg1MxfQ.h7NYUsCgq5MzFQSYx-e940tXOqZOf9GvaEVK56ouOdE", 
+            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/lucas.png.PNG", 
             "prompt": "Tu es Lucas, populaire.",
             "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série ?"
         },
@@ -250,38 +247,35 @@ if st.session_state.page == "home":
     end_idx = start_idx + ITEMS_PER_PAGE
     current_items = items[start_idx:end_idx]
 
-    # Construction de la grille responsive propre en HTML pur
-    cards_html = '<div class="storyia-grid">'
-    for name, data in current_items:
-        img_src = data['img']
-        if not img_src.startswith("http") and not os.path.exists(img_src):
-            img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-            
-        cards_html += f"""
-        <div class="storyia-card">
-            <div>
-                <img src="{img_src}" style="width: 100%; height: 160px; object-fit: cover; display: block;">
-                <div style="padding: 10px 10px 2px 10px;">
-                    <div style="font-weight: 700; font-size: 14px; color: #ffffff; margin-bottom: 2px;">{name}</div>
-                    <div style="font-size: 11px; color: #8b949e; font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 30px;">"{data['quote']}"</div>
-                </div>
-            </div>
-        </div>
-        """
-    cards_html += '</div>'
-    
-    st.html(cards_html)
-
-    # Boutons de discussion alignés proprement sous chaque carte via une vraie grille de colonnes Streamlit
-    for i in range(0, len(current_items), 2):
-        row_items = current_items[i:i+2]
-        cols_row = st.columns(len(row_items))
+    # Affichage en grille propre avec Streamlit columns pour que chaque bouton reste bien intégré
+    cols_per_row = 4
+    for i in range(0, len(current_items), cols_per_row):
+        row_items = current_items[i:i+cols_per_row]
+        cols = st.columns(len(row_items))
         for idx, (name, data) in enumerate(row_items):
-            with cols_row[idx]:
-                if st.button(f"💬 Discuter avec {name}", key=f"btn_chat_grid_{start_idx + i + idx}", use_container_width=True):
+            with cols[idx]:
+                img_src = data['img']
+                if not img_src.startswith("http") and not os.path.exists(img_src):
+                    img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+                
+                # Carte unique contenant l'image, le nom, la citation
+                st.markdown(f"""
+                <div class="storyia-card">
+                    <img src="{img_src}" style="width: 100%; height: 160px; object-fit: cover; display: block;">
+                    <div style="padding: 12px 12px 8px 12px;">
+                        <div style="font-weight: 700; font-size: 15px; color: #ffffff; margin-bottom: 4px;">{name}</div>
+                        <div style="font-size: 11px; color: #8b949e; font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 32px; margin-bottom: 8px;">"{data['quote']}"</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Bouton de discussion rattaché directement sous la carte
+                if st.button(f"💬 Discuter avec {name}", key=f"btn_grid_{start_idx + i + idx}", use_container_width=True):
                     st.session_state.char_select = name
                     st.session_state.page = "chat"
                     st.rerun()
+                
+                st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
 
     # Pagination en bas de page
     if total_pages > 1:
