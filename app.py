@@ -9,7 +9,7 @@ supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="expanded")
 
-# --- STYLE GLOBAL & GRILLE RESPONSIVE MOBILE/PC ---
+# --- STYLE GLOBAL & CORRECTION SIDEBAR ---
 st.markdown("""
     <style>
     .stApp {
@@ -19,7 +19,19 @@ st.markdown("""
     h1, h2, h3, p, span, label {
         color: #ffffff !important;
     }
-    /* Grille magique : 2 colonnes sur téléphone, 4 colonnes sur PC */
+    /* Correction pour que le texte des boutons de la sidebar soit bien visible sur PC */
+    [data-testid="stSidebar"] .stButton>button {
+        background-color: #21262d !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        border-radius: 8px !important;
+        width: 100%;
+    }
+    [data-testid="stSidebar"] .stButton>button:hover {
+        background-color: #30363d !important;
+        border-color: #ffffff !important;
+    }
+    /* Grille magique d'accueil : 2 colonnes sur téléphone, 4 colonnes sur PC */
     .storyia-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
@@ -109,12 +121,12 @@ def get_all_characters():
             "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série ?"
         },
         "Ethan": {
-            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/sign/storyia-images/ethan.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85OTJlMjk3Yy0zMjkyLTQ3OWMtYTFhYi1kNTkwOGMzYzdmNzQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJzdG9yeWlhLWltYWdlcy9ldGhhbi5wbmciLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzg1MTAyMzk3LCJleHAiOjE4MTY2MzgzOTd9.qwJMbypu9ehzFbY7l89vvVSk9wHIGFWF5tiYiEQqdmY", 
+            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/sign/storyia-images/ethan.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85OTJlMjk3Yy0zMjkyLTQ3OWMtYTFhYi1kNTkwOGMzYzdmNzQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJzdG9yYWlhLWltYWdlcy9ldGhhbi5wbmciLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzg1MTAyMzk3LCJleHAiOjE4MTY2MzgzOTd9.qwJMbypu9ehzFbY7l89vvVSk9wHIGFWF5tiYiEQqdmY", 
             "prompt": "Tu es Ethan, Loup Alpha.",
             "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines..."
         },
         "Léo": {
-            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/sign/storyia-images/leo.png.PNG?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85OTJlMjk3Yy0zMjkyLTQ3OWMtYTFhYi1kNTkwOGMzYzdmNzQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJzdG9yeWlhLWltYWdlcy9sZW8ucG5nLlBORyIsInNjb3BlIjoiZG93bmxvYWQiLCJpYXQiOjE3ODUxMDI1MTAsImV4cCI6MTgxNjYzODUxMH0.dVAfMNONuMdKiE00cA4n7dutO4D8TfGz8v1OFuFItGE", 
+            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/sign/storyia-images/leo.png.PNG?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85OTJlMjk3Yy0zMjkyLTQ3OWMtYTFhYi1kNTkwOGMzYzdmNzQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJzdG9yYWlhLWltYWdlcy9sZW8ucG5nLlBORyIsInNjb3BlIjoiZG93bmxvYWQiLCJpYXQiOjE3ODUxMDI1MTAsImV4cCI6MTgxNjYzODUxMH0.dVAfMNONuMdKiE00cA4n7dutO4D8TfGz8v1OFuFItGE", 
             "prompt": "Tu es Léo, streameur.",
             "quote": "Prête à ce qu'on détruise l'équipe d'en face ?"
         },
@@ -368,7 +380,6 @@ elif st.session_state.page == "profile":
         user_email = user_info.get("email", "Non disponible")
         user_id = user_info.get("id")
         
-        # Gestion sécurisée de l'avatar au cas où la colonne n'existe pas encore dans Supabase
         avatar_path = user_info.get("avatar_url", "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg")
         if not avatar_path or (not str(avatar_path).startswith("http") and not os.path.exists(avatar_path)):
             avatar_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
@@ -410,8 +421,7 @@ elif st.session_state.page == "profile":
                 supabase.table("users").update({"avatar_url": file_name}).eq("id", user_id).execute()
                 st.success("Photo de profil mise à jour avec succès !")
                 st.rerun()
-            except Exception as update_err:
-                # Si la colonne avatar_url n'existe pas dans Supabase, on sauvegarde localement sans bloquer l'app
+            except Exception:
                 st.success("Photo enregistrée localement ! (Pour la lier à Supabase, ajoutez la colonne 'avatar_url' dans votre table users).")
                 st.rerun()
             
