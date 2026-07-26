@@ -2,7 +2,6 @@ import streamlit as st
 from supabase import create_client
 from groq import Groq
 import os
-import base64
 
 # --- CONFIGURATION ---
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
@@ -210,70 +209,35 @@ if st.session_state.page == "home":
     st.title("Choose your character")
     st.write("Sélectionnez avec qui lancer la discussion :")
     
-    def get_image_base64(path):
-        if os.path.exists(path):
-            with open(path, "rb") as f:
-                data = f.read()
-            encoded = base64.b64encode(data).decode()
-            return f"data:image/png;base64,{encoded}"
-        return path
-
     items = list(CHARACTERS.items())
     
-    # Injection du style de grille CSS 2 colonnes
-    st.markdown("""
-        <style>
-        .poly-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-        .poly-card-box {
-            background-color: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 12px;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-    # Affichage des cartes visuelles en grille HTML pure via st.markdown
-    html_grid = '<div class="poly-grid">'
-    for name, data in items:
-        img_src = get_image_base64(data['img'])
-        html_grid += f"""
-        <div class="poly-card-box">
-            <div>
-                <img src="{img_src}" style="width: 100%; height: 130px; object-fit: cover; border-radius: 8px;">
-                <div style="font-weight: bold; font-size: 14px; margin-top: 8px; color: white;">{name}</div>
-                <div style="font-size: 11px; color: #8b949e; font-style: italic; margin-top: 4px; line-height: 1.2;">"{data['quote']}"</div>
-            </div>
-        </div>
-        """
-    html_grid += '</div>'
-    st.markdown(html_grid, unsafe_allow_html=True)
-    
-    # Boutons cliquables en dessous par paires de 2
+    # Affichage en grille de 2 colonnes avec des conteneurs natifs Streamlit (zéro texte brut, 100% stable)
     for i in range(0, len(items), 2):
         col1, col2 = st.columns(2)
+        
         with col1:
             if i < len(items):
-                name_1 = items[i][0]
-                if st.button(f"💬 {name_1}", key=f"grid_btn_{i}"):
-                    st.session_state.char_select = name_1
-                    st.session_state.page = "chat"
-                    st.rerun()
+                name_1, data_1 = items[i]
+                with st.container(border=True):
+                    st.image(data_1['img'], use_container_width=True, height=140)
+                    st.markdown(f"**{name_1}**")
+                    st.markdown(f"<span style='font-size: 11px; color: #8b949e; font-style: italic;'>\"{data_1['quote']}\"</span>", unsafe_allow_html=True)
+                    if st.button(f"💬 Discuter", key=f"native_btn_{i}"):
+                        st.session_state.char_select = name_1
+                        st.session_state.page = "chat"
+                        st.rerun()
+                        
         with col2:
             if i + 1 < len(items):
-                name_2 = items[i+1][0]
-                if st.button(f"💬 {name_2}", key=f"grid_btn_{i+1}"):
-                    st.session_state.char_select = name_2
-                    st.session_state.page = "chat"
-                    st.rerun()
+                name_2, data_2 = items[i+1]
+                with st.container(border=True):
+                    st.image(data_2['img'], use_container_width=True, height=140)
+                    st.markdown(f"**{name_2}**")
+                    st.markdown(f"<span style='font-size: 11px; color: #8b949e; font-style: italic;'>\"{data_2['quote']}\"</span>", unsafe_allow_html=True)
+                    if st.button(f"💬 Discuter", key=f"native_btn_{i+1}"):
+                        st.session_state.char_select = name_2
+                        st.session_state.page = "chat"
+                        st.rerun()
 
 elif st.session_state.page == "create_character":
     st.title("✨ Créer un nouveau personnage")
