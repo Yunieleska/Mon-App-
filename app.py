@@ -8,7 +8,7 @@ supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="expanded")
 
-# --- STYLE GLOBAL (FOND NOIR & TEXTE BLANC) ---
+# --- STYLE GLOBAL (FOND NOIR, TEXTE BLANC & BOUTONS CUSTOM) ---
 st.markdown("""
     <style>
     .stApp {
@@ -17,6 +17,17 @@ st.markdown("""
     }
     h1, h2, h3, p, span, label {
         color: #ffffff !important;
+    }
+    /* Style des boutons pour enlever le fond blanc et les fondre dans le thème sombre */
+    .stButton>button {
+        background-color: #1e1e1e !important;
+        color: #ffffff !important;
+        border: 1px solid #333333 !important;
+        border-radius: 8px !important;
+    }
+    .stButton>button:hover {
+        background-color: #333333 !important;
+        border-color: #555555 !important;
     }
     </style>
 """, unsafe_allow_html=True)
