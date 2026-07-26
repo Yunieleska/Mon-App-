@@ -9,7 +9,7 @@ supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="expanded")
 
-# --- STYLE GLOBAL & DESIGN POLYBUZZ ---
+# --- STYLE GLOBAL ---
 st.markdown("""
     <style>
     .stApp {
@@ -18,26 +18,6 @@ st.markdown("""
     }
     h1, h2, h3, p, span, label {
         color: #ffffff !important;
-    }
-    .poly-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 16px;
-        margin-top: 15px;
-        margin-bottom: 10px;
-    }
-    .poly-card {
-        background-color: #161b22;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 16px;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        transition: transform 0.2s ease, border-color 0.2s ease;
-    }
-    .poly-card:hover {
-        transform: translateY(-4px);
-        border-color: rgba(255, 255, 255, 0.2);
     }
     .stButton>button {
         background-color: #161b22 !important;
@@ -239,36 +219,34 @@ if st.session_state.page == "home":
     
     items = list(CHARACTERS.items())
     
-    # Grille responsive fluide type Polybuzz
-    html_grid = '<div class="poly-grid">'
-    for index, (name, data) in enumerate(items):
-        img_src = data['img']
-        if not img_src.startswith("http") and not os.path.exists(img_src):
-            img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-            
-        quote_text = data['quote']
-        
-        html_grid += f"""
-        <div class="poly-card">
-            <img src="{img_src}" style="width: 100%; height: 260px; object-fit: cover; display: block;">
-            <div style="padding: 12px 12px 6px 12px;">
-                <div style="font-weight: 700; font-size: 15px; color: #ffffff; margin-bottom: 4px;">{name}</div>
-                <div style="font-size: 11px; color: #8b949e; font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">"{quote_text}"</div>
-            </div>
-        </div>
-        """
-    html_grid += '</div>'
-    st.markdown(html_grid, unsafe_allow_html=True)
-
-    # Boutons d'action alignés proprement sous chaque carte
-    cols = st.columns(4)
-    for index, (name, data) in enumerate(items):
-        target_col = cols[index % len(cols)]
-        with target_col:
-            if st.button(f"💬 Discuter", key=f"poly_action_{index}", use_container_width=True):
-                st.session_state.char_select = name
-                st.session_state.page = "chat"
-                st.rerun()
+    # Utilisation de colonnes natives Streamlit pour un affichage propre garanti en grille 4 par 4
+    num_cols = 4
+    rows = [items[i:i + num_cols] for i in range(0, len(items), num_cols)]
+    
+    for row in rows:
+        cols = st.columns(num_cols)
+        for idx, (name, data) in enumerate(row):
+            with cols[idx]:
+                img_src = data['img']
+                if not img_src.startswith("http") and not os.path.exists(img_src):
+                    img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+                
+                # Affichage de l'image de la carte
+                st.image(img_src, use_container_width=True)
+                
+                # Texte de la carte avec un design propre
+                st.markdown(f"""
+                    <div style="background-color: #161b22; padding: 10px; border-radius: 10px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                        <div style="font-weight: 700; font-size: 15px; color: #ffffff; margin-bottom: 4px;">{name}</div>
+                        <div style="font-size: 11px; color: #8b949e; font-style: italic; height: 32px; overflow: hidden;">"{data['quote']}"</div>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                # Bouton de discussion intégré juste en dessous
+                if st.button("💬 Discuter", key=f"btn_grid_{name}", use_container_width=True):
+                    st.session_state.char_select = name
+                    st.session_state.page = "chat"
+                    st.rerun()
 
 elif st.session_state.page == "create_character":
     st.title("✨ Créer un nouveau personnage")
