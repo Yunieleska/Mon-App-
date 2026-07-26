@@ -9,7 +9,7 @@ supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="expanded")
 
-# --- STYLE GLOBAL & GRID MOBILE/PC ---
+# --- STYLE GLOBAL (Uniquement pour le fond sombre et les boutons) ---
 st.markdown("""
     <style>
     .stApp {
@@ -18,34 +18,6 @@ st.markdown("""
     }
     h1, h2, h3, p, span, label {
         color: #ffffff !important;
-    }
-    /* Grille responsive parfaite pour PC et Téléphone */
-    .poly-grid-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 12px;
-        margin-top: 10px;
-        margin-bottom: 20px;
-    }
-    @media (min-width: 768px) {
-        .poly-grid-container {
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 16px;
-        }
-    }
-    .poly-card-item {
-        background-color: #161b22;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 12px;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        transition: transform 0.2s ease;
-    }
-    .poly-card-item:hover {
-        transform: translateY(-3px);
-        border-color: rgba(255, 255, 255, 0.2);
     }
     .stButton>button {
         background-color: #161b22 !important;
@@ -73,7 +45,7 @@ try:
     session = supabase.auth.get_session()
     if session and session.user:
         st.session_state.logged_in = True
-        user_data = supabase.table("users").select("pseudo").eq("id", session.user.id).single().execute()
+        user_data = supabase.table("users").select("pseudo").eq("id", res.user.id if 'res' in locals() else session.user.id).single().execute()
         if user_data.data:
             st.session_state.pseudo = user_data.data["pseudo"]
 except Exception:
@@ -247,7 +219,7 @@ if st.session_state.page == "home":
     
     items = list(CHARACTERS.items())
     
-    # --- SOLUTION ANTI-LENTEUR (Pagination par 8 personnages) ---
+    # --- PAGINATION POUR ÉVITER LES LENTEURS ---
     ITEMS_PER_PAGE = 8
     if "home_page" not in st.session_state:
         st.session_state.home_page = 0
@@ -259,38 +231,32 @@ if st.session_state.page == "home":
     end_idx = start_idx + ITEMS_PER_PAGE
     current_items = items[start_idx:end_idx]
 
-    # Affichage de la grille CSS ultra-fluide (fonctionne sur smartphone et PC)
-    html_grid = '<div class="poly-grid-container">'
-    for index, (name, data) in enumerate(current_items):
-        img_src = data['img']
-        if not img_src.startswith("http") and not os.path.exists(img_src):
-            img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-            
-        html_grid += f"""
-        <div class="poly-card-item">
-            <div>
-                <img src="{img_src}" style="width: 100%; height: 200px; object-fit: cover; display: block;">
-                <div style="padding: 10px 10px 4px 10px;">
-                    <div style="font-weight: 700; font-size: 14px; color: #ffffff; margin-bottom: 2px;">{name}</div>
-                    <div style="font-size: 11px; color: #8b949e; font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">"{data['quote']}"</div>
-                </div>
-            </div>
-        </div>
-        """
-    html_grid += '</div>'
-    st.markdown(html_grid, unsafe_allow_html=True)
+    # --- AFFICHAGE EN GRILLE NATIVE (4 colonnes sur PC, s'adapte sur mobile) ---
+    num_cols = 4
+    rows = [current_items[i:i + num_cols] for i in range(0, len(current_items), num_cols)]
+    
+    for row in rows:
+        cols = st.columns(num_cols)
+        for idx, (name, data) in enumerate(row):
+            with cols[idx]:
+                img_src = data['img']
+                if not img_src.startswith("http") and not os.path.exists(img_src):
+                    img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+                
+                # Image du personnage
+                st.image(img_src, use_container_width=True)
+                
+                # Nom et citation proprement mis en page sans HTML brut
+                st.markdown(f"**{name}**")
+                st.caption(f"\"{data['quote']}\"")
+                
+                # Bouton de discussion direct
+                if st.button("💬 Discuter", key=f"native_btn_{name}", use_container_width=True):
+                    st.session_state.char_select = name
+                    st.session_state.page = "chat"
+                    st.rerun()
 
-    # Boutons de discussion alignés sous chaque carte de la page active
-    cols = st.columns(min(4, len(current_items)))
-    for index, (name, data) in enumerate(current_items):
-        target_col = cols[index % len(cols)]
-        with target_col:
-            if st.button(f"💬 {name}", key=f"poly_action_{start_idx + index}", use_container_width=True):
-                st.session_state.char_select = name
-                st.session_state.page = "chat"
-                st.rerun()
-
-    # Pagination propre si le nombre de personnages grandit
+    # Pagination en bas de page
     if total_pages > 1:
         st.markdown("---")
         p_col1, p_col2, p_col3 = st.columns([1, 2, 1])
