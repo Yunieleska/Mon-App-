@@ -118,7 +118,6 @@ def get_all_characters():
         }
     }
     
-    # Remplacement sécurisé pour les images locales si les fichiers existent
     for name in ["Lucas", "Ethan", "Léo", "Liam", "Noah"]:
         local_filename = f"{name}.png"
         if os.path.exists(local_filename):
@@ -219,33 +218,19 @@ if st.session_state.page == "home":
     
     items = list(CHARACTERS.items())
     
-    # Affichage propre en 2 colonnes natives sans conflits d'arguments
-    for i in range(0, len(items), 2):
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            if i < len(items):
-                name_1, data_1 = items[i]
-                with st.container(border=True):
-                    st.image(data_1['img'], use_container_width=True)
-                    st.markdown(f"**{name_1}**")
-                    st.markdown(f"<span style='font-size: 11px; color: #8b949e; font-style: italic;'>\"{data_1['quote']}\"</span>", unsafe_allow_html=True)
-                    if st.button(f"💬 Discuter", key=f"native_btn_{i}"):
-                        st.session_state.char_select = name_1
-                        st.session_state.page = "chat"
-                        st.rerun()
-                        
-        with col2:
-            if i + 1 < len(items):
-                name_2, data_2 = items[i+1]
-                with st.container(border=True):
-                    st.image(data_2['img'], use_container_width=True)
-                    st.markdown(f"**{name_2}**")
-                    st.markdown(f"<span style='font-size: 11px; color: #8b949e; font-style: italic;'>\"{data_2['quote']}\"</span>", unsafe_allow_html=True)
-                    if st.button(f"💬 Discuter", key=f"native_btn_{i+1}"):
-                        st.session_state.char_select = name_2
-                        st.session_state.page = "chat"
-                        st.rerun()
+    # Affichage en grille équilibrée sur 2 colonnes (style Polybuzz natif et fluide)
+    cols = st.columns(2)
+    for index, (name, data) in enumerate(items):
+        target_col = cols[index % 2]
+        with target_col:
+            with st.container(border=True):
+                st.image(data['img'], use_container_width=True)
+                st.markdown(f"**{name}**")
+                st.markdown(f"<span style='font-size: 11px; color: #8b949e; font-style: italic;'>\"{data['quote']}\"</span>", unsafe_allow_html=True)
+                if st.button(f"💬 Discuter", key=f"poly_btn_{index}"):
+                    st.session_state.char_select = name
+                    st.session_state.page = "chat"
+                    st.rerun()
 
 elif st.session_state.page == "create_character":
     st.title("✨ Créer un nouveau personnage")
