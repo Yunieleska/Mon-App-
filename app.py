@@ -24,6 +24,7 @@ st.markdown("""
         color: #ffffff !important;
         border: 1px solid #333333 !important;
         border-radius: 8px !important;
+        width: 100%;
     }
     .stButton>button:hover {
         background-color: #333333 !important;
@@ -208,66 +209,37 @@ if st.sidebar.button("🚪 Logout"):
 # --- NAVIGATION ENTRE PAGES ---
 if st.session_state.page == "home":
     st.title("Choose your character")
+    st.write("Sélectionnez avec qui lancer la discussion :")
     
-    # Grille responsive style Polybuzz (parfait sur mobile et PC)
-    st.markdown("""
-        <style>
-        .poly-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 16px;
-            margin-bottom: 20px;
-        }
-        .poly-card {
-            background-color: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 12px;
-            padding: 12px;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-        .poly-card img {
-            width: 100%;
-            height: 180px;
-            object-fit: cover;
-            border-radius: 8px;
-            margin-bottom: 8px;
-        }
-        .poly-quote {
-            font-size: 12px;
-            color: #8b949e !important;
-            font-style: italic;
-            margin-bottom: 10px;
-            min-height: 35px;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-    cards_html = '<div class="poly-grid">'
-    for name, data in CHARACTERS.items():
-        img_src = data["img"]
-        quote = data["quote"]
-        cards_html += f"""
-            <div class="poly-card">
-                <img src="{img_src}" alt="{name}">
-                <h4 style="margin: 5px 0; font-size: 16px;">{name}</h4>
-                <p class="poly-quote">"{quote}"</p>
-            </div>
-        """
-    cards_html += '</div>'
-    
-    st.markdown(cards_html, unsafe_allow_html=True)
-    
-    st.write("### Sélectionnez avec qui lancer la discussion :")
-    cols = st.columns(4)
-    for i, name in enumerate(CHARACTERS.keys()):
-        with cols[i % 4]:
-            if st.button(f"💬 {name}", key=f"chat_btn_{name}__", use_container_width=True):
+    # Grille propre de 2 colonnes par ligne (idéal mobile & PC)
+    items = list(CHARACTERS.items())
+    for i in range(0, len(items), 2):
+        cols = st.columns(2)
+        
+        # Premier personnage de la ligne
+        with cols[0]:
+            name, data = items[i]
+            st.image(data["img"], width=150)
+            st.subheader(name)
+            st.caption(f'"{data["quote"]}"')
+            if st.button(f"💬 Discuter avec {name}", key=f"btn_{i}"):
                 st.session_state.char_select = name
                 st.session_state.page = "chat"
                 st.rerun()
+                
+        # Deuxième personnage de la ligne (s'il y en a un)
+        if i + 1 < len(items):
+            with cols[1]:
+                name, data = items[i+1]
+                st.image(data["img"], width=150)
+                st.subheader(name)
+                st.caption(f'"{data["quote"]}"')
+                if st.button(f"💬 Discuter avec {name}", key=f"btn_{i+1}"):
+                    st.session_state.char_select = name
+                    st.session_state.page = "chat"
+                    st.rerun()
+        
+        st.markdown("---")
 
 elif st.session_state.page == "create_character":
     st.title("✨ Créer un nouveau personnage")
