@@ -1,8 +1,8 @@
 import streamlit as st
 from supabase import create_client
 from groq import Groq
-import streamlit.components.v1 as components
 import os
+import base64
 
 # --- CONFIGURATION ---
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
@@ -210,19 +210,26 @@ if st.session_state.page == "home":
     st.title("Choose your character")
     st.write("Sélectionnez avec qui lancer la discussion :")
     
+    def get_image_base64(path):
+        if os.path.exists(path):
+            with open(path, "rb") as f:
+                data = f.read()
+            encoded = base64.b64encode(data).decode()
+            return f"data:image/png;base64,{encoded}"
+        return path
+
     items = list(CHARACTERS.items())
     
-    # Construction du HTML propre pour la grille
-    html_content = """
-    <style>
-        .poly-grid-container {
+    # Injection du style de grille CSS 2 colonnes
+    st.markdown("""
+        <style>
+        .poly-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 12px;
-            font-family: sans-serif;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
-        .poly-card {
+        .poly-card-box {
             background-color: #161b22;
             border: 1px solid #30363d;
             border-radius: 12px;
@@ -231,58 +238,39 @@ if st.session_state.page == "home":
             flex-direction: column;
             justify-content: space-between;
         }
-        .poly-card img {
-            width: 100%;
-            height: 140px;
-            object-fit: cover;
-            border-radius: 8px;
-        }
-        .poly-name {
-            font-weight: bold;
-            font-size: 15px;
-            margin-top: 8px;
-            color: white;
-        }
-        .poly-quote {
-            font-size: 11px;
-            color: #8b949e;
-            font-style: italic;
-            margin-top: 4px;
-            line-height: 1.2;
-        }
-    </style>
-    <div class="poly-grid-container">
-    """
-    
+        </style>
+    """, unsafe_allow_html=True)
+
+    # Affichage des cartes visuelles en grille HTML pure via st.markdown
+    html_grid = '<div class="poly-grid">'
     for name, data in items:
-        html_content += f"""
-        <div class="poly-card">
+        img_src = get_image_base64(data['img'])
+        html_grid += f"""
+        <div class="poly-card-box">
             <div>
-                <img src="{data['img']}">
-                <div class="poly-name">{name}</div>
-                <div class="poly-quote">"{data['quote']}"</div>
+                <img src="{img_src}" style="width: 100%; height: 130px; object-fit: cover; border-radius: 8px;">
+                <div style="font-weight: bold; font-size: 14px; margin-top: 8px; color: white;">{name}</div>
+                <div style="font-size: 11px; color: #8b949e; font-style: italic; margin-top: 4px; line-height: 1.2;">"{data['quote']}"</div>
             </div>
         </div>
         """
-    html_content += "</div>"
+    html_grid += '</div>'
+    st.markdown(html_grid, unsafe_allow_html=True)
     
-    # Injection sécurisée via le composant HTML dédié
-    components.html(html_content, height=((len(items) + 1) // 2) * 230, scrolling=False)
-    
-    # Boutons cliquables Streamlit natifs disposés en 2 colonnes en dessous
+    # Boutons cliquables en dessous par paires de 2
     for i in range(0, len(items), 2):
         col1, col2 = st.columns(2)
         with col1:
             if i < len(items):
                 name_1 = items[i][0]
-                if st.button(f"💬 Discuter avec {name_1}", key=f"btn_h_{i}"):
+                if st.button(f"💬 {name_1}", key=f"grid_btn_{i}"):
                     st.session_state.char_select = name_1
                     st.session_state.page = "chat"
                     st.rerun()
         with col2:
             if i + 1 < len(items):
                 name_2 = items[i+1][0]
-                if st.button(f"💬 Discuter avec {name_2}", key=f"btn_h_{i+1}"):
+                if st.button(f"💬 {name_2}", key=f"grid_btn_{i+1}"):
                     st.session_state.char_select = name_2
                     st.session_state.page = "chat"
                     st.rerun()
