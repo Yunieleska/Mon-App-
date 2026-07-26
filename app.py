@@ -44,9 +44,10 @@ try:
     if session and session.user:
         st.session_state.logged_in = True
         user_data = supabase.table("users").select("pseudo").eq("id", session.user.id).single().execute()
-        st.session_state.pseudo = user_data.data["pseudo"] if user_data.data else "Utilisateur"
+        if user_data.data:
+            st.session_state.pseudo = user_data.data["pseudo"]
 except Exception:
-    st.session_state.logged_in = False
+    pass
 
 # --- SUPABASE FUNCTIONS ---
 def save_msg(pseudo, char, role, content):
@@ -133,7 +134,8 @@ if not st.session_state.logged_in:
                     if res.user:
                         st.session_state.logged_in = True
                         user_data = supabase.table("users").select("pseudo").eq("id", res.user.id).single().execute()
-                        st.session_state.pseudo = user_data.data["pseudo"]
+                        if user_data.data:
+                            st.session_state.pseudo = user_data.data["pseudo"]
                         st.rerun()
                 except Exception as e:
                     st.error(f"Erreur de connexion : {e}")
@@ -177,6 +179,7 @@ if st.sidebar.button("👤 Profil"):
 if st.sidebar.button("🚪 Logout"):
     supabase.auth.sign_out()
     st.session_state.logged_in = False
+    st.session_state.pseudo = "Invité"
     st.rerun()
 
 # --- NAVIGATION ENTRE PAGES ---
@@ -220,26 +223,12 @@ elif st.session_state.page == "profile":
     st.title("Mon Profil")
     
     try:
-        user_email = "Inconnu"
-        user_id = None
-        
-        session = supabase.auth.get_session()
-        if session and session.user:
-            user_email = session.user.email
-            user_id = session.user.id
-        else:
-            user_res = supabase.auth.get_user()
-            if user_res and user_res.user:
-                user_email = user_res.user.email
-                user_id = user_res.user.id
-
-        if not user_id:
-            st.error("Session expirée. Veuillez vous reconnecter.")
-            st.stop()
-        
-        # Récupération sécurisée de l'avatar utilisateur depuis Supabase
-        user_db = supabase.table("users").select("*").eq("id", user_id).single().execute()
+        # Récupération des infos utilisateur basées sur le pseudo stocké en session
+        user_db = supabase.table("users").select("*").eq("pseudo", st.session_state.pseudo).single().execute()
         user_info = user_db.data if user_db.data else {}
+        
+        user_email = user_info.get("email", "Non disponible")
+        user_id = user_info.get("id")
         avatar_path = user_info.get("avatar_url", "couple.png")
 
         # Calcul du nombre de personnages collectionnés (discussions actives)
@@ -276,7 +265,7 @@ elif st.session_state.page == "profile":
         uploaded_file = st.file_uploader("Changer votre photo de profil", type=["png", "jpg", "jpeg"])
         
         if st.button("Mettre à jour la photo de profil"):
-            if uploaded_file is not None:
+            if uploaded_file is not None and user_id:
                 file_path = uploaded_file.name
                 with open(file_path, "wb") as f:
                     f.write(uploaded_file.getbuffer())
