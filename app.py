@@ -11,6 +11,7 @@ st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="e
 # --- SESSION INITIALIZATION ---
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
 if "pseudo" not in st.session_state: st.session_state.pseudo = "Invité"
+if "page" not in st.session_state: st.session_state.page = "home"
 if "char_select" not in st.session_state: st.session_state.char_select = "Caelum"
 
 # Vérification de session existante
@@ -124,10 +125,9 @@ CHARACTERS = {
 
 # --- SIDEBAR ---
 st.sidebar.info(f"Connecté : **{st.session_state.pseudo}**")
-selected_char = st.sidebar.selectbox("Choisir un personnage", list(CHARACTERS.keys()), key="sidebar_char")
 
-if selected_char != st.session_state.char_select:
-    st.session_state.char_select = selected_char
+if st.sidebar.button("🏠 Home"): 
+    st.session_state.page = "home"
     st.rerun()
 
 if st.sidebar.button("🚪 Logout"):
@@ -135,41 +135,54 @@ if st.sidebar.button("🚪 Logout"):
     st.session_state.logged_in = False
     st.rerun()
 
-# --- CHAT PAGE ---
-current_char = st.session_state.char_select
-bg_image = CHARACTERS[current_char]["img"]
-char_quote = CHARACTERS[current_char]["quote"]
+# --- NAVIGATION ENTRE PAGES ---
+if st.session_state.page == "home":
+    st.title("Choose your character")
+    cols = st.columns(4)
+    for i, (name, data) in enumerate(CHARACTERS.items()):
+        with cols[i % 4]:
+            st.image(data["img"], use_container_width=True)
+            st.caption(f"*{data['quote']}*")
+            if st.button(name, key=f"btn_{name}"): 
+                st.session_state.char_select = name
+                st.session_state.page = "chat"
+                st.rerun()
 
-# CSS optimisé pour appliquer l'image en fond sans masquer les textes
-st.markdown(f"""
-    <style>
-    .stApp {{
-        background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("{bg_image}");
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
-    }}
-    </style>
-""", unsafe_allow_html=True)
+elif st.session_state.page == "chat":
+    current_char = st.session_state.char_select
+    bg_image = CHARACTERS[current_char]["img"]
+    char_quote = CHARACTERS[current_char]["quote"]
 
-st.title(f"Chat avec {current_char}")
-st.markdown(f"*{char_quote}*")
+    # Fond d'écran uniquement sur la page de chat
+    st.markdown(f"""
+        <style>
+        .stApp {{
+            background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("{bg_image}");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }}
+        </style>
+    """, unsafe_allow_html=True)
 
-# Chargement de l'historique et affichage
-messages = load_msgs(st.session_state.pseudo, current_char)
-char_prompt = CHARACTERS[current_char]["prompt"]
-full_messages = [{"role": "system", "content": char_prompt}] + messages
+    st.title(f"Chat avec {current_char}")
+    st.markdown(f"*{char_quote}*")
 
-for msg in messages:
-    with st.chat_message(msg["role"]): 
-        st.write(msg["content"])
+    # Chargement et affichage de l'historique
+    messages = load_msgs(st.session_state.pseudo, current_char)
+    char_prompt = CHARACTERS[current_char]["prompt"]
+    full_messages = [{"role": "system", "content": char_prompt}] + messages
 
-if prompt := st.chat_input("Écris ton message ici..."):
-    save_msg(st.session_state.pseudo, current_char, "user", prompt)
-    full_messages.append({"role": "user", "content": prompt})
-    
-    res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=full_messages)
-    assistant_reply = res.choices[0].message.content
-    
-    save_msg(st.session_state.pseudo, current_char, "assistant", assistant_reply)
-    st.rerun()
+    for msg in messages:
+        with st.chat_message(msg["role"]): 
+            st.write(msg["content"])
+
+    if prompt := st.chat_input("Écris ton message ici..."):
+        save_msg(st.session_state.pseudo, current_char, "user", prompt)
+        full_messages.append({"role": "user", "content": prompt})
+        
+        res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=full_messages)
+        assistant_reply = res.choices[0].message.content
+        
+        save_msg(st.session_state.pseudo, current_char, "assistant", assistant_reply)
+        st.rerun()
