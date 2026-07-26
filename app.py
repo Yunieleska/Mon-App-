@@ -222,41 +222,59 @@ elif st.session_state.page == "profile":
     try:
         session = supabase.auth.get_session()
         user_email = session.user.email if session else "Inconnu"
+        user_id = session.user.id if session else None
         
-        # Calcul du nombre de personnages collectionnés (basé sur les discussions actives)
+        # Récupération de l'avatar utilisateur depuis Supabase
+        user_db = supabase.table("users").select("*").eq("id", user_id).single().execute()
+        user_info = user_db.data if user_db.data else {}
+        avatar_path = user_info.get("avatar_url", "couple.png")
+
+        # Calcul du nombre de personnages collectionnés (discussions actives)
         convs = get_user_conversations(st.session_state.pseudo)
         nb_collected = len(convs)
         
-        # Mise en page du profil type Polybuzz
         col1, col2 = st.columns([1, 3])
         
         with col1:
-            # Photo de profil (par défaut on met couple.png ou une image par défaut)
-            st.image("couple.png", use_container_width=True)
+            try:
+                st.image(avatar_path, use_container_width=True)
+            except:
+                st.image("couple.png", use_container_width=True)
             
         with col2:
             st.subheader(st.session_state.pseudo)
             st.write(f"📧 {user_email}")
             
-            # Affichage des statistiques (Personnages collectionnés, Abonnés, Abonnements)
+            # Statistiques (Personnages dynamiques, Abonnés et Abonnements à 0)
             stat1, stat2, stat3 = st.columns(3)
             with stat1:
                 st.metric(label="Personnages", value=nb_collected)
             with stat2:
-                st.metric(label="Abonnés", value=142)  # Valeur modifiable ou liée à Supabase
+                st.metric(label="Abonnés", value=0)
             with stat3:
-                st.metric(label="Abonnements", value=8)   # Valeur modifiable ou liée à Supabase
+                st.metric(label="Abonnements", value=0)
 
         st.markdown("---")
         
-        # Formulaire de modification
-        new_pseudo = st.text_input("Modifier votre pseudo", value=st.session_state.pseudo)
+        # Pseudo non modifiable (affiché en texte simple)
+        st.text_input("Pseudo (non modifiable)", value=st.session_state.pseudo, disabled=True)
         
-        if st.button("Mettre à jour le profil"):
-            supabase.table("users").update({"pseudo": new_pseudo}).eq("id", session.user.id).execute()
-            st.session_state.pseudo = new_pseudo
-            st.success("Profil mis à jour avec succès !")
-            st.rerun()
+        # Upload d'une nouvelle photo de profil
+        uploaded_file = st.file_uploader("Changer votre photo de profil", type=["png", "jpg", "jpeg"])
+        
+        if st.button("Mettre à jour la photo de profil"):
+            update_data = {}
+            if uploaded_file is not None:
+                file_path = uploaded_file.name
+                with open(file_path, "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+                update_data["avatar_url"] = file_path
+                
+                supabase.table("users").update(update_data).eq("id", user_id).execute()
+                st.success("Photo de profil mise à jour avec succès !")
+                st.rerun()
+            else:
+                st.warning("Veuillez sélectionner une image à uploader.")
             
     except Exception as e:
         st.error(f"Impossible de charger les données du profil : {e}")
