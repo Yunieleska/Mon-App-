@@ -116,27 +116,27 @@ def get_all_characters():
             "quote": "Respire, c'est fini... T'as pas changé, toujours aussi maladroite."
         },
         "Lucas": {
-            "img": "https://i.pinimg.com/736x/18/cf/58/18cf58c42a20b8529f79664e5251a310.jpg", 
+            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/sign/storyia-images/lucas.png.PNG?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85OTJlMjk3Yy0zMjkyLTQ3OWMtYTFhYi1kNTkwOGMzYzdmNzQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJzdG9yeWlhLWltYWdlcy9sdWNhcy5wbmcuUE5HIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4NTEwMjU2MSwiZXhwIjoxODE2NjM4NTYxfQ.h7NYUsCgq5MzFQSYx-e940tXOqZOf9GvaEVK56ouOdE", 
             "prompt": "Tu es Lucas, populaire.",
             "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série ?"
         },
         "Ethan": {
-            "img": "https://i.pinimg.com/736x/32/38/20/323820a46b38c237894d82b43b6f2b4b.jpg", 
+            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/sign/storyia-images/ethan.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85OTJlMjk3Yy0zMjkyLTQ3OWMtYTFhYi1kNTkwOGMzYzdmNzQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJzdG9yeWlhLWltYWdlcy9ldGhhbi5wbmciLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzg1MTAyMzk3LCJleHAiOjE4MTY2MzgzOTd9.qwJMbypu9ehzFbY7l89vvVSk9wHIGFWF5tiYiEQqdmY", 
             "prompt": "Tu es Ethan, Loup Alpha.",
             "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines..."
         },
         "Léo": {
-            "img": "https://i.pinimg.com/736x/51/41/31/5141315b94323c6838b9319e7019f2a2.jpg", 
+            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/sign/storyia-images/leo.png.PNG?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85OTJlMjk3Yy0zMjkyLTQ3OWMtYTFhYi1kNTkwOGMzYzdmNzQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJzdG9yeWlhLWltYWdlcy9sZW8ucG5nLlBORyIsInNjb3BlIjoiZG93bmxvYWQiLCJpYXQiOjE3ODUxMDI1MTAsImV4cCI6MTgxNjYzODUxMH0.dVAfMNONuMdKiE00cA4n7dutO4D8TfGz8v1OFuFItGE", 
             "prompt": "Tu es Léo, streameur.",
             "quote": "Prête à ce qu'on détruise l'équipe d'en face ?"
         },
         "Liam": {
-            "img": "https://i.pinimg.com/736x/62/52/42/6252426c59434d7949c44208020e3b3b.jpg", 
+            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/sign/storyia-images/liam.png.PNG?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85OTJlMjk3Yy0zMjkyLTQ3OWMtYTFhYi1kNTkwOGMzYzdmNzQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJzdG9yeWlhLWltYWdlcy9saWFtLnBuZy5QTkciLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzg1MTAyNTM2LCJleHAiOjE4MTY2Mzg1MzZ9.u6k31EmGbpgzmcmKZcmidKDid0iqGqF_p78ALJdtP08", 
             "prompt": "Tu es Liam, le grand frère.",
             "quote": "Salut, l'amie de ma sœur. Essaie de ne pas faire trop de bruit."
         },
         "Noah": {
-            "img": "https://i.pinimg.com/736x/73/63/53/7363537d68545e8b5d553b39d121f44f.jpg", 
+            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/sign/storyia-images/noah.png.PNG?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85OTJlMjk3Yy0zMjkyLTQ3OWMtYTFhYi1kNTkwOGMzYzdmNzQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJzdG9yeWlhLWltYWdlcy9ub2FoLnBuZy5QTkciLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzg1MTAyNTgwLCJleHAiOjE4MTY2Mzg1ODB9.dSDMmVTEts9VHKhmbEHqleTJNbiqxhQQ96Q3P5AurFs", 
             "prompt": "Tu es Noah, quarterback star.",
             "quote": "Dis, tu crois qu'on est tous obligés de jouer un rôle pour plaire ?"
         }
