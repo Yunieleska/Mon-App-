@@ -18,7 +18,7 @@ st.markdown("""
     h1, h2, h3, p, span, label {
         color: #ffffff !important;
     }
-    /* Style des boutons pour enlever le fond blanc et les fondre dans le thème sombre */
+    /* Style des boutons en mode sombre */
     .stButton>button {
         background-color: #1e1e1e !important;
         color: #ffffff !important;
@@ -61,6 +61,19 @@ def load_msgs(pseudo, char):
         return [{"role": r["role"], "content": r["content"]} for r in res.data]
     except:
         return []
+
+def get_user_conversations(pseudo):
+    try:
+        # Récupère tous les messages de l'utilisateur pour identifier les personnages auxquels il a parlé
+        res = supabase.table("messages").select("char_name, content, role").eq("user_pseudo", pseudo).execute()
+        chars_met = {}
+        for r in res.data:
+            c = r["char_name"]
+            # On garde une trace (le dernier message par exemple)
+            chars_met[c] = r["content"]
+        return chars_met
+    except:
+        return {}
 
 # --- INTERFACE ---
 CHARACTERS = {
@@ -156,6 +169,10 @@ if st.sidebar.button("🏠 Home"):
     st.session_state.page = "home"
     st.rerun()
 
+if st.sidebar.button("💬 Messages"):
+    st.session_state.page = "messages"
+    st.rerun()
+
 if st.sidebar.button("🚪 Logout"):
     supabase.auth.sign_out()
     st.session_state.logged_in = False
@@ -173,6 +190,30 @@ if st.session_state.page == "home":
                 st.session_state.char_select = name
                 st.session_state.page = "chat"
                 st.rerun()
+
+elif st.session_state.page == "messages":
+    st.title("Mes Discussions")
+    st.write("Retrouvez ici l'ensemble de vos conversations avec les personnages.")
+    
+    convs = get_user_conversations(st.session_state.pseudo)
+    
+    if not convs:
+        st.info("Vous n'avez pas encore de discussions en cours. Allez sur l'accueil pour choisir un personnage !")
+    else:
+        for char_name in convs.keys():
+            if char_name in CHARACTERS:
+                col1, col2, col3 = st.columns([1, 4, 1])
+                with col1:
+                    st.image(CHARACTERS[char_name]["img"], width=80)
+                with col2:
+                    st.subheader(char_name)
+                    st.caption(CHARACTERS[char_name]["quote"])
+                with col3:
+                    if st.button(f"Ouvrir", key=f"open_msg_{char_name}"):
+                        st.session_state.char_select = char_name
+                        st.session_state.page = "chat"
+                        st.rerun()
+                st.markdown("---")
 
 elif st.session_state.page == "chat":
     current_char = st.session_state.char_select
