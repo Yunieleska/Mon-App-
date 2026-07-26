@@ -75,7 +75,6 @@ def get_user_conversations(pseudo):
         return {}
 
 def get_all_characters():
-    # Personnages par défaut avec les images locales
     chars = {
         "Caelum": {
             "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", 
@@ -119,7 +118,6 @@ def get_all_characters():
         }
     }
     
-    # Récupération des personnages personnalisés
     try:
         res = supabase.table("custom_characters").select("*").execute()
         if res.data:
@@ -211,35 +209,22 @@ if st.session_state.page == "home":
     st.title("Choose your character")
     st.write("Sélectionnez avec qui lancer la discussion :")
     
-    # Grille propre de 2 colonnes par ligne (idéal mobile & PC)
     items = list(CHARACTERS.items())
     for i in range(0, len(items), 2):
         cols = st.columns(2)
-        
-        # Premier personnage de la ligne
-        with cols[0]:
-            name, data = items[i]
-            st.image(data["img"], width=150)
-            st.subheader(name)
-            st.caption(f'"{data["quote"]}"')
-            if st.button(f"💬 Discuter avec {name}", key=f"btn_{i}"):
-                st.session_state.char_select = name
-                st.session_state.page = "chat"
-                st.rerun()
-                
-        # Deuxième personnage de la ligne (s'il y en a un)
-        if i + 1 < len(items):
-            with cols[1]:
-                name, data = items[i+1]
-                st.image(data["img"], width=150)
-                st.subheader(name)
-                st.caption(f'"{data["quote"]}"')
-                if st.button(f"💬 Discuter avec {name}", key=f"btn_{i+1}"):
-                    st.session_state.char_select = name
-                    st.session_state.page = "chat"
-                    st.rerun()
-        
-        st.markdown("---")
+        for j, col in enumerate(cols):
+            idx = i + j
+            if idx < len(items):
+                name, data = items[idx]
+                with col:
+                    st.image(data["img"], width=130)
+                    st.subheader(name)
+                    st.caption(f'"{data["quote"]}"')
+                    if st.button(f"💬 Discuter", key=f"btn_grid_{idx}"):
+                        st.session_state.char_select = name
+                        st.session_state.page = "chat"
+                        st.rerun()
+        st.markdown("<hr style='margin: 10px 0; border-color: #333;'>", unsafe_allow_html=True)
 
 elif st.session_state.page == "create_character":
     st.title("✨ Créer un nouveau personnage")
