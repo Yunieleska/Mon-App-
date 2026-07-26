@@ -86,7 +86,6 @@ CHARACTERS = {
 if not st.session_state.logged_in:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        # Affichage de l'image bg.png sur la page de connexion
         st.image("bg.png", use_container_width=True)
         
         tab1, tab2 = st.tabs(["Login", "Sign Up"])
@@ -126,6 +125,8 @@ if not st.session_state.logged_in:
     st.stop()
 
 # --- SIDEBAR ---
+# Affichage de couple.png tout en haut de la sidebar, au-dessus du pseudo
+st.sidebar.image("couple.png", use_container_width=True)
 st.sidebar.info(f"Connecté : **{st.session_state.pseudo}**")
 
 if st.sidebar.button("🏠 Home"): 
