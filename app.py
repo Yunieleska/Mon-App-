@@ -9,7 +9,7 @@ supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="expanded")
 
-# --- STYLE GLOBAL (Uniquement pour le fond sombre et les boutons) ---
+# --- STYLE GLOBAL & GRILLE RESPONSIVE ---
 st.markdown("""
     <style>
     .stApp {
@@ -18,6 +18,29 @@ st.markdown("""
     }
     h1, h2, h3, p, span, label {
         color: #ffffff !important;
+    }
+    /* Grille magique : 2 colonnes sur téléphone, 4 colonnes sur PC */
+    .storyia-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-top: 10px;
+        margin-bottom: 20px;
+    }
+    @media (min-width: 900px) {
+        .storyia-grid {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+    }
+    .storyia-card {
+        background-color: #161b22;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
     }
     .stButton>button {
         background-color: #161b22 !important;
@@ -45,7 +68,7 @@ try:
     session = supabase.auth.get_session()
     if session and session.user:
         st.session_state.logged_in = True
-        user_data = supabase.table("users").select("pseudo").eq("id", res.user.id if 'res' in locals() else session.user.id).single().execute()
+        user_data = supabase.table("users").select("pseudo").eq("id", session.user.id).single().execute()
         if user_data.data:
             st.session_state.pseudo = user_data.data["pseudo"]
 except Exception:
@@ -219,7 +242,7 @@ if st.session_state.page == "home":
     
     items = list(CHARACTERS.items())
     
-    # --- PAGINATION POUR ÉVITER LES LENTEURS ---
+    # --- PAGINATION ---
     ITEMS_PER_PAGE = 8
     if "home_page" not in st.session_state:
         st.session_state.home_page = 0
@@ -231,27 +254,38 @@ if st.session_state.page == "home":
     end_idx = start_idx + ITEMS_PER_PAGE
     current_items = items[start_idx:end_idx]
 
-    # --- AFFICHAGE EN GRILLE NATIVE (4 colonnes sur PC, s'adapte sur mobile) ---
-    num_cols = 4
-    rows = [current_items[i:i + num_cols] for i in range(0, len(current_items), num_cols)]
+    # Construction propre de la grille avec st.html() pour éviter l'affichage de code brut
+    cards_html = '<div class="storyia-grid">'
+    for name, data in current_items:
+        img_src = data['img']
+        if not img_src.startswith("http") and not os.path.exists(img_src):
+            img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+            
+        cards_html += f"""
+        <div class="storyia-card">
+            <div>
+                <img src="{img_src}" style="width: 100%; height: 160px; object-fit: cover; display: block;">
+                <div style="padding: 10px 10px 2px 10px;">
+                    <div style="font-weight: 700; font-size: 14px; color: #ffffff; margin-bottom: 2px;">{name}</div>
+                    <div style="font-size: 11px; color: #8b949e; font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 30px;">"{data['quote']}"</div>
+                </div>
+            </div>
+        </div>
+        """
+    cards_html += '</div>'
     
-    for row in rows:
-        cols = st.columns(num_cols)
-        for idx, (name, data) in enumerate(row):
-            with cols[idx]:
-                img_src = data['img']
-                if not img_src.startswith("http") and not os.path.exists(img_src):
-                    img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-                
-                # Image du personnage
-                st.image(img_src, use_container_width=True)
-                
-                # Nom et citation proprement mis en page sans HTML brut
-                st.markdown(f"**{name}**")
-                st.caption(f"\"{data['quote']}\"")
-                
-                # Bouton de discussion direct
-                if st.button("💬 Discuter", key=f"native_btn_{name}", use_container_width=True):
+    # Affichage sécurisé de la grille visuelle
+    st.html(cards_html)
+
+    # Boutons de discussion interactifs alignés juste en dessous de chaque carte
+    cols = st.columns(2 if len(current_items) > 1 else 1)
+    # Pour s'aligner parfaitement sur la grille, on recrée des colonnes dynamiques par paires
+    for i in range(0, len(current_items), 2):
+        row_items = current_items[i:i+2]
+        cols_row = st.columns(len(row_items))
+        for idx, (name, data) in enumerate(row_items):
+            with cols_row[idx]:
+                if st.button(f"💬 Discuter avec {name}", key=f"btn_chat_grid_{start_idx + i + idx}", use_container_width=True):
                     st.session_state.char_select = name
                     st.session_state.page = "chat"
                     st.rerun()
@@ -392,7 +426,7 @@ elif st.session_state.page == "profile":
             with open(file_name, "wb") as f:
                 f.write(uploaded_file.getbuffer())
             
-            supabase.table("users").update({"avatar_url": file_name}).eq("id", user_id).execute()
+            supabase.table("users_table_update" if False else "users").update({"avatar_url": file_name}).eq("id", user_id).execute()
             st.success("Photo de profil mise à jour avec succès !")
             st.rerun()
             
