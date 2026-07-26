@@ -259,24 +259,22 @@ elif st.session_state.page == "profile":
         
         st.text_input("Pseudo (non modifiable)", value=st.session_state.pseudo, disabled=True)
         
-        # Utilisation d'un formulaire dédié pour l'upload d'image
-        with st.form("profile_form"):
-            uploaded_file = st.file_uploader("Changer votre photo de profil", type=["png", "jpg", "jpeg"])
-            submit_button = st.form_submit_button("Mettre à jour la photo de profil")
-            
-            if submit_button:
-                if uploaded_file is not None and user_id:
-                    file_extension = uploaded_file.name.split(".")[-1]
-                    file_name = f"avatar_{user_id}.{file_extension}"
-                    
-                    with open(file_name, "wb") as f:
-                        f.write(uploaded_file.getbuffer())
-                    
-                    supabase.table("users").update({"avatar_url": file_name}).eq("id", user_id).execute()
-                    st.success("Photo de profil mise à jour avec succès !")
-                    st.rerun()
-                else:
-                    st.warning("Veuillez sélectionner une image à uploader.")
+        # Upload direct sans formulaire bloquant
+        uploaded_file = st.file_uploader("Changer votre photo de profil", type=["png", "jpg", "jpeg"], key="avatar_uploader")
+        
+        if st.button("Mettre à jour la photo de profil"):
+            if uploaded_file is not None and user_id:
+                file_extension = uploaded_file.name.split(".")[-1]
+                file_name = f"avatar_{user_id}.{file_extension}"
+                
+                with open(file_name, "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+                
+                supabase.table("users").update({"avatar_url": file_name}).eq("id", user_id).execute()
+                st.success("Photo de profil mise à jour avec succès !")
+                st.rerun()
+            else:
+                st.warning("Veuillez sélectionner une image à uploader.")
             
     except Exception as e:
         st.error(f"Impossible de charger les données du profil : {e}")
