@@ -116,36 +116,31 @@ def get_all_characters():
             "quote": "Respire, c'est fini... T'as pas changé, toujours aussi maladroite."
         },
         "Lucas": {
-            "img": "couple.png", 
+            "img": "https://i.pinimg.com/736x/55/75/31/5575317b34e5657011d8820f41530737.jpg", 
             "prompt": "Tu es Lucas, populaire.",
             "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série ?"
         },
         "Ethan": {
-            "img": "couple.png", 
+            "img": "https://i.pinimg.com/736x/82/3d/82/823d8202d08a50993073b6285223e7f3.jpg", 
             "prompt": "Tu es Ethan, Loup Alpha.",
             "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines..."
         },
         "Léo": {
-            "img": "couple.png", 
+            "img": "https://i.pinimg.com/736x/11/22/33/112233445566778899aabbccddeeff00.jpg", 
             "prompt": "Tu es Léo, streameur.",
             "quote": "Prête à ce qu'on détruise l'équipe d'en face ?"
         },
         "Liam": {
-            "img": "couple.png", 
+            "img": "https://i.pinimg.com/736x/44/55/66/44556677889900112233445566778899.jpg", 
             "prompt": "Tu es Liam, le grand frère.",
             "quote": "Salut, l'amie de ma sœur. Essaie de ne pas faire trop de bruit."
         },
         "Noah": {
-            "img": "couple.png", 
+            "img": "https://i.pinimg.com/736x/77/88/99/77889900112233445566778899001122.jpg", 
             "prompt": "Tu es Noah, quarterback star.",
             "quote": "Dis, tu crois qu'on est tous obligés de jouer un rôle pour plaire ?"
         }
     }
-    
-    for name in ["Lucas", "Ethan", "Léo", "Liam", "Noah"]:
-        local_filename = f"{name}.png"
-        if os.path.exists(local_filename):
-            chars[name]["img"] = local_filename
     
     try:
         res = supabase.table("custom_characters").select("*").execute()
@@ -254,7 +249,7 @@ if st.session_state.page == "home":
     end_idx = start_idx + ITEMS_PER_PAGE
     current_items = items[start_idx:end_idx]
 
-    # Construction propre de la grille avec st.html() pour éviter l'affichage de code brut
+    # Construction de la grille visuelle
     cards_html = '<div class="storyia-grid">'
     for name, data in current_items:
         img_src = data['img']
@@ -274,12 +269,9 @@ if st.session_state.page == "home":
         """
     cards_html += '</div>'
     
-    # Affichage sécurisé de la grille visuelle
     st.html(cards_html)
 
-    # Boutons de discussion interactifs alignés juste en dessous de chaque carte
-    cols = st.columns(2 if len(current_items) > 1 else 1)
-    # Pour s'aligner parfaitement sur la grille, on recrée des colonnes dynamiques par paires
+    # Boutons de discussion interactifs alignés sous chaque carte
     for i in range(0, len(current_items), 2):
         row_items = current_items[i:i+2]
         cols_row = st.columns(len(row_items))
@@ -328,7 +320,7 @@ elif st.session_state.page == "create_character":
             if not char_name or not char_description:
                 st.warning("Veuillez remplir au moins le nom et la description du personnage.")
             else:
-                img_path = "couple.png"
+                img_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
                 if uploaded_char_img is not None:
                     img_path_saved = f"char_{st.session_state.pseudo}_{char_name}.png"
                     with open(img_path_saved, "wb") as f:
@@ -388,7 +380,7 @@ elif st.session_state.page == "profile":
         
         user_email = user_info.get("email", "Non disponible")
         user_id = user_info.get("id")
-        avatar_path = user_info.get("avatar_url", "couple.png")
+        avatar_path = user_info.get("avatar_url", "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg")
 
         convs = get_user_conversations(st.session_state.pseudo)
         nb_collected = len(convs)
@@ -396,10 +388,7 @@ elif st.session_state.page == "profile":
         col1, col2 = st.columns([1, 3])
         
         with col1:
-            if avatar_path and os.path.exists(avatar_path):
-                st.image(avatar_path, use_container_width=True)
-            else:
-                st.image("couple.png", use_container_width=True)
+            st.image(avatar_path, use_container_width=True)
             
         with col2:
             st.subheader(st.session_state.pseudo)
@@ -426,7 +415,7 @@ elif st.session_state.page == "profile":
             with open(file_name, "wb") as f:
                 f.write(uploaded_file.getbuffer())
             
-            supabase.table("users_table_update" if False else "users").update({"avatar_url": file_name}).eq("id", user_id).execute()
+            supabase.table("users").update({"avatar_url": file_name}).eq("id", user_id).execute()
             st.success("Photo de profil mise à jour avec succès !")
             st.rerun()
             
@@ -438,8 +427,8 @@ elif st.session_state.page == "chat":
     bg_image = CHARACTERS[current_char]["img"]
     char_quote = CHARACTERS[current_char]["quote"]
 
-    if not os.path.exists(str(bg_image)) and not str(bg_image).startswith("http"):
-        bg_image = "couple.png"
+    if not str(bg_image).startswith("http"):
+        bg_image = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
 
     st.markdown(f"""
         <style>
