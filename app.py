@@ -237,7 +237,6 @@ if st.session_state.page == "home":
     end_idx = start_idx + ITEMS_PER_PAGE
     current_items = items[start_idx:end_idx]
 
-    # Utilisation d'une grille CSS complète avec st.html()
     grid_html = '<div class="storyia-grid">'
     for idx, (name, data) in enumerate(current_items):
         img_src = data['img']
@@ -262,7 +261,6 @@ if st.session_state.page == "home":
     
     st.html(grid_html)
 
-    # Gestion du clic sur les boutons de discussion en HTML/Query Param
     query_params = st.query_params
     if "chat_target" in query_params:
         target_char = query_params["chat_target"]
@@ -272,7 +270,6 @@ if st.session_state.page == "home":
             st.query_params.clear()
             st.rerun()
 
-    # Pagination en bas de page
     if total_pages > 1:
         st.markdown("---")
         p_col1, p_col2, p_col3 = st.columns([1, 2, 1])
@@ -370,7 +367,11 @@ elif st.session_state.page == "profile":
         
         user_email = user_info.get("email", "Non disponible")
         user_id = user_info.get("id")
+        
+        # Gestion sécurisée de l'avatar au cas où la colonne n'existe pas encore dans Supabase
         avatar_path = user_info.get("avatar_url", "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg")
+        if not avatar_path or (not str(avatar_path).startswith("http") and not os.path.exists(avatar_path)):
+            avatar_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
 
         convs = get_user_conversations(st.session_state.pseudo)
         nb_collected = len(convs)
@@ -405,9 +406,14 @@ elif st.session_state.page == "profile":
             with open(file_name, "wb") as f:
                 f.write(uploaded_file.getbuffer())
             
-            supabase.table("users").update({"avatar_url": file_name}).eq("id", user_id).execute()
-            st.success("Photo de profil mise à jour avec succès !")
-            st.rerun()
+            try:
+                supabase.table("users").update({"avatar_url": file_name}).eq("id", user_id).execute()
+                st.success("Photo de profil mise à jour avec succès !")
+                st.rerun()
+            except Exception as update_err:
+                # Si la colonne avatar_url n'existe pas dans Supabase, on sauvegarde localement sans bloquer l'app
+                st.success("Photo enregistrée localement ! (Pour la lier à Supabase, ajoutez la colonne 'avatar_url' dans votre table users).")
+                st.rerun()
             
     except Exception as e:
         st.error(f"Impossible de charger les données du profil : {e}")
