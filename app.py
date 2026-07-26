@@ -9,7 +9,7 @@ supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="expanded")
 
-# --- STYLE GLOBAL & GRILLE RESPONSIVE ---
+# --- STYLE GLOBAL & GRILLE RESPONSIVE MOBILE/PC ---
 st.markdown("""
     <style>
     .stApp {
@@ -23,7 +23,7 @@ st.markdown("""
     .storyia-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 16px;
+        gap: 12px;
         margin-top: 10px;
         margin-bottom: 20px;
     }
@@ -41,6 +41,7 @@ st.markdown("""
         display: flex;
         flex-direction: column;
         justify-content: space-between;
+        height: 100%;
     }
     .stButton>button {
         background-color: #21262d !important;
@@ -247,35 +248,40 @@ if st.session_state.page == "home":
     end_idx = start_idx + ITEMS_PER_PAGE
     current_items = items[start_idx:end_idx]
 
-    # Affichage en grille propre avec Streamlit columns pour que chaque bouton reste bien intégré
-    cols_per_row = 4
-    for i in range(0, len(current_items), cols_per_row):
-        row_items = current_items[i:i+cols_per_row]
-        cols = st.columns(len(row_items))
-        for idx, (name, data) in enumerate(row_items):
-            with cols[idx]:
-                img_src = data['img']
-                if not img_src.startswith("http") and not os.path.exists(img_src):
-                    img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-                
-                # Carte unique contenant l'image, le nom, la citation
-                st.markdown(f"""
-                <div class="storyia-card">
-                    <img src="{img_src}" style="width: 100%; height: 160px; object-fit: cover; display: block;">
-                    <div style="padding: 12px 12px 8px 12px;">
-                        <div style="font-weight: 700; font-size: 15px; color: #ffffff; margin-bottom: 4px;">{name}</div>
-                        <div style="font-size: 11px; color: #8b949e; font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 32px; margin-bottom: 8px;">"{data['quote']}"</div>
-                    </div>
+    # Utilisation d'une grille CSS complète pour afficher proprement les cartes par 2 sur mobile et par 4 sur PC
+    grid_html = '<div class="storyia-grid">'
+    for idx, (name, data) in enumerate(current_items):
+        img_src = data['img']
+        if not img_src.startswith("http") and not os.path.exists(img_src):
+            img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+            
+        grid_html += f"""
+        <div class="storyia-card">
+            <div>
+                <img src="{img_src}" style="width: 100%; height: 140px; object-fit: cover; display: block;">
+                <div style="padding: 10px 10px 4px 10px;">
+                    <div style="font-weight: 700; font-size: 14px; color: #ffffff; margin-bottom: 2px;">{name}</div>
+                    <div style="font-size: 11px; color: #8b949e; font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 30px;">"{data['quote']}"</div>
                 </div>
-                """, unsafe_allow_html=True)
-                
-                # Bouton de discussion rattaché directement sous la carte
-                if st.button(f"💬 Discuter avec {name}", key=f"btn_grid_{start_idx + i + idx}", use_container_width=True):
-                    st.session_state.char_select = name
-                    st.session_state.page = "chat"
-                    st.rerun()
-                
-                st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
+            </div>
+            <div style="padding: 0px 10px 10px 10px;">
+                <a href="?chat_target={name}" target="_self" style="display: block; text-align: center; background-color: #21262d; color: #ffffff; padding: 6px 10px; border-radius: 6px; text-decoration: none; border: 1px solid rgba(255, 255, 255, 0.15); font-size: 12px; font-weight: 600;">💬 Discuter</a>
+            </div>
+        </div>
+        """
+    grid_html += '</div>'
+    
+    st.markdown(grid_html, unsafe_allow_html=True)
+
+    # Gestion du clic sur les boutons de discussion en HTML/Query Param pour fluidifier le tout
+    query_params = st.query_params
+    if "chat_target" in query_params:
+        target_char = query_params["chat_target"]
+        if target_char in CHARACTERS:
+            st.session_state.char_select = target_char
+            st.session_state.page = "chat"
+            st.query_params.clear()
+            st.rerun()
 
     # Pagination en bas de page
     if total_pages > 1:
