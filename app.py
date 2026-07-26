@@ -116,27 +116,27 @@ def get_all_characters():
             "quote": "Respire, c'est fini... T'as pas changé, toujours aussi maladroite."
         },
         "Lucas": {
-            "img": "https://i.pinimg.com/736x/55/75/31/5575317b34e5657011d8820f41530737.jpg", 
+            "img": "https://i.pinimg.com/736x/18/cf/58/18cf58c42a20b8529f79664e5251a310.jpg", 
             "prompt": "Tu es Lucas, populaire.",
             "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série ?"
         },
         "Ethan": {
-            "img": "https://i.pinimg.com/736x/82/3d/82/823d8202d08a50993073b6285223e7f3.jpg", 
+            "img": "https://i.pinimg.com/736x/32/38/20/323820a46b38c237894d82b43b6f2b4b.jpg", 
             "prompt": "Tu es Ethan, Loup Alpha.",
             "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines..."
         },
         "Léo": {
-            "img": "https://i.pinimg.com/736x/11/22/33/112233445566778899aabbccddeeff00.jpg", 
+            "img": "https://i.pinimg.com/736x/51/41/31/5141315b94323c6838b9319e7019f2a2.jpg", 
             "prompt": "Tu es Léo, streameur.",
             "quote": "Prête à ce qu'on détruise l'équipe d'en face ?"
         },
         "Liam": {
-            "img": "https://i.pinimg.com/736x/44/55/66/44556677889900112233445566778899.jpg", 
+            "img": "https://i.pinimg.com/736x/62/52/42/6252426c59434d7949c44208020e3b3b.jpg", 
             "prompt": "Tu es Liam, le grand frère.",
             "quote": "Salut, l'amie de ma sœur. Essaie de ne pas faire trop de bruit."
         },
         "Noah": {
-            "img": "https://i.pinimg.com/736x/77/88/99/77889900112233445566778899001122.jpg", 
+            "img": "https://i.pinimg.com/736x/73/63/53/7363537d68545e8b5d553b39d121f44f.jpg", 
             "prompt": "Tu es Noah, quarterback star.",
             "quote": "Dis, tu crois qu'on est tous obligés de jouer un rôle pour plaire ?"
         }
