@@ -9,7 +9,7 @@ supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="expanded")
 
-# --- STYLE GLOBAL ---
+# --- STYLE GLOBAL & GRID MOBILE/PC ---
 st.markdown("""
     <style>
     .stApp {
@@ -19,14 +19,42 @@ st.markdown("""
     h1, h2, h3, p, span, label {
         color: #ffffff !important;
     }
+    /* Grille responsive parfaite pour PC et Téléphone */
+    .poly-grid-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 12px;
+        margin-top: 10px;
+        margin-bottom: 20px;
+    }
+    @media (min-width: 768px) {
+        .poly-grid-container {
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+        }
+    }
+    .poly-card-item {
+        background-color: #161b22;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: transform 0.2s ease;
+    }
+    .poly-card-item:hover {
+        transform: translateY(-3px);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
     .stButton>button {
         background-color: #161b22 !important;
         color: #ffffff !important;
         border: 1px solid rgba(255, 255, 255, 0.15) !important;
-        border-radius: 10px !important;
+        border-radius: 8px !important;
         width: 100%;
         margin-top: 4px;
-        margin-bottom: 12px;
+        margin-bottom: 8px;
     }
     .stButton>button:hover {
         background-color: #21262d !important;
@@ -219,33 +247,64 @@ if st.session_state.page == "home":
     
     items = list(CHARACTERS.items())
     
-    # Utilisation de colonnes natives Streamlit pour un affichage propre garanti en grille 4 par 4
-    num_cols = 4
-    rows = [items[i:i + num_cols] for i in range(0, len(items), num_cols)]
+    # --- SOLUTION ANTI-LENTEUR (Pagination par 8 personnages) ---
+    ITEMS_PER_PAGE = 8
+    if "home_page" not in st.session_state:
+        st.session_state.home_page = 0
+        
+    total_pages = max(1, (len(items) + ITEMS_PER_PAGE - 1) // ITEMS_PER_PAGE)
+    st.session_state.home_page = min(st.session_state.home_page, total_pages - 1)
     
-    for row in rows:
-        cols = st.columns(num_cols)
-        for idx, (name, data) in enumerate(row):
-            with cols[idx]:
-                img_src = data['img']
-                if not img_src.startswith("http") and not os.path.exists(img_src):
-                    img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-                
-                # Affichage de l'image de la carte
-                st.image(img_src, use_container_width=True)
-                
-                # Texte de la carte avec un design propre
-                st.markdown(f"""
-                    <div style="background-color: #161b22; padding: 10px; border-radius: 10px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.08);">
-                        <div style="font-weight: 700; font-size: 15px; color: #ffffff; margin-bottom: 4px;">{name}</div>
-                        <div style="font-size: 11px; color: #8b949e; font-style: italic; height: 32px; overflow: hidden;">"{data['quote']}"</div>
-                    </div>
-                """, unsafe_allow_html=True)
-                
-                # Bouton de discussion intégré juste en dessous
-                if st.button("💬 Discuter", key=f"btn_grid_{name}", use_container_width=True):
-                    st.session_state.char_select = name
-                    st.session_state.page = "chat"
+    start_idx = st.session_state.home_page * ITEMS_PER_PAGE
+    end_idx = start_idx + ITEMS_PER_PAGE
+    current_items = items[start_idx:end_idx]
+
+    # Affichage de la grille CSS ultra-fluide (fonctionne sur smartphone et PC)
+    html_grid = '<div class="poly-grid-container">'
+    for index, (name, data) in enumerate(current_items):
+        img_src = data['img']
+        if not img_src.startswith("http") and not os.path.exists(img_src):
+            img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+            
+        html_grid += f"""
+        <div class="poly-card-item">
+            <div>
+                <img src="{img_src}" style="width: 100%; height: 200px; object-fit: cover; display: block;">
+                <div style="padding: 10px 10px 4px 10px;">
+                    <div style="font-weight: 700; font-size: 14px; color: #ffffff; margin-bottom: 2px;">{name}</div>
+                    <div style="font-size: 11px; color: #8b949e; font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">"{data['quote']}"</div>
+                </div>
+            </div>
+        </div>
+        """
+    html_grid += '</div>'
+    st.markdown(html_grid, unsafe_allow_html=True)
+
+    # Boutons de discussion alignés sous chaque carte de la page active
+    cols = st.columns(min(4, len(current_items)))
+    for index, (name, data) in enumerate(current_items):
+        target_col = cols[index % len(cols)]
+        with target_col:
+            if st.button(f"💬 {name}", key=f"poly_action_{start_idx + index}", use_container_width=True):
+                st.session_state.char_select = name
+                st.session_state.page = "chat"
+                st.rerun()
+
+    # Pagination propre si le nombre de personnages grandit
+    if total_pages > 1:
+        st.markdown("---")
+        p_col1, p_col2, p_col3 = st.columns([1, 2, 1])
+        with p_col1:
+            if st.session_state.home_page > 0:
+                if st.button("⬅️ Précédent", use_container_width=True):
+                    st.session_state.home_page -= 1
+                    st.rerun()
+        with p_col2:
+            st.markdown(f"<p style='text-align: center; color: #8b949e;'>Page {st.session_state.home_page + 1} sur {total_pages}</p>", unsafe_allow_html=True)
+        with p_col3:
+            if st.session_state.home_page < total_pages - 1:
+                if st.button("Suivant ➡️", use_container_width=True):
+                    st.session_state.home_page += 1
                     st.rerun()
 
 elif st.session_state.page == "create_character":
