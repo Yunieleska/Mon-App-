@@ -9,7 +9,7 @@ supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="expanded")
 
-# --- STYLE GLOBAL & CORRECTION SIDEBAR ---
+# --- STYLE GLOBAL & CORRECTIONS VISUELLES ---
 st.markdown("""
     <style>
     .stApp {
@@ -19,7 +19,18 @@ st.markdown("""
     h1, h2, h3, p, span, label {
         color: #ffffff !important;
     }
-    /* Correction pour que le texte des boutons de la sidebar soit bien visible sur PC */
+    /* Correction de la boîte "Connecté : Yuna" dans la sidebar pour la rendre sombre et lisible */
+    [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] div {
+        background-color: #161b22 !important;
+        color: #ffffff !important;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] p {
+        color: #ffffff !important;
+    }
+    /* Style des boutons de la sidebar */
     [data-testid="stSidebar"] .stButton>button {
         background-color: #21262d !important;
         color: #ffffff !important;
@@ -31,7 +42,7 @@ st.markdown("""
         background-color: #30363d !important;
         border-color: #ffffff !important;
     }
-    /* Grille magique d'accueil : 2 colonnes sur téléphone, 4 colonnes sur PC */
+    /* Grille d'accueil */
     .storyia-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
@@ -121,12 +132,12 @@ def get_all_characters():
             "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série ?"
         },
         "Ethan": {
-            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/sign/storyia-images/ethan.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85OTJlMjk3Yy0zMjkyLTQ3OWMtYTFhYi1kNTkwOGMzYzdmNzQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJzdG9yYWlhLWltYWdlcy9ldGhhbi5wbmciLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzg1MTAyMzk3LCJleHAiOjE4MTY2MzgzOTd9.qwJMbypu9ehzFbY7l89vvVSk9wHIGFWF5tiYiEQqdmY", 
+            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/ethan.png", 
             "prompt": "Tu es Ethan, Loup Alpha.",
             "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines..."
         },
         "Léo": {
-            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/sign/storyia-images/leo.png.PNG?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85OTJlMjk3Yy0zMjkyLTQ3OWMtYTFhYi1kNTkwOGMzYzdmNzQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJzdG9yYWlhLWltYWdlcy9sZW8ucG5nLlBORyIsInNjb3BlIjoiZG93bmxvYWQiLCJpYXQiOjE3ODUxMDI1MTAsImV4cCI6MTgxNjYzODUxMH0.dVAfMNONuMdKiE00cA4n7dutO4D8TfGz8v1OFuFItGE", 
+            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/leo.png", 
             "prompt": "Tu es Léo, streameur.",
             "quote": "Prête à ce qu'on détruise l'équipe d'en face ?"
         },
