@@ -1,6 +1,7 @@
 import streamlit as st
 from supabase import create_client
 from groq import Groq
+import streamlit.components.v1 as components
 import os
 
 # --- CONFIGURATION ---
@@ -9,7 +10,7 @@ supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="expanded")
 
-# --- STYLE GLOBAL & GRILLE FORCÉE 2 COLONNES (MOBILE & PC) ---
+# --- STYLE GLOBAL ---
 st.markdown("""
     <style>
     .stApp {
@@ -30,23 +31,6 @@ st.markdown("""
     .stButton>button:hover {
         background-color: #333333 !important;
         border-color: #555555 !important;
-    }
-    
-    /* Grille Polybuzz : Force 2 colonnes strictes même sur petit écran de téléphone */
-    .poly-grid-container {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-        margin-bottom: 20px;
-    }
-    .poly-card {
-        background-color: #161b22;
-        border: 1px solid #30363d;
-        border-radius: 12px;
-        padding: 8px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -228,35 +212,77 @@ if st.session_state.page == "home":
     
     items = list(CHARACTERS.items())
     
-    # 1. On affiche d'abord TOUTES les cartes visuelles en grille pure 2 colonnes (grâce au CSS Grid .poly-grid-container)
-    html_content = '<div class="poly-grid-container">'
+    # Construction du HTML propre pour la grille
+    html_content = """
+    <style>
+        .poly-grid-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            font-family: sans-serif;
+            margin-bottom: 15px;
+        }
+        .poly-card {
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .poly-card img {
+            width: 100%;
+            height: 140px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        .poly-name {
+            font-weight: bold;
+            font-size: 15px;
+            margin-top: 8px;
+            color: white;
+        }
+        .poly-quote {
+            font-size: 11px;
+            color: #8b949e;
+            font-style: italic;
+            margin-top: 4px;
+            line-height: 1.2;
+        }
+    </style>
+    <div class="poly-grid-container">
+    """
+    
     for name, data in items:
         html_content += f"""
         <div class="poly-card">
             <div>
-                <img src="{data['img']}" style="width: 100%; height: 130px; object-fit: cover; border-radius: 6px;">
-                <div style="font-weight: bold; font-size: 14px; margin-top: 6px; color: white;">{name}</div>
-                <div style="font-size: 11px; color: #8b949e; font-style: italic; line-height: 1.1; margin-top: 2px;">"{data['quote']}"</div>
+                <img src="{data['img']}">
+                <div class="poly-name">{name}</div>
+                <div class="poly-quote">"{data['quote']}"</div>
             </div>
         </div>
         """
-    html_content += '</div>'
-    st.markdown(html_content, unsafe_allow_html=True)
+    html_content += "</div>"
     
-    # 2. On place ensuite les boutons cliquables "Discuter" en face de chaque carte par paires de 2
+    # Injection sécurisée via le composant HTML dédié
+    components.html(html_content, height=((len(items) + 1) // 2) * 230, scrolling=False)
+    
+    # Boutons cliquables Streamlit natifs disposés en 2 colonnes en dessous
     for i in range(0, len(items), 2):
         col1, col2 = st.columns(2)
         with col1:
             if i < len(items):
                 name_1 = items[i][0]
-                if st.button(f"💬 {name_1}", key=f"mob_btn_{i}"):
+                if st.button(f"💬 Discuter avec {name_1}", key=f"btn_h_{i}"):
                     st.session_state.char_select = name_1
                     st.session_state.page = "chat"
                     st.rerun()
         with col2:
             if i + 1 < len(items):
                 name_2 = items[i+1][0]
-                if st.button(f"💬 {name_2}", key=f"mob_btn_{i+1}"):
+                if st.button(f"💬 Discuter avec {name_2}", key=f"btn_h_{i+1}"):
                     st.session_state.char_select = name_2
                     st.session_state.page = "chat"
                     st.rerun()
