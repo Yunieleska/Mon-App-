@@ -38,47 +38,6 @@ def load_msgs(pseudo, char):
     except:
         return []
 
-# --- LOGIN LOGIC ---
-if not st.session_state.logged_in:
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.title("Welcome to Storyia")
-        tab1, tab2 = st.tabs(["Login", "Sign Up"])
-        
-        with tab1:
-            email_log = st.text_input("E-mail", key="login_email")
-            password = st.text_input("Password", type="password", key="login_pass")
-            if st.button("Log In"):
-                try:
-                    res = supabase.auth.sign_in_with_password({"email": email_log, "password": password})
-                    if res.user:
-                        st.session_state.logged_in = True
-                        user_data = supabase.table("users").select("pseudo").eq("id", res.user.id).single().execute()
-                        st.session_state.pseudo = user_data.data["pseudo"]
-                        st.rerun()
-                except Exception as e:
-                    st.error(f"Erreur de connexion : {e}")
-
-        with tab2:
-            new_pseudo = st.text_input("Pseudo", key="sign_pseudo")
-            new_email = st.text_input("E-mail", key="sign_email")
-            new_pass = st.text_input("Password", type="password", key="sign_pass")
-            reponse_secrete = st.text_input("Question : Ta couleur préférée ?", key="sign_q")
-            if st.button("Sign Up"):
-                try:
-                    auth_res = supabase.auth.sign_up({"email": new_email, "password": new_pass})
-                    if auth_res.user:
-                        supabase.table("users").insert({
-                            "id": auth_res.user.id, 
-                            "pseudo": new_pseudo, 
-                            "email": new_email, 
-                            "secret_answer": reponse_secrete
-                        }).execute()
-                        st.success("Compte créé ! Veuillez vous connecter.")
-                except Exception as e:
-                    st.error(f"Erreur : {e}")
-    st.stop()
-
 # --- INTERFACE ---
 CHARACTERS = {
     "Caelum": {
@@ -123,6 +82,47 @@ CHARACTERS = {
     }
 }
 
+# --- LOGIN LOGIC ---
+if not st.session_state.logged_in:
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.title("Welcome to Storyia")
+        tab1, tab2 = st.tabs(["Login", "Sign Up"])
+        
+        with tab1:
+            email_log = st.text_input("E-mail", key="login_email")
+            password = st.text_input("Password", type="password", key="login_pass")
+            if st.button("Log In"):
+                try:
+                    res = supabase.auth.sign_in_with_password({"email": email_log, "password": password})
+                    if res.user:
+                        st.session_state.logged_in = True
+                        user_data = supabase.table("users").select("pseudo").eq("id", res.user.id).single().execute()
+                        st.session_state.pseudo = user_data.data["pseudo"]
+                        st.rerun()
+                except Exception as e:
+                    st.error(f"Erreur de connexion : {e}")
+
+        with tab2:
+            new_pseudo = st.text_input("Pseudo", key="sign_pseudo")
+            new_email = st.text_input("E-mail", key="sign_email")
+            new_pass = st.text_input("Password", type="password", key="sign_pass")
+            reponse_secrete = st.text_input("Question : Ta couleur préférée ?", key="sign_q")
+            if st.button("Sign Up"):
+                try:
+                    auth_res = supabase.auth.sign_up({"email": new_email, "password": new_pass})
+                    if auth_res.user:
+                        supabase.table("users").insert({
+                            "id": auth_res.user.id, 
+                            "pseudo": new_pseudo, 
+                            "email": new_email, 
+                            "secret_answer": reponse_secrete
+                        }).execute()
+                        st.success("Compte créé ! Veuillez vous connecter.")
+                except Exception as e:
+                    st.error(f"Erreur : {e}")
+    st.stop()
+
 # --- SIDEBAR ---
 st.sidebar.info(f"Connecté : **{st.session_state.pseudo}**")
 
@@ -143,7 +143,6 @@ if st.session_state.page == "home":
         with cols[i % 4]:
             st.image(data["img"], use_container_width=True)
             st.caption(f"*{data['quote']}*")
-            # Utilisation d'un bouton explicite avec un effet immédiat
             if st.button(f"Discuter avec {name}", key=f"chat_btn_{name}__"):
                 st.session_state.char_select = name
                 st.session_state.page = "chat"
