@@ -9,7 +9,7 @@ supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="expanded")
 
-# --- STYLE GLOBAL ---
+# --- STYLE GLOBAL (FOND NOIR, TEXTE BLANC & CARTES STYLE POLYBUZZ) ---
 st.markdown("""
     <style>
     .stApp {
@@ -29,6 +29,22 @@ st.markdown("""
     .stButton>button:hover {
         background-color: #333333 !important;
         border-color: #555555 !important;
+    }
+    /* Style grille Polybuzz pour mobile/PC */
+    .poly-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+    .poly-card {
+        background-color: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 12px;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -209,31 +225,34 @@ if st.session_state.page == "home":
     st.write("Sélectionnez avec qui lancer la discussion :")
     
     items = list(CHARACTERS.items())
+    
+    # Affichage en grille propre type Polybuzz via HTML/CSS pur
+    html_grid = '<div class="poly-grid">'
+    for name, data in items:
+        html_grid += f"""
+        <div class="poly-card">
+            <div>
+                <img src="{data['img']}" style="width: 100%; height: 160px; object-fit: cover; border-radius: 8px;">
+                <h3 style="font-size: 16px; margin: 8px 0 4px 0; color: white;">{name}</h3>
+                <p style="font-size: 12px; color: #8b949e; font-style: italic; margin-bottom: 10px;">"{data['quote']}"</p>
+            </div>
+        </div>
+        """
+    html_grid += '</div>'
+    st.markdown(html_grid, unsafe_allow_html=True)
+    
+    # Boutons Streamlit positionnés proprement sous forme de grille interactive
     for i in range(0, len(items), 2):
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            name, data = items[i]
-            st.image(data["img"], use_container_width=True)
-            st.subheader(name)
-            st.caption(f'"{data["quote"]}"')
-            if st.button(f"💬 Discuter", key=f"btn_grid_{i}"):
-                st.session_state.char_select = name
-                st.session_state.page = "chat"
-                st.rerun()
-                
-        if i + 1 < len(items):
-            with col2:
-                name, data = items[i+1]
-                st.image(data["img"], use_container_width=True)
-                st.subheader(name)
-                st.caption(f'"{data["quote"]}"')
-                if st.button(f"💬 Discuter", key=f"btn_grid_{i+1}"):
-                    st.session_state.char_select = name
-                    st.session_state.page = "chat"
-                    st.rerun()
-                    
-        st.markdown("<hr style='margin: 15px 0; border-color: #333;'>", unsafe_allow_html=True)
+        cols = st.columns(2)
+        for j, col in enumerate(cols):
+            idx = i + j
+            if idx < len(items):
+                name, _ = items[idx]
+                with col:
+                    if st.button(f"💬 {name}", key=f"poly_btn_{idx}"):
+                        st.session_state.char_select = name
+                        st.session_state.page = "chat"
+                        st.rerun()
 
 elif st.session_state.page == "create_character":
     st.title("✨ Créer un nouveau personnage")
