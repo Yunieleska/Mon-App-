@@ -9,27 +9,29 @@ supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="expanded")
 
-# --- STYLE GLOBAL ---
+# --- STYLE GLOBAL & DESIGN POLYBUZZ ---
 st.markdown("""
     <style>
     .stApp {
-        background-color: #0e1117;
+        background-color: #0b0e14;
         color: #ffffff;
     }
     h1, h2, h3, p, span, label {
         color: #ffffff !important;
     }
-    .stButton>button {
-        background-color: #1e1e1e !important;
-        color: #ffffff !important;
-        border: 1px solid #333333 !important;
-        border-radius: 8px !important;
-        width: 100%;
-        margin-top: 5px;
+    /* Style épuré pour imiter les cartes de type feed/flux */
+    .poly-card {
+        background-color: #161b22;
+        border-radius: 16px;
+        overflow: hidden;
+        margin-bottom: 20px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border: 1px solid rgba(255, 255, 255, 0.05);
     }
-    .stButton>button:hover {
-        background-color: #333333 !important;
-        border-color: #555555 !important;
+    .poly-card:hover {
+        transform: translateY(-4px;);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        border-color: rgba(255, 255, 255, 0.15);
     }
     </style>
 """, unsafe_allow_html=True)
@@ -213,24 +215,33 @@ if st.sidebar.button("🚪 Logout"):
 
 # --- NAVIGATION ENTRE PAGES ---
 if st.session_state.page == "home":
-    st.title("Choose your character")
-    st.write("Sélectionnez avec qui lancer la discussion :")
+    st.title("Explorer")
+    st.write("Découvre et discute avec les personnages du moment :")
     
     items = list(CHARACTERS.items())
     
-    # Affichage en grille équilibrée sur 2 colonnes (style Polybuzz natif et fluide)
-    cols = st.columns(2)
+    # Disposition en grille multi-colonnes responsive type Polybuzz (Pinterest-like feed)
+    num_cols = 4  # Ajuste à 2 ou 3 si tu préfères des cartes plus larges sur PC
+    cols = st.columns(num_cols)
+    
     for index, (name, data) in enumerate(items):
-        target_col = cols[index % 2]
+        target_col = cols[index % num_cols]
         with target_col:
-            with st.container(border=True):
-                st.image(data['img'], use_container_width=True)
-                st.markdown(f"**{name}**")
-                st.markdown(f"<span style='font-size: 11px; color: #8b949e; font-style: italic;'>\"{data['quote']}\"</span>", unsafe_allow_html=True)
-                if st.button(f"💬 Discuter", key=f"poly_btn_{index}"):
-                    st.session_state.char_select = name
-                    st.session_state.page = "chat"
-                    st.rerun()
+            st.markdown(f"""
+                <div class="poly-card">
+                    <img src="{data['img']}" style="width: 100%; height: 260px; object-fit: cover; display: block;">
+                    <div style="padding: 12px;">
+                        <div style="font-weight: 700; font-size: 15px; margin-bottom: 4px; color: #ffffff;">{name}</div>
+                        <div style="font-size: 11px; color: #8b949e; font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">"{data['quote']}"</div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            # Bouton minimaliste discret intégré sous la carte
+            if st.button("💬 Discuter", key=f"poly_feed_{index}"):
+                st.session_state.char_select = name
+                st.session_state.page = "chat"
+                st.rerun()
 
 elif st.session_state.page == "create_character":
     st.title("✨ Créer un nouveau personnage")
