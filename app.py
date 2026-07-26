@@ -8,6 +8,19 @@ supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="expanded")
 
+# --- STYLE GLOBAL (FOND NOIR & TEXTE BLANC) ---
+st.markdown("""
+    <style>
+    .stApp {
+        background-color: #0e1117;
+        color: #ffffff;
+    }
+    h1, h2, h3, p, span, label {
+        color: #ffffff !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # --- SESSION INITIALIZATION ---
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
 if "pseudo" not in st.session_state: st.session_state.pseudo = "Invité"
@@ -125,7 +138,6 @@ if not st.session_state.logged_in:
     st.stop()
 
 # --- SIDEBAR ---
-# Affichage de couple.png tout en haut de la sidebar, au-dessus du pseudo
 st.sidebar.image("couple.png", use_container_width=True)
 st.sidebar.info(f"Connecté : **{st.session_state.pseudo}**")
 
@@ -156,11 +168,11 @@ elif st.session_state.page == "chat":
     bg_image = CHARACTERS[current_char]["img"]
     char_quote = CHARACTERS[current_char]["quote"]
 
-    # Fond d'écran stylisé pour la page de chat
+    # Fond d'écran du chat assombri pour garder la lisibilité
     st.markdown(f"""
         <style>
         .stApp {{
-            background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("{bg_image}");
+            background-image: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)), url("{bg_image}");
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
