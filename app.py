@@ -9,7 +9,7 @@ supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="expanded")
 
-# --- STYLE GLOBAL ---
+# --- STYLE GLOBAL (FOND NOIR, TEXTE BLANC & BOUTONS CUSTOM) ---
 st.markdown("""
     <style>
     .stApp {
@@ -19,6 +19,7 @@ st.markdown("""
     h1, h2, h3, p, span, label {
         color: #ffffff !important;
     }
+    /* Style des boutons en mode sombre */
     .stButton>button {
         background-color: #1e1e1e !important;
         color: #ffffff !important;
@@ -38,6 +39,7 @@ if "pseudo" not in st.session_state: st.session_state.pseudo = "Invité"
 if "page" not in st.session_state: st.session_state.page = "home"
 if "char_select" not in st.session_state: st.session_state.char_select = "Caelum"
 
+# Vérification de session existante
 try:
     session = supabase.auth.get_session()
     if session and session.user:
@@ -181,7 +183,7 @@ if st.sidebar.button("🚪 Logout"):
     st.session_state.pseudo = "Invité"
     st.rerun()
 
-# --- NAVIGATION ---
+# --- NAVIGATION ENTRE PAGES ---
 if st.session_state.page == "home":
     st.title("Choose your character")
     cols = st.columns(4)
@@ -259,22 +261,19 @@ elif st.session_state.page == "profile":
         
         st.text_input("Pseudo (non modifiable)", value=st.session_state.pseudo, disabled=True)
         
-        # Upload direct sans formulaire bloquant
+        # Upload direct pris en compte instantanément dès la sélection du fichier
         uploaded_file = st.file_uploader("Changer votre photo de profil", type=["png", "jpg", "jpeg"], key="avatar_uploader")
         
-        if st.button("Mettre à jour la photo de profil"):
-            if uploaded_file is not None and user_id:
-                file_extension = uploaded_file.name.split(".")[-1]
-                file_name = f"avatar_{user_id}.{file_extension}"
-                
-                with open(file_name, "wb") as f:
-                    f.write(uploaded_file.getbuffer())
-                
-                supabase.table("users").update({"avatar_url": file_name}).eq("id", user_id).execute()
-                st.success("Photo de profil mise à jour avec succès !")
-                st.rerun()
-            else:
-                st.warning("Veuillez sélectionner une image à uploader.")
+        if uploaded_file is not None and user_id:
+            file_extension = uploaded_file.name.split(".")[-1]
+            file_name = f"avatar_{user_id}.{file_extension}"
+            
+            with open(file_name, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+            
+            supabase.table("users").update({"avatar_url": file_name}).eq("id", user_id).execute()
+            st.success("Photo de profil mise à jour avec succès !")
+            st.rerun()
             
     except Exception as e:
         st.error(f"Impossible de charger les données du profil : {e}")
