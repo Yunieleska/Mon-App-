@@ -101,42 +101,42 @@ def get_user_conversations(pseudo):
 def get_all_characters():
     chars = {
         "Caelum": {
-            "img": "https://picsum.photos/id/1015/400/500", 
+            "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", 
             "prompt": "Tu es Caelum, Prince des Ténèbres.",
             "quote": "Ne t'approche pas de moi. Ma vie est déjà tracée, et tu n'as rien à y faire."
         },
         "Alexei": {
-            "img": "https://picsum.photos/id/1025/400/500", 
+            "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg", 
             "prompt": "Tu es Alexei, mafieux.",
             "quote": "Regardez qui s'est perdue sur mon territoire. La petite princesse des Volkov..."
         },
         "Killian": {
-            "img": "https://picsum.photos/id/1062/400/500", 
+            "img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg", 
             "prompt": "Tu es Killian, motard.",
             "quote": "Respire, c'est fini... T'as pas changé, toujours aussi maladroite."
         },
         "Lucas": {
-            "img": "https://picsum.photos/id/1074/400/500", 
+            "img": "https://i.pinimg.com/736x/18/cf/58/18cf58c42a20b8529f79664e5251a310.jpg", 
             "prompt": "Tu es Lucas, populaire.",
             "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série ?"
         },
         "Ethan": {
-            "img": "https://picsum.photos/id/1084/400/500", 
+            "img": "https://i.pinimg.com/736x/32/38/20/323820a46b38c237894d82b43b6f2b4b.jpg", 
             "prompt": "Tu es Ethan, Loup Alpha.",
             "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines..."
         },
         "Léo": {
-            "img": "https://picsum.photos/id/237/400/500", 
+            "img": "https://i.pinimg.com/736x/51/41/31/5141315b94323c6838b9319e7019f2a2.jpg", 
             "prompt": "Tu es Léo, streameur.",
             "quote": "Prête à ce qu'on détruise l'équipe d'en face ?"
         },
         "Liam": {
-            "img": "https://picsum.photos/id/338/400/500", 
+            "img": "https://i.pinimg.com/736x/62/52/42/6252426c59434d7949c44208020e3b3b.jpg", 
             "prompt": "Tu es Liam, le grand frère.",
             "quote": "Salut, l'amie de ma sœur. Essaie de ne pas faire trop de bruit."
         },
         "Noah": {
-            "img": "https://picsum.photos/id/433/400/500", 
+            "img": "https://i.pinimg.com/736x/73/63/53/7363537d68545e8b5d553b39d121f44f.jpg", 
             "prompt": "Tu es Noah, quarterback star.",
             "quote": "Dis, tu crois qu'on est tous obligés de jouer un rôle pour plaire ?"
         }
@@ -148,7 +148,7 @@ def get_all_characters():
             for item in res.data:
                 if item["is_public"] or item["creator"] == st.session_state.pseudo:
                     chars[item["name"]] = {
-                        "img": item["img_url"] if item["img_url"] and (item["img_url"].startswith("http") or os.path.exists(item["img_url"])) else "https://picsum.photos/id/1015/400/500",
+                        "img": item["img_url"] if item["img_url"] and (item["img_url"].startswith("http") or os.path.exists(item["img_url"])) else "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
                         "prompt": f"Tu es {item['name']}, un personnage {item['sex']}. Description : {item['description']}. Personnages secondaires / Contexte additionnel : {item['secondary_chars']}",
                         "quote": item["quote"] if "quote" in item and item["quote"] else f"Bonjour, je suis {item['name']}."
                     }
@@ -254,7 +254,7 @@ if st.session_state.page == "home":
     for name, data in current_items:
         img_src = data['img']
         if not img_src.startswith("http") and not os.path.exists(img_src):
-            img_src = "https://picsum.photos/id/1015/400/500"
+            img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
             
         cards_html += f"""
         <div class="storyia-card">
@@ -320,7 +320,7 @@ elif st.session_state.page == "create_character":
             if not char_name or not char_description:
                 st.warning("Veuillez remplir au moins le nom et la description du personnage.")
             else:
-                img_path = "https://picsum.photos/id/1015/400/500"
+                img_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
                 if uploaded_char_img is not None:
                     img_path_saved = f"char_{st.session_state.pseudo}_{char_name}.png"
                     with open(img_path_saved, "wb") as f:
@@ -380,7 +380,7 @@ elif st.session_state.page == "profile":
         
         user_email = user_info.get("email", "Non disponible")
         user_id = user_info.get("id")
-        avatar_path = user_info.get("avatar_url", "https://picsum.photos/id/1015/400/500")
+        avatar_path = user_info.get("avatar_url", "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg")
 
         convs = get_user_conversations(st.session_state.pseudo)
         nb_collected = len(convs)
@@ -428,7 +428,7 @@ elif st.session_state.page == "chat":
     char_quote = CHARACTERS[current_char]["quote"]
 
     if not str(bg_image).startswith("http"):
-        bg_image = "https://picsum.photos/id/1015/400/500"
+        bg_image = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
 
     st.markdown(f"""
         <style>
