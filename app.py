@@ -41,7 +41,7 @@ if "char_select" not in st.session_state: st.session_state.char_select = "Caelum
 # Vérification de session existante
 try:
     session = supabase.auth.get_session()
-    if session:
+    if session and session.user:
         st.session_state.logged_in = True
         user_data = supabase.table("users").select("pseudo").eq("id", session.user.id).single().execute()
         st.session_state.pseudo = user_data.data["pseudo"] if user_data.data else "Utilisateur"
@@ -220,11 +220,24 @@ elif st.session_state.page == "profile":
     st.title("Mon Profil")
     
     try:
-        session = supabase.auth.get_session()
-        user_email = session.user.email if session else "Inconnu"
-        user_id = session.user.id if session else None
+        user_email = "Inconnu"
+        user_id = None
         
-        # Récupération de l'avatar utilisateur depuis Supabase
+        session = supabase.auth.get_session()
+        if session and session.user:
+            user_email = session.user.email
+            user_id = session.user.id
+        else:
+            user_res = supabase.auth.get_user()
+            if user_res and user_res.user:
+                user_email = user_res.user.email
+                user_id = user_res.user.id
+
+        if not user_id:
+            st.error("Session expirée. Veuillez vous reconnecter.")
+            st.stop()
+        
+        # Récupération sécurisée de l'avatar utilisateur depuis Supabase
         user_db = supabase.table("users").select("*").eq("id", user_id).single().execute()
         user_info = user_db.data if user_db.data else {}
         avatar_path = user_info.get("avatar_url", "couple.png")
@@ -263,14 +276,12 @@ elif st.session_state.page == "profile":
         uploaded_file = st.file_uploader("Changer votre photo de profil", type=["png", "jpg", "jpeg"])
         
         if st.button("Mettre à jour la photo de profil"):
-            update_data = {}
             if uploaded_file is not None:
                 file_path = uploaded_file.name
                 with open(file_path, "wb") as f:
                     f.write(uploaded_file.getbuffer())
-                update_data["avatar_url"] = file_path
                 
-                supabase.table("users").update(update_data).eq("id", user_id).execute()
+                supabase.table("users").update({"avatar_url": file_path}).eq("id", user_id).execute()
                 st.success("Photo de profil mise à jour avec succès !")
                 st.rerun()
             else:
