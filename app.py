@@ -143,7 +143,8 @@ if st.session_state.page == "home":
         with cols[i % 4]:
             st.image(data["img"], use_container_width=True)
             st.caption(f"*{data['quote']}*")
-            if st.button(name, key=f"btn_{name}"): 
+            # Utilisation d'un bouton explicite avec un effet immédiat
+            if st.button(f"Discuter avec {name}", key=f"chat_btn_{name}__"):
                 st.session_state.char_select = name
                 st.session_state.page = "chat"
                 st.rerun()
@@ -153,7 +154,7 @@ elif st.session_state.page == "chat":
     bg_image = CHARACTERS[current_char]["img"]
     char_quote = CHARACTERS[current_char]["quote"]
 
-    # Fond d'écran uniquement sur la page de chat
+    # Fond d'écran stylisé pour la page de chat
     st.markdown(f"""
         <style>
         .stApp {{
