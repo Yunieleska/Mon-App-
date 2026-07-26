@@ -31,7 +31,7 @@ st.markdown("""
     [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] p {
         color: #ffffff !important;
     }
-    /* Style de TOUS les boutons de l'application (dont Log In / Sign Up) */
+    /* Style de TOUS les boutons de l'application */
     .stButton>button {
         background-color: #21262d !important;
         color: #ffffff !important;
@@ -448,6 +448,7 @@ elif st.session_state.page == "chat":
     current_char = st.session_state.char_select
     bg_image = CHARACTERS[current_char]["img"]
     char_quote = CHARACTERS[current_char]["quote"]
+    char_prompt = CHARACTERS[current_char]["prompt"]
 
     if not str(bg_image).startswith("http"):
         bg_image = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
@@ -467,7 +468,20 @@ elif st.session_state.page == "chat":
     st.markdown(f"*{char_quote}*")
 
     messages = load_msgs(st.session_state.pseudo, current_char)
-    char_prompt = CHARACTERS[current_char]["prompt"]
+
+    # --- INITIAL MESSAGE GENERATION (POLYZBUZ STYLE) ---
+    if not messages:
+        intro_system_prompt = [
+            {"role": "system", "content": f"{char_prompt} Commence l'histoire en envoyant un premier message d'accroche immersif en incarnant ton personnage, en te basant sur cette citation : '{char_quote}'."}
+        ]
+        try:
+            res_intro = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=intro_system_prompt)
+            first_message = res_intro.choices[0].message.content
+            save_msg(st.session_state.pseudo, current_char, "assistant", first_message)
+            messages = load_msgs(st.session_state.pseudo, current_char)
+        except Exception as e:
+            st.error(f"Erreur lors de l'initialisation du message : {e}")
+
     full_messages = [{"role": "system", "content": char_prompt}] + messages
 
     for msg in messages:
@@ -483,4 +497,3 @@ elif st.session_state.page == "chat":
         
         save_msg(st.session_state.pseudo, current_char, "assistant", assistant_reply)
         st.rerun()
-        
