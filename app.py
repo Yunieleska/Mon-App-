@@ -9,7 +9,7 @@ supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="expanded")
 
-# --- STYLE GLOBAL (FOND NOIR, TEXTE BLANC & BOUTONS CUSTOM) ---
+# --- STYLE GLOBAL ---
 st.markdown("""
     <style>
     .stApp {
@@ -39,7 +39,6 @@ if "pseudo" not in st.session_state: st.session_state.pseudo = "Invité"
 if "page" not in st.session_state: st.session_state.page = "home"
 if "char_select" not in st.session_state: st.session_state.char_select = "Caelum"
 
-# Vérification de session existante
 try:
     session = supabase.auth.get_session()
     if session and session.user:
@@ -211,20 +210,30 @@ if st.session_state.page == "home":
     
     items = list(CHARACTERS.items())
     for i in range(0, len(items), 2):
-        cols = st.columns(2)
-        for j, col in enumerate(cols):
-            idx = i + j
-            if idx < len(items):
-                name, data = items[idx]
-                with col:
-                    st.image(data["img"], width=130)
-                    st.subheader(name)
-                    st.caption(f'"{data["quote"]}"')
-                    if st.button(f"💬 Discuter", key=f"btn_grid_{idx}"):
-                        st.session_state.char_select = name
-                        st.session_state.page = "chat"
-                        st.rerun()
-        st.markdown("<hr style='margin: 10px 0; border-color: #333;'>", unsafe_allow_html=True)
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            name, data = items[i]
+            st.image(data["img"], use_container_width=True)
+            st.subheader(name)
+            st.caption(f'"{data["quote"]}"')
+            if st.button(f"💬 Discuter", key=f"btn_grid_{i}"):
+                st.session_state.char_select = name
+                st.session_state.page = "chat"
+                st.rerun()
+                
+        if i + 1 < len(items):
+            with col2:
+                name, data = items[i+1]
+                st.image(data["img"], use_container_width=True)
+                st.subheader(name)
+                st.caption(f'"{data["quote"]}"')
+                if st.button(f"💬 Discuter", key=f"btn_grid_{i+1}"):
+                    st.session_state.char_select = name
+                    st.session_state.page = "chat"
+                    st.rerun()
+                    
+        st.markdown("<hr style='margin: 15px 0; border-color: #333;'>", unsafe_allow_html=True)
 
 elif st.session_state.page == "create_character":
     st.title("✨ Créer un nouveau personnage")
