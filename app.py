@@ -74,7 +74,7 @@ def get_user_conversations(pseudo):
         return {}
 
 def get_all_characters():
-    # Personnages par défaut avec les images locales pour éviter les bugs mobiles
+    # Personnages par défaut avec les images locales
     chars = {
         "Caelum": {
             "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", 
@@ -140,7 +140,7 @@ CHARACTERS = get_all_characters()
 if not st.session_state.logged_in:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.image("bg.png", use_container_width=True)
+        st.image("bg.png", width=None)
         
         tab1, tab2 = st.tabs(["Login", "Sign Up"])
         
@@ -180,7 +180,7 @@ if not st.session_state.logged_in:
     st.stop()
 
 # --- SIDEBAR ---
-st.sidebar.image("couple.png", use_container_width=True)
+st.sidebar.image("couple.png", width=None)
 st.sidebar.info(f"Connecté : **{st.session_state.pseudo}**")
 
 if st.sidebar.button("🏠 Home"): 
@@ -209,12 +209,62 @@ if st.sidebar.button("🚪 Logout"):
 if st.session_state.page == "home":
     st.title("Choose your character")
     
+    # Grille responsive style Polybuzz (parfait sur mobile et PC)
+    st.markdown("""
+        <style>
+        .poly-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .poly-card {
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .poly-card img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .poly-quote {
+            font-size: 12px;
+            color: #8b949e !important;
+            font-style: italic;
+            margin-bottom: 10px;
+            min-height: 35px;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+    cards_html = '<div class="poly-grid">'
+    for name, data in CHARACTERS.items():
+        img_src = data["img"]
+        quote = data["quote"]
+        cards_html += f"""
+            <div class="poly-card">
+                <img src="{img_src}" alt="{name}">
+                <h4 style="margin: 5px 0; font-size: 16px;">{name}</h4>
+                <p class="poly-quote">"{quote}"</p>
+            </div>
+        """
+    cards_html += '</div>'
+    
+    st.markdown(cards_html, unsafe_allow_html=True)
+    
+    st.write("### Sélectionnez avec qui lancer la discussion :")
     cols = st.columns(4)
-    for i, (name, data) in enumerate(CHARACTERS.items()):
+    for i, name in enumerate(CHARACTERS.keys()):
         with cols[i % 4]:
-            st.image(data["img"], width=150)
-            st.caption(f"*{data['quote']}*")
-            if st.button(f"Discuter avec {name}", key=f"chat_btn_{name}__"):
+            if st.button(f"💬 {name}", key=f"chat_btn_{name}__", use_container_width=True):
                 st.session_state.char_select = name
                 st.session_state.page = "chat"
                 st.rerun()
