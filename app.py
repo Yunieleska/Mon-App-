@@ -9,7 +9,7 @@ supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="expanded")
 
-# --- STYLE GLOBAL (FOND NOIR, TEXTE BLANC & BOUTONS CUSTOM) ---
+# --- STYLE GLOBAL ---
 st.markdown("""
     <style>
     .stApp {
@@ -19,7 +19,6 @@ st.markdown("""
     h1, h2, h3, p, span, label {
         color: #ffffff !important;
     }
-    /* Style des boutons en mode sombre */
     .stButton>button {
         background-color: #1e1e1e !important;
         color: #ffffff !important;
@@ -39,7 +38,6 @@ if "pseudo" not in st.session_state: st.session_state.pseudo = "Invité"
 if "page" not in st.session_state: st.session_state.page = "home"
 if "char_select" not in st.session_state: st.session_state.char_select = "Caelum"
 
-# Vérification de session existante
 try:
     session = supabase.auth.get_session()
     if session and session.user:
@@ -183,7 +181,7 @@ if st.sidebar.button("🚪 Logout"):
     st.session_state.pseudo = "Invité"
     st.rerun()
 
-# --- NAVIGATION ENTRE PAGES ---
+# --- NAVIGATION ---
 if st.session_state.page == "home":
     st.title("Choose your character")
     cols = st.columns(4)
@@ -209,7 +207,7 @@ elif st.session_state.page == "messages":
             if char_name in CHARACTERS:
                 col1, col2, col3 = st.columns([1, 4, 1])
                 with col1:
-                    st.image(CHARACTERS[char_name]["img"], width=80)
+                    st.image(CHARACTERS[char_name]["img"], width=85)
                 with col2:
                     st.subheader(char_name)
                     st.caption(CHARACTERS[char_name]["quote"])
@@ -261,22 +259,24 @@ elif st.session_state.page == "profile":
         
         st.text_input("Pseudo (non modifiable)", value=st.session_state.pseudo, disabled=True)
         
-        uploaded_file = st.file_uploader("Changer votre photo de profil", type=["png", "jpg", "jpeg"])
-        
-        if st.button("Mettre à jour la photo de profil"):
-            if uploaded_file is not None and user_id:
-                # Création d'un nom de fichier unique basé sur l'ID utilisateur
-                file_extension = uploaded_file.name.split(".")[-1]
-                file_name = f"avatar_{user_id}.{file_extension}"
-                
-                with open(file_name, "wb") as f:
-                    f.write(uploaded_file.getbuffer())
-                
-                supabase.table("users").update({"avatar_url": file_name}).eq("id", user_id).execute()
-                st.success("Photo de profil mise à jour avec succès !")
-                st.rerun()
-            else:
-                st.warning("Veuillez sélectionner une image à uploader.")
+        # Utilisation d'un formulaire dédié pour l'upload d'image
+        with st.form("profile_form"):
+            uploaded_file = st.file_uploader("Changer votre photo de profil", type=["png", "jpg", "jpeg"])
+            submit_button = st.form_submit_button("Mettre à jour la photo de profil")
+            
+            if submit_button:
+                if uploaded_file is not None and user_id:
+                    file_extension = uploaded_file.name.split(".")[-1]
+                    file_name = f"avatar_{user_id}.{file_extension}"
+                    
+                    with open(file_name, "wb") as f:
+                        f.write(uploaded_file.getbuffer())
+                    
+                    supabase.table("users").update({"avatar_url": file_name}).eq("id", user_id).execute()
+                    st.success("Photo de profil mise à jour avec succès !")
+                    st.rerun()
+                else:
+                    st.warning("Veuillez sélectionner une image à uploader.")
             
     except Exception as e:
         st.error(f"Impossible de charger les données du profil : {e}")
@@ -317,5 +317,3 @@ elif st.session_state.page == "chat":
         
         save_msg(st.session_state.pseudo, current_char, "assistant", assistant_reply)
         st.rerun()
-
-        
