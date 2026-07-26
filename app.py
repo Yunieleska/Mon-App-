@@ -19,7 +19,6 @@ st.markdown("""
     h1, h2, h3, p, span, label {
         color: #ffffff !important;
     }
-    /* Style des boutons en mode sombre */
     .stButton>button {
         background-color: #1e1e1e !important;
         color: #ffffff !important;
@@ -74,49 +73,68 @@ def get_user_conversations(pseudo):
     except:
         return {}
 
-# --- INTERFACE ---
-CHARACTERS = {
-    "Caelum": {
-        "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", 
-        "prompt": "Tu es Caelum, Prince des Ténèbres.",
-        "quote": "Ne t'approche pas de moi. Ma vie est déjà tracée, et tu n'as rien à y faire."
-    },
-    "Alexei": {
-        "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg", 
-        "prompt": "Tu es Alexei, mafieux.",
-        "quote": "Regardez qui s'est perdue sur mon territoire. La petite princesse des Volkov... Ton père est devenu tellement faible qu'il envoie sa fille faire son sale boulot, ou tu as juste envie de jouer avec le feu ?"
-    },
-    "Killian": {
-        "img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg", 
-        "prompt": "Tu es Killian, motard.",
-        "quote": "Respire, c'est fini... T'as pas changé, toujours aussi maladroite. Dis-moi que t'as rien de cassé, par pitié."
-    },
-    "Lucas": {
-        "img": "Lucas.png", 
-        "prompt": "Tu es Lucas, populaire.",
-        "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série comme d'habitude ?"
-    },
-    "Ethan": {
-        "img": "https://i.pinimg.com/736x/d9/67/d2/d967d237f7127d2b7a60180639d7c447.jpg", 
-        "prompt": "Tu es Ethan, Loup Alpha.",
-        "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines..."
-    },
-    "Léo": {
-        "img": "https://i.pinimg.com/736x/c1/b7/68/c1b768a0366e73394825679aa81810c4.jpg", 
-        "prompt": "Tu es Léo, streameur.",
-        "quote": "Prête à ce qu'on détruise l'équipe d'en face ?"
-    },
-    "Liam": {
-        "img": "https://i.pinimg.com/736x/f7/86/59/f786594b9a4a21a010bd06a119378235.jpg", 
-        "prompt": "Tu es Liam, le grand frère.",
-        "quote": "Salut, l'amie de ma sœur. Essaie de ne pas faire trop de bruit, l'orage arrive et j'ai besoin de dormir."
-    },
-    "Noah": {
-        "img": "https://i.pinimg.com/736x/b4/ee/02/b4ee020d6481d35d02b0ac2c8c5830a7.jpg", 
-        "prompt": "Tu es Noah, quarterback star.",
-        "quote": "Dis, tu crois qu'on est tous obligés de jouer un rôle pour plaire aux autres, ou il y a un endroit où on peut juste être soi-même ?"
+def get_all_characters():
+    # Personnages par défaut
+    chars = {
+        "Caelum": {
+            "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", 
+            "prompt": "Tu es Caelum, Prince des Ténèbres.",
+            "quote": "Ne t'approche pas de moi. Ma vie est déjà tracée, et tu n'as rien à y faire."
+        },
+        "Alexei": {
+            "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg", 
+            "prompt": "Tu es Alexei, mafieux.",
+            "quote": "Regardez qui s'est perdue sur mon territoire. La petite princesse des Volkov..."
+        },
+        "Killian": {
+            "img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg", 
+            "prompt": "Tu es Killian, motard.",
+            "quote": "Respire, c'est fini... T'as pas changé, toujours aussi maladroite."
+        },
+        "Lucas": {
+            "img": "Lucas.png", 
+            "prompt": "Tu es Lucas, populaire.",
+            "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série ?"
+        },
+        "Ethan": {
+            "img": "https://i.pinimg.com/736x/d9/67/d2/d967d237f7127d2b7a60180639d7c447.jpg", 
+            "prompt": "Tu es Ethan, Loup Alpha.",
+            "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines..."
+        },
+        "Léo": {
+            "img": "https://i.pinimg.com/736x/c1/b7/68/c1b768a0366e73394825679aa81810c4.jpg", 
+            "prompt": "Tu es Léo, streameur.",
+            "quote": "Prête à ce qu'on détruise l'équipe d'en face ?"
+        },
+        "Liam": {
+            "img": "https://i.pinimg.com/736x/f7/86/59/f786594b9a4a21a010bd06a119378235.jpg", 
+            "prompt": "Tu es Liam, le grand frère.",
+            "quote": "Salut, l'amie de ma sœur. Essaie de ne pas faire trop de bruit."
+        },
+        "Noah": {
+            "img": "https://i.pinimg.com/736x/b4/ee/02/b4ee020d6481d35d02b0ac2c8c5830a7.jpg", 
+            "prompt": "Tu es Noah, quarterback star.",
+            "quote": "Dis, tu crois qu'on est tous obligés de jouer un rôle pour plaire ?"
+        }
     }
-}
+    
+    # Récupération des personnages personnalisés (publics ou créés par l'utilisateur connecté)
+    try:
+        res = supabase.table("custom_characters").select("*").execute()
+        if res.data:
+            for item in res.data:
+                if item["is_public"] or item["creator"] == st.session_state.pseudo:
+                    chars[item["name"]] = {
+                        "img": item["img_url"] if item["img_url"] else "couple.png",
+                        "prompt": f"Tu es {item['name']}, un personnage {item['sex']}. Description : {item['description']}. Personnages secondaires / Contexte additionnel : {item['secondary_chars']}",
+                        "quote": item["quote"] if "quote" in item and item["quote"] else f"Bonjour, je suis {item['name']}."
+                    }
+    except Exception:
+        pass
+        
+    return chars
+
+CHARACTERS = get_all_characters()
 
 # --- LOGIN LOGIC ---
 if not st.session_state.logged_in:
@@ -169,6 +187,10 @@ if st.sidebar.button("🏠 Home"):
     st.session_state.page = "home"
     st.rerun()
 
+if st.sidebar.button("✨ Créer un Personnage"):
+    st.session_state.page = "create_character"
+    st.rerun()
+
 if st.sidebar.button("💬 Messages"):
     st.session_state.page = "messages"
     st.rerun()
@@ -195,6 +217,54 @@ if st.session_state.page == "home":
                 st.session_state.char_select = name
                 st.session_state.page = "chat"
                 st.rerun()
+
+elif st.session_state.page == "create_character":
+    st.title("✨ Créer un nouveau personnage")
+    st.write("Conçois ton propre personnage sur mesure, définis son univers et choisis s'il est visible par tous ou uniquement par toi.")
+
+    with st.form("create_char_form"):
+        char_name = st.text_input("Nom du personnage")
+        char_sex = st.selectbox("Sexe / Genre", ["Homme", "Femme", "Non-binaire", "Autre"])
+        char_quote = st.text_input("Phrase d'accroche (Citation affichée sous l'image)")
+        char_description = st.text_area("Description et Personnalité (Comment se comporte-t-il, son histoire, son ton...)", help="Ex: Tu es ténébreux, protecteur, un peu distant au début...")
+        char_secondary = st.text_area("Personnages secondaires / Éléments contextuels (Optionnel)", help="Ex: Inclut des mentions de ses frères ou de rivaux si nécessaire dans l'histoire.")
+        
+        uploaded_char_img = st.file_uploader("Image du personnage (PNG, JPG)", type=["png", "jpg", "jpeg"])
+        
+        visibility = st.radio("Visibilité", ["Public (visible par toute la communauté)", "Privé (uniquement pour moi)"])
+        
+        submitted = st.form_submit_button("Créer le personnage")
+        
+        if submitted:
+            if not char_name or not char_description:
+                st.warning("Veuillez remplir au moins le nom et la description du personnage.")
+            else:
+                img_path = "couple.png"
+                if uploaded_char_img is not None:
+                    img_path_saved = f"char_{st.session_state.pseudo}_{char_name}.png"
+                    with open(img_path_saved, "wb") as f:
+                        f.write(uploaded_char_img.getbuffer())
+                    img_path = img_path_saved
+                
+                is_public = True if "Public" in visibility else False
+                
+                try:
+                    supabase.table("custom_characters").insert({
+                        "name": char_name,
+                        "sex": char_sex,
+                        "quote": char_quote,
+                        "description": char_description,
+                        "secondary_chars": char_secondary,
+                        "img_url": img_path,
+                        "is_public": is_public,
+                        "creator": st.session_state.pseudo
+                    }).execute()
+                    
+                    st.success(f"Le personnage {char_name} a été créé avec succès !")
+                    st.session_state.page = "home"
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Erreur lors de la création : {e}")
 
 elif st.session_state.page == "messages":
     st.title("Mes Discussions")
@@ -261,7 +331,6 @@ elif st.session_state.page == "profile":
         
         st.text_input("Pseudo (non modifiable)", value=st.session_state.pseudo, disabled=True)
         
-        # Upload direct pris en compte instantanément dès la sélection du fichier
         uploaded_file = st.file_uploader("Changer votre photo de profil", type=["png", "jpg", "jpeg"], key="avatar_uploader")
         
         if uploaded_file is not None and user_id:
