@@ -125,7 +125,11 @@ CHARACTERS = {
 # --- SIDEBAR ---
 st.sidebar.info(f"Connecté : **{st.session_state.pseudo}**")
 selected_char = st.sidebar.selectbox("Choisir un personnage", list(CHARACTERS.keys()), key="sidebar_char")
-st.session_state.char_select = selected_char
+
+# --- FIX ---
+if selected_char != st.session_state.char_select:
+    st.session_state.char_select = selected_char
+    st.rerun() # Cette ligne force le rechargement complet du script pour mettre à jour le fond
 
 if st.sidebar.button("🚪 Logout"):
     supabase.auth.sign_out()
