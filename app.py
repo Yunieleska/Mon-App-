@@ -92,31 +92,37 @@ def get_all_characters():
             "quote": "Respire, c'est fini... T'as pas changé, toujours aussi maladroite."
         },
         "Lucas": {
-            "img": "Lucas.png", 
+            "img": "couple.png", 
             "prompt": "Tu es Lucas, populaire.",
             "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série ?"
         },
         "Ethan": {
-            "img": "Ethan.png", 
+            "img": "couple.png", 
             "prompt": "Tu es Ethan, Loup Alpha.",
             "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines..."
         },
         "Léo": {
-            "img": "Léo.png", 
+            "img": "couple.png", 
             "prompt": "Tu es Léo, streameur.",
             "quote": "Prête à ce qu'on détruise l'équipe d'en face ?"
         },
         "Liam": {
-            "img": "Liam.png", 
+            "img": "couple.png", 
             "prompt": "Tu es Liam, le grand frère.",
             "quote": "Salut, l'amie de ma sœur. Essaie de ne pas faire trop de bruit."
         },
         "Noah": {
-            "img": "Noah.png", 
+            "img": "couple.png", 
             "prompt": "Tu es Noah, quarterback star.",
             "quote": "Dis, tu crois qu'on est tous obligés de jouer un rôle pour plaire ?"
         }
     }
+    
+    # Remplacement sécurisé pour les images locales si les fichiers existent
+    for name in ["Lucas", "Ethan", "Léo", "Liam", "Noah"]:
+        local_filename = f"{name}.png"
+        if os.path.exists(local_filename):
+            chars[name]["img"] = local_filename
     
     try:
         res = supabase.table("custom_characters").select("*").execute()
@@ -124,7 +130,7 @@ def get_all_characters():
             for item in res.data:
                 if item["is_public"] or item["creator"] == st.session_state.pseudo:
                     chars[item["name"]] = {
-                        "img": item["img_url"] if item["img_url"] else "couple.png",
+                        "img": item["img_url"] if item["img_url"] and os.path.exists(item["img_url"]) else "couple.png",
                         "prompt": f"Tu es {item['name']}, un personnage {item['sex']}. Description : {item['description']}. Personnages secondaires / Contexte additionnel : {item['secondary_chars']}",
                         "quote": item["quote"] if "quote" in item and item["quote"] else f"Bonjour, je suis {item['name']}."
                     }
@@ -139,7 +145,8 @@ CHARACTERS = get_all_characters()
 if not st.session_state.logged_in:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.image("bg.png")
+        if os.path.exists("bg.png"):
+            st.image("bg.png")
         
         tab1, tab2 = st.tabs(["Login", "Sign Up"])
         
@@ -179,7 +186,8 @@ if not st.session_state.logged_in:
     st.stop()
 
 # --- SIDEBAR ---
-st.sidebar.image("couple.png")
+if os.path.exists("couple.png"):
+    st.sidebar.image("couple.png")
 st.sidebar.info(f"Connecté : **{st.session_state.pseudo}**")
 
 if st.sidebar.button("🏠 Home"): 
@@ -211,7 +219,7 @@ if st.session_state.page == "home":
     
     items = list(CHARACTERS.items())
     
-    # Affichage en grille de 2 colonnes avec des conteneurs natifs Streamlit (zéro texte brut, 100% stable)
+    # Affichage propre en 2 colonnes natives sans conflits d'arguments
     for i in range(0, len(items), 2):
         col1, col2 = st.columns(2)
         
@@ -219,7 +227,7 @@ if st.session_state.page == "home":
             if i < len(items):
                 name_1, data_1 = items[i]
                 with st.container(border=True):
-                    st.image(data_1['img'], use_container_width=True, height=140)
+                    st.image(data_1['img'], use_container_width=True)
                     st.markdown(f"**{name_1}**")
                     st.markdown(f"<span style='font-size: 11px; color: #8b949e; font-style: italic;'>\"{data_1['quote']}\"</span>", unsafe_allow_html=True)
                     if st.button(f"💬 Discuter", key=f"native_btn_{i}"):
@@ -231,7 +239,7 @@ if st.session_state.page == "home":
             if i + 1 < len(items):
                 name_2, data_2 = items[i+1]
                 with st.container(border=True):
-                    st.image(data_2['img'], use_container_width=True, height=140)
+                    st.image(data_2['img'], use_container_width=True)
                     st.markdown(f"**{name_2}**")
                     st.markdown(f"<span style='font-size: 11px; color: #8b949e; font-style: italic;'>\"{data_2['quote']}\"</span>", unsafe_allow_html=True)
                     if st.button(f"💬 Discuter", key=f"native_btn_{i+1}"):
@@ -331,10 +339,7 @@ elif st.session_state.page == "profile":
             if avatar_path and os.path.exists(avatar_path):
                 st.image(avatar_path, use_container_width=True)
             else:
-                try:
-                    st.image(avatar_path, use_container_width=True)
-                except:
-                    st.image("couple.png", use_container_width=True)
+                st.image("couple.png", use_container_width=True)
             
         with col2:
             st.subheader(st.session_state.pseudo)
@@ -372,6 +377,9 @@ elif st.session_state.page == "chat":
     current_char = st.session_state.char_select
     bg_image = CHARACTERS[current_char]["img"]
     char_quote = CHARACTERS[current_char]["quote"]
+
+    if not os.path.exists(str(bg_image)):
+        bg_image = "couple.png"
 
     st.markdown(f"""
         <style>
