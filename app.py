@@ -146,7 +146,7 @@ elif st.session_state.page == "chat":
     current_char = st.session_state.char_select
     bg_image = CHARACTERS[current_char]["img"]
     
-    # Injection du CSS pour le fond d'écran du chat avec un filtre sombre pour la lisibilité
+    # Injection du CSS pour le fond d'écran du chat avec un filtre sombre
     st.markdown(f"""
         <style>
         .stApp {{
@@ -160,16 +160,19 @@ elif st.session_state.page == "chat":
 
     st.title(f"Chat with {current_char}")
     
-    # Injection du prompt système du personnage sélectionné si l'historique est vide
+    # Chargement de l'historique
     messages = load_msgs(st.session_state.pseudo, current_char)
     char_prompt = CHARACTERS[current_char]["prompt"]
     
     full_messages = [{"role": "system", "content": char_prompt}] + messages
 
+    # Affichage des messages existants
     for msg in messages:
-        with st.chat_message(msg["role"]): st.write(msg["content"])
+        with st.chat_message(msg["role"]): 
+            st.write(msg["content"])
     
-    if prompt := st.chat_input():
+    # La barre de saisie doit être appelée tout à fait normalement ici
+    if prompt := st.chat_input("Écris ton message ici..."):
         save_msg(st.session_state.pseudo, current_char, "user", prompt)
         full_messages.append({"role": "user", "content": prompt})
         
