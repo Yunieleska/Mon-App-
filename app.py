@@ -34,7 +34,6 @@ def generer_image_huggingface(prompt_image, current_char_name=None):
             model="stabilityai/stable-diffusion-xl-base-1.0", token=hf_api_key
         )
         
-        # Identités visuelles rigoureusement axées sur le PHOTORÉALISME et la photographie réelle
         character_identities = {
             "Caelum": "A hyper-realistic cinematic photograph of Caelum, a handsome young man with dark piercing eyes and dark hair, wearing a dark modern luxury coat, shot on 35mm lens, photorealistic skin texture, dramatic studio lighting, 8k resolution, raw photo style",
             "Alexei": "A hyper-realistic cinematic photograph of Alexei, a dangerous mafia leader with sharp intense eyes and slick dark hair, wearing an elegant dark tailored suit, professional color grading, photorealistic, cinematic lighting, detailed skin pores",
@@ -46,13 +45,11 @@ def generer_image_huggingface(prompt_image, current_char_name=None):
             "Noah": "A hyper-realistic cinematic photograph of Noah, a handsome quarterback athlete wearing a sports jacket, athletic photoshoot style, natural sunlight, photorealistic"
         }
 
-        # Récupération de l'identité réaliste du personnage
         char_identity = character_identities.get(
             current_char_name, 
             f"A hyper-realistic cinematic photograph of {current_char_name or 'the character'}"
         )
 
-        # Construction du prompt final ultra-orienté photo réelle (exclusion totale de style dessin/anime/illustration)
         prompt_final = (
             f"{char_identity}. Scene details: {prompt_image}. "
             f"RAW photo, highly detailed skin pores, realistic human anatomy, shot on 35mm film, professional photography, cinematic lighting, masterpiece, 8k, photorealistic."
@@ -204,70 +201,42 @@ def get_all_characters():
 
     chars = {
         "Caelum": {
-            "img": (
-                "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-            ),
+            "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
             "prompt": "Tu es Caelum, Prince des Ténèbres." + base_instruction,
-            "quote": (
-                "Ne t'approche pas de moi. Ma vie est déjà tracée, et tu n'as"
-                " rien à y faire."
-            ),
+            "quote": "Ne t'approche pas de moi. Ma vie est déjà tracée, et tu n'as rien à y faire.",
         },
         "Alexei": {
-            "img": (
-                "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg"
-            ),
+            "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg",
             "prompt": "Tu es Alexei, mafieux." + base_instruction,
-            "quote": (
-                "Regardez qui s'est perdue sur mon territoire. La petite princesse"
-                " des Volkov..."
-            ),
+            "quote": "Regardez qui s'est perdue sur mon territoire. La petite princesse des Volkov...",
         },
         "Killian": {
-            "img": (
-                "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg"
-            ),
+            "img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg",
             "prompt": "Tu es Killian, motard." + base_instruction,
             "quote": "Respire, c'est fini... T'as pas changé, toujours aussi maladroite.",
         },
         "Lucas": {
-            "img": (
-                "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/lucas.png.PNG"
-            ),
+            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/lucas.png.PNG",
             "prompt": "Tu es Lucas, populaire." + base_instruction,
-            "quote": (
-                "On s'esquive tous les deux et on va squatter ton canapé devant"
-                " une série ?"
-            ),
+            "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série ?",
         },
         "Ethan": {
-            "img": (
-                "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/ethan.png"
-            ),
+            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/ethan.png",
             "prompt": "Tu es Ethan, Loup Alpha." + base_instruction,
-            "quote": (
-                "La forêt cache des prédateurs bien plus dangereux que tu ne"
-                " l'imagines..."
-            ),
+            "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines...",
         },
         "Léo": {
-            "img": (
-                "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/leo.png.PNG"
-            ),
+            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/leo.png.PNG",
             "prompt": "Tu es Léo, streameur." + base_instruction,
             "quote": "Prête à ce qu'on détruise l'équipe d'en face ?",
         },
         "Liam": {
-            "img": (
-                "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/liam.png.PNG"
-            ),
+            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/liam.png.PNG",
             "prompt": "Tu es Liam, le grand frère." + base_instruction,
             "quote": "Salut, l'amie de ma sœur. Essaie de ne pas faire trop de bruit.",
         },
         "Noah": {
-            "img": (
-                "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/noah.png.PNG"
-            ),
+            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/noah.png.PNG",
             "prompt": "Tu es Noah, quarterback star." + base_instruction,
             "quote": "Dis, tu crois qu'on est tous obligés de jouer un rôle pour plaire ?",
         },
@@ -287,13 +256,10 @@ def get_all_characters():
                                     item["img_url"].startswith("http")
                                     or os.path.exists(item["img_url"])
                                 )
-                                else (
-                                    "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-                                )
+                                else "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
                             ),
                             "prompt": (
-                                f"Tu es {item['name']}, un personnage"
-                                f" {item.get('sex', '')}. Description :"
+                                f"Tu es {item['name']}, un personnage {item.get('sex', '')}. Description :"
                                 f" {item.get('description', '')}. Personnages secondaires :"
                                 f" {item.get('secondary_chars', '')}." + base_instruction
                             ),
@@ -458,14 +424,8 @@ if str_lit.session_state.page == "home":
 
             for name, data in CHARACTERS.items():
                 if name in [
-                    "Caelum",
-                    "Alexei",
-                    "Killian",
-                    "Lucas",
-                    "Ethan",
-                    "Léo",
-                    "Liam",
-                    "Noah",
+                    "Caelum", "Alexei", "Killian", "Lucas",
+                    "Ethan", "Léo", "Liam", "Noah",
                 ] or name in public_custom_names:
                     public_items.append((name, data))
         except Exception:
@@ -492,9 +452,7 @@ if str_lit.session_state.page == "home":
     for idx, (name, data) in enumerate(current_items):
         img_src = data["img"]
         if not img_src.startswith("http") and not os.path.exists(img_src):
-            img_src = (
-                "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-            )
+            img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
 
         grid_html += f"""
         <div class="storyia-card">
@@ -545,9 +503,7 @@ elif str_lit.session_state.page == "create_character":
         )
 
         if submitted and char_name and char_description:
-            img_path = (
-                "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-            )
+            img_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
             if uploaded_char_img is not None:
                 img_path = f"char_{str_lit.session_state.pseudo}_{char_name}.png"
                 with open(img_path, "wb") as f:
@@ -642,9 +598,7 @@ elif str_lit.session_state.page == "chat":
     char_quote = CHARACTERS[current_char]["quote"]
     char_prompt = CHARACTERS[current_char]["prompt"]
 
-    user_avatar_url = (
-        "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-    )
+    user_avatar_url = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
     if supabase:
         try:
             u_res = (
@@ -799,22 +753,23 @@ elif str_lit.session_state.page == "chat":
                             use_container_width=True,
                         )
                     else:
-                        str_lit.error(f"Erreur de génération : {err_msg}")
+                        str_lit.warning(f"Impossible de charger la photo ({err_msg}).")
 
-    if user_input and client:
-        save_msg(str_lit.session_state.pseudo, current_char, "user", user_input)
+        if user_input and client:
+            save_msg(str_lit.session_state.pseudo, current_char, "user", user_input)
+            
+            formatted_history = []
+            formatted_history.append({"role": "system", "content": char_prompt})
+            for m in messages:
+                formatted_history.append({"role": m["role"], "content": m["content"]})
+            formatted_history.append({"role": "user", "content": user_input})
 
-        formatted_history = [{"role": "system", "content": char_prompt}]
-        for m in load_msgs(str_lit.session_state.pseudo, current_char):
-            formatted_history.append({"role": m["role"], "content": m["content"]})
-
-        try:
-            with str_lit.spinner(f"{current_char} est en train d'écrire..."):
+            try:
                 response = client.chat.completions.create(
                     model="llama-3.3-70b-versatile", messages=formatted_history
                 )
-                bot_reply = response.choices[0].message.content
-                save_msg(str_lit.session_state.pseudo, current_char, "assistant", bot_reply)
+                assistant_reply = response.choices[0].message.content
+                save_msg(str_lit.session_state.pseudo, current_char, "assistant", assistant_reply)
                 str_lit.rerun()
-        except Exception as e:
-            str_lit.error(f"Erreur Groq : {e}")
+            except Exception as e:
+                str_lit.error(f"Erreur Groq : {e}")
