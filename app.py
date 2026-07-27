@@ -223,7 +223,6 @@ if not st.session_state.logged_in:
                             user_data = supabase.table("users").select("pseudo").eq("id", res.user.id).single().execute()
                             pseudo_val = user_data.data["pseudo"] if user_data.data else email_log.split("@")[0]
                             
-                            # On ancre l'utilisateur DIRECTEMENT dans l'URL du navigateur
                             st.session_state.logged_in = True
                             st.session_state.pseudo = pseudo_val
                             st.query_params["user"] = pseudo_val
@@ -336,7 +335,6 @@ if st.session_state.page == "home":
         if target_char in CHARACTERS:
             st.session_state.char_select = target_char
             st.session_state.page = "chat"
-            # On nettoie juste chat_target de l'URL pour garder ?user=... propre
             if "chat_target" in st.query_params:
                 del st.query_params["chat_target"]
             st.rerun()
@@ -540,9 +538,59 @@ elif st.session_state.page == "chat":
         except Exception as e:
             st.error(f"Erreur d'authentification Groq : {e}")
 
-    for msg in messages:
+    # --- AFFICHAGE DES MESSAGES AVEC OPTION D'ÉDITION ---
+    for idx, msg in enumerate(messages):
         with st.chat_message(msg["role"]): 
-            st.write(msg["content"])
+            if msg["role"] == "user":
+                edit_key = f"edit_mode_{idx}"
+                if edit_key not in st.session_state:
+                    st.session_state[edit_key] = False
+
+                if not st.session_state[edit_key]:
+                    cols = st.columns([8, 1])
+                    with cols[0]:
+                        st.write(msg["content"])
+                    with cols[1]:
+                        if st.button("✏️", key=f"btn_edit_{idx}", help="Modifier ce message"):
+                            st.session_state[edit_key] = True
+                            st.rerun()
+                else:
+                    new_content = st.text_area("Modifier le message :", value=msg["content"], key=f"input_edit_{idx}")
+                    col_save, col_cancel = st.columns([1, 1])
+                    with col_save:
+                        if st.button("💾 Enregistrer", key=f"save_edit_{idx}"):
+                            if supabase and new_content.strip():
+                                try:
+                                    supabase.table("messages").delete().eq("user_pseudo", str(st.session_state.pseudo)).eq("char_name", str(current_char)).execute()
+                                    
+                                    messages[idx]["content"] = new_content
+                                    trimmed_messages = messages[:idx+1]
+                                    
+                                    for m in trimmed_messages:
+                                        supabase.table("messages").insert({
+                                            "user_pseudo": str(st.session_state.pseudo),
+                                            "char_name": str(current_char),
+                                            "role": m["role"],
+                                            "content": m["content"]
+                                        }).execute()
+                                        
+                                    st.session_state[edit_key] = False
+                                    
+                                    if idx == len(messages) - 1 and client:
+                                        full_messages = [{"role": "system", "content": char_prompt}] + trimmed_messages
+                                        res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=full_messages)
+                                        assistant_reply = res.choices[0].message.content
+                                        save_msg(st.session_state.pseudo, current_char, "assistant", assistant_reply)
+                                        
+                                    st.rerun()
+                                except Exception as e:
+                                    st.error(f"Erreur lors de la modification : {e}")
+                    with col_cancel:
+                        if st.button("❌ Annuler", key=f"cancel_edit_{idx}"):
+                            st.session_state[edit_key] = False
+                            st.rerun()
+            else:
+                st.write(msg["content"])
 
     if prompt := st.chat_input("Écris ton message ici..."):
         save_msg(st.session_state.pseudo, current_char, "user", prompt)
