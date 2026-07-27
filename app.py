@@ -500,7 +500,7 @@ elif st.session_state.page == "chat":
     st.markdown(f"""
         <style>
         .stApp {{
-            background-image: linear-gradient(rgba(11, 14, 20, 0.85), rgba(11, 14, 20, 0.85)), url("{bg_image}");
+            background-image: linear-gradient(rgba(11, 14, 20, 0.90), rgba(11, 14, 20, 0.90)), url("{bg_image}");
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -513,27 +513,8 @@ elif st.session_state.page == "chat":
             margin-bottom: 25px;
             backdrop-filter: blur(5px);
         }}
-        /* --- CORRECTION ULTRA-ROBUSTE DU CHAT INPUT (DÉBLOCAGE CLICS & FOCUS) --- */
-        [data-testid="stChatInput"] {{
-            position: fixed !important;
-            bottom: 20px !important;
-            left: 50% !important;
-            transform: translateX(-50%) !important;
-            width: 90% !important;
-            max-width: 800px !important;
-            z-index: 999999 !important;
-            background-color: rgba(22, 27, 34, 0.95) !important;
-            border: 1px solid rgba(255, 255, 255, 0.3) !important;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.6) !important;
-            pointer-events: auto !important;
-        }}
-        [data-testid="stChatInput"] textarea {{
-            color: #ffffff !important;
-            pointer-events: auto !important;
-        }}
         .main .block-container {{
-            padding-bottom: 130px;
-            pointer-events: auto !important;
+            padding-bottom: 100px;
         }}
         </style>
     """, unsafe_allow_html=True)
@@ -610,18 +591,27 @@ elif st.session_state.page == "chat":
             else:
                 st.write(msg["content"])
 
-    if prompt := st.chat_input("Écris ton message ici..."):
-        save_msg(st.session_state.pseudo, current_char, "user", prompt)
-        messages.append({"role": "user", "content": prompt})
-        
-        if client:
-            try:
-                full_messages = [{"role": "system", "content": char_prompt}] + messages
-                res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=full_messages)
-                assistant_reply = res.choices[0].message.content
-                save_msg(st.session_state.pseudo, current_char, "assistant", assistant_reply)
-                st.rerun()
-            except Exception as e:
-                st.error(f"Erreur lors de l'envoi du message : {e}")
-        else:
-            st.error("Client Groq non initialisé.")
+    # --- FORMULAIRE DE SAISIE STABLE (100% CLIQUABLE) ---
+    st.markdown("<div style='margin-top: 40px;'></div>", unsafe_allow_html=True)
+    with st.form(key="chat_form", clear_on_submit=True):
+        col_input, col_btn = st.columns([5, 1])
+        with col_input:
+            user_input = st.text_input("Écris ton message ici...", label_visibility="collapsed", placeholder="Écris ton message ici...")
+        with col_btn:
+            submit_chat = st.form_submit_button("Envoyer ➔", use_container_width=True)
+
+        if submit_chat and user_input.strip():
+            save_msg(st.session_state.pseudo, current_char, "user", user_input)
+            messages.append({"role": "user", "content": user_input})
+            
+            if client:
+                try:
+                    full_messages = [{"role": "system", "content": char_prompt}] + messages
+                    res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=full_messages)
+                    assistant_reply = res.choices[0].message.content
+                    save_msg(st.session_state.pseudo, current_char, "assistant", assistant_reply)
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Erreur lors de l'envoi du message : {e}")
+            else:
+                st.error("Client Groq non initialisé.")
