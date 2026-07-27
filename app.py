@@ -222,7 +222,7 @@ def get_all_characters():
             "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série ?",
         },
         "Ethan": {
-            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/ethan.png",
+            "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
             "prompt": "Tu es Ethan, Loup Alpha." + base_instruction,
             "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines...",
         },
@@ -494,7 +494,6 @@ elif str_lit.session_state.page == "chat":
         if client:
             try:
                 user_pseudo = str_lit.session_state.pseudo
-                # On demande explicitement au prompt d'introduction de NE PAS mettre de balise [IMAGE: ...] pour le tout premier message
                 init_prompt = [
                     {"role": "system", "content": char_data["prompt"]},
                     {"role": "user", "content": f"L'utilisateur qui te parle s'appelle {user_pseudo}. Écris un long premier message d'introduction immersif, descriptif et détaillé pour débuter notre roleplay avec {user_pseudo}. Ta phrase d'accroche de référence est : \"{char_data['quote']}\". Mets {user_pseudo} tout de suite dans l'ambiance, décris la scène, tes actions en restant strictement fidèle à ton propre profil, sans JAMAIS décrire son physique ou ses vêtements. TRÈS IMPORTANT : N'inclus PAS de balise [IMAGE: ...] pour ce tout premier message d'accueil."}
@@ -513,29 +512,35 @@ elif str_lit.session_state.page == "chat":
         messages.append({"role": "assistant", "content": intro_msg})
         save_msg(str_lit.session_state.pseudo, current_char, "assistant", intro_msg)
 
-    # Affichage des messages (le premier message ne contiendra jamais de balise [IMAGE], donc il s'affichera uniquement en texte pur)
+    # Affichage des messages avec image du personnage sur le côté pour l'assistant
     for idx, msg in enumerate(messages):
-        with str_lit.chat_message(msg["role"]):
-            content = msg["content"]
-            # S'il s'agit du premier message (index 0 de la liste de démarrage), on s'assure de n'afficher que le texte brut sans chercher d'image
-            if idx == 0 and msg["role"] == "assistant":
-                text_clean = re.sub(r"\[IMAGE:\s*(.*?)\]", "", content).strip()
-                str_lit.write(text_clean)
-            else:
-                match = re.search(r"\[IMAGE:\s*(.*?)\]", content)
-                if match:
-                    img_prompt = match.group(1)
-                    text_clean = content.replace(match.group(0), "").strip()
+        if msg["role"] == "assistant":
+            col_avatar, col_content = str_lit.columns([1, 6])
+            with col_avatar:
+                str_lit.image(char_data["img"], width=65)
+            with col_content:
+                content = msg["content"]
+                if idx == 0:
+                    text_clean = re.sub(r"\[IMAGE:\s*(.*?)\]", "", content).strip()
                     str_lit.write(text_clean)
-                    with str_lit.spinner("Génération de l'image..."):
-                        img_bytes, err = generer_image_huggingface(img_prompt, current_char)
-                        if img_bytes:
-                            str_lit.image(img_bytes, caption=img_prompt, use_container_width=True)
-                            save_to_gallery(str_lit.session_state.pseudo, current_char, img_bytes, img_prompt)
-                        else:
-                            str_lit.warning(f"Impossible de générer l'image : {err}")
                 else:
-                    str_lit.write(content)
+                    match = re.search(r"\[IMAGE:\s*(.*?)\]", content)
+                    if match:
+                        img_prompt = match.group(1)
+                        text_clean = content.replace(match.group(0), "").strip()
+                        str_lit.write(text_clean)
+                        with str_lit.spinner("Génération de l'image..."):
+                            img_bytes, err = generer_image_huggingface(img_prompt, current_char)
+                            if img_bytes:
+                                str_lit.image(img_bytes, caption=img_prompt, use_container_width=True)
+                                save_to_gallery(str_lit.session_state.pseudo, current_char, img_bytes, img_prompt)
+                            else:
+                                str_lit.warning(f"Impossible de générer l'image : {err}")
+                    else:
+                        str_lit.write(content)
+        else:
+            with str_lit.chat_message("user"):
+                str_lit.write(msg["content"])
 
     # --- INTÉGRATION DU BOUTON MODIFIER POUR LE DERNIER MESSAGE DE L'ASSISTANT ---
     if messages and messages[-1]["role"] == "assistant":
@@ -596,7 +601,10 @@ elif str_lit.session_state.page == "chat":
         else:
             bot_reply = "Client Groq non initialisé."
 
-        with str_lit.chat_message("assistant"):
+        col_avatar, col_content = str_lit.columns([1, 6])
+        with col_avatar:
+            str_lit.image(char_data["img"], width=65)
+        with col_content:
             match = re.search(r"\[IMAGE:\s*(.*?)\]", bot_reply)
             if match:
                 img_prompt = match.group(1)
