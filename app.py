@@ -513,16 +513,27 @@ elif st.session_state.page == "chat":
             margin-bottom: 25px;
             backdrop-filter: blur(5px);
         }}
-        /* --- CORRECTION ESSENTIELLE POUR RENDRE LE CHAT INPUT CLIQUABLE ET VISIBLE --- */
+        /* --- CORRECTION ULTRA-ROBUSTE DU CHAT INPUT (DÉBLOCAGE CLICS & FOCUS) --- */
         [data-testid="stChatInput"] {{
-            position: fixed;
-            bottom: 20px;
-            z-index: 999999;
+            position: fixed !important;
+            bottom: 20px !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            width: 90% !important;
+            max-width: 800px !important;
+            z-index: 999999 !important;
             background-color: rgba(22, 27, 34, 0.95) !important;
-            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.6) !important;
+            pointer-events: auto !important;
+        }}
+        [data-testid="stChatInput"] textarea {{
+            color: #ffffff !important;
+            pointer-events: auto !important;
         }}
         .main .block-container {{
-            padding-bottom: 110px;
+            padding-bottom: 130px;
+            pointer-events: auto !important;
         }}
         </style>
     """, unsafe_allow_html=True)
