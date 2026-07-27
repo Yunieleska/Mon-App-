@@ -592,6 +592,7 @@ elif str_lit.session_state.page == "create_character":
     )
     char_quote = str_lit.text_input("Phrase d'accroche", key="input_char_quote")
     
+    # Correction : Utilisation normale en dehors de st.form pour autoriser l'écriture libre et les retours à la ligne
     char_description = str_lit.text_area(
         "Description et Personnalité (Histoire, ton, etc.)", height=150, key="textarea_char_desc"
     )
