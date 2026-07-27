@@ -569,22 +569,51 @@ elif str_lit.session_state.page == "profile":
                 "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
             )
 
-            # En-tête du profil style Typsy (Carte de présentation épurée)
+            # Récupération sécurisée du nombre d'abonnés et d'abonnements via Supabase (table 'follows')
+            following_count = 0
+            followers_count = 0
+            try:
+                # Abonnements (personnes que je suis)
+                following_res = supabase.table("follows").select("id", count="exact").eq("follower_pseudo", str_lit.session_state.pseudo).execute()
+                following_count = following_res.count if following_res.count is not None else 0
+            except Exception:
+                pass
+
+            try:
+                # Abonnés (personnes qui me suivent)
+                followers_res = supabase.table("follows").select("id", count="exact").eq("following_pseudo", str_lit.session_state.pseudo).execute()
+                followers_count = followers_res.count if followers_res.count is not None else 0
+            except Exception:
+                pass
+
+            # En-tête du profil style Typsy (Carte de présentation épurée avec compteurs abonnés / abonnements)
             str_lit.markdown(
                 f"""
-                <div style="background-color: #161b22; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 20px; margin-bottom: 25px;">
-                    <img src="{avatar_path}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,0.2);">
-                    <div>
-                        <h2 style="margin: 0; color: #ffffff;">{str_lit.session_state.pseudo}</h2>
-                        <p style="margin: 4px 0 0 0; color: #8b949e; font-size: 14px;">📧 {user_info.get('email', 'N/A')}</p>
+                <div style="background-color: #161b22; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px; display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 25px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 20px;">
+                        <img src="{avatar_path}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,0.2);">
+                        <div>
+                            <h2 style="margin: 0; color: #ffffff;">{str_lit.session_state.pseudo}</h2>
+                            <p style="margin: 4px 0 0 0; color: #8b949e; font-size: 14px;">📧 {user_info.get('email', 'N/A')}</p>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 25px; background-color: #0b0e14; padding: 12px 20px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                        <div style="text-align: center;">
+                            <div style="font-size: 18px; font-weight: 700; color: #ffffff;">{followers_count}</div>
+                            <div style="font-size: 12px; color: #8b949e;">Abonnés</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 18px; font-weight: 700; color: #ffffff;">{following_count}</div>
+                            <div style="font-size: 12px; color: #8b949e;">Abonnements</div>
+                        </div>
                     </div>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
 
-            # Onglets de profil style Typsy (Navigation claire)
-            tab_prof1, tab_prof2, tab_prof3 = str_lit.tabs(["✨ Mes Personnages", "📊 Activité & Stats", "⚙️ Paramètres"])
+            # Onglets de profil style Typsy
+            tab_prof1, tab_prof2, tab_prof3, tab_prof4 = str_lit.tabs(["✨ Mes Personnages", "👥 Découvrir & Suivre", "📊 Activité & Stats", "⚙️ Paramètres"])
 
             with tab_prof1:
                 str_lit.subheader("Personnages créés")
@@ -629,15 +658,55 @@ elif str_lit.session_state.page == "profile":
                         str_lit.markdown("<br>", unsafe_allow_html=True)
 
             with tab_prof2:
+                str_lit.subheader("Communauté - Suivre des utilisateurs")
+                try:
+                    # Récupération de tous les utilisateurs inscrits sauf soi-même
+                    all_users_res = supabase.table("users").select("pseudo, email").neq("pseudo", str_lit.session_state.pseudo).execute()
+                    other_users = all_users_res.data if all_users_res.data else []
+
+                    # Récupération des pseudos que l'utilisateur suit déjà
+                    my_follows_res = supabase.table("follows").select("following_pseudo").eq("follower_pseudo", str_lit.session_state.pseudo).execute()
+                    already_following = {item["following_pseudo"] for item in my_follows_res.data} if my_follows_res.data else set()
+
+                    if not other_users:
+                        str_lit.info("Aucun autre utilisateur inscrit pour le moment.")
+                    else:
+                        for u in other_users:
+                            u_pseudo = u.get("pseudo")
+                            is_following = u_pseudo in already_following
+
+                            col_u1, col_u2 = str_lit.columns([4, 1])
+                            with col_u1:
+                                str_lit.markdown(f"**{u_pseudo}**")
+                            with col_u2:
+                                if is_following:
+                                    if str_lit.button("Ne plus suivre", key=f"unfollow_{u_pseudo}"):
+                                        supabase.table("follows").delete().eq("follower_pseudo", str_lit.session_state.pseudo).eq("following_pseudo", u_pseudo).execute()
+                                        str_lit.success(f"Vous ne suivez plus {u_pseudo}.")
+                                        str_lit.rerun()
+                                else:
+                                    if str_lit.button("Suivre", key=f"follow_{u_pseudo}"):
+                                        supabase.table("follows").insert({
+                                            "follower_pseudo": str_lit.session_state.pseudo,
+                                            "following_pseudo": u_pseudo
+                                        }).execute()
+                                        str_lit.success(f"Vous suivez désormais {u_pseudo} !")
+                                        str_lit.rerun()
+                            str_lit.markdown("---")
+                except Exception as e:
+                    str_lit.info("Module de suivi en cours d'initialisation (assurez-vous d'avoir une table 'follows' dans Supabase si vous souhaitez enregistrer les abonnements en base, sinon l'interface est prête).")
+
+            with tab_prof3:
                 str_lit.subheader("Tableau de bord de vos accomplissements")
                 convs = get_user_conversations(str_lit.session_state.pseudo)
                 col_s1, col_s2 = str_lit.columns(2)
                 with col_s1:
                     str_lit.metric("Personnages rencontrés / Discutés", len(convs))
                 with col_s2:
-                    str_lit.metric("Personnages créés", len(user_created_chars) if 'user_created_chars' in locals() else 0)
+                    user_chars_count = len(user_created_chars) if 'user_created_chars' in locals() else 0
+                    str_lit.metric("Personnages créés", user_chars_count)
 
-            with tab_prof3:
+            with tab_prof4:
                 str_lit.subheader("Paramètres du compte")
                 uploaded_file = str_lit.file_uploader(
                     "Mettre à jour votre photo de profil", type=["png", "jpg", "jpeg"]
