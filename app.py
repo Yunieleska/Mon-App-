@@ -309,6 +309,8 @@ if not str_lit.session_state.logged_in:
     else:
         str_lit.title("✨ Storyia")
         str_lit.subheader("Plonge au cœur de tes histoires interactives")
+    
+    str_lit.markdown("---")
 
     col1, col2, col3 = str_lit.columns([1, 2, 1])
     with col2:
@@ -380,7 +382,7 @@ if str_lit.sidebar.button("🏠 Home"):
     str_lit.rerun()
 
 if str_lit.sidebar.button("✨ Créer un Personnage"):
-    str_lit.session_state.page = "create"
+    str_lit.session_state.page = "create_character"
     str_lit.rerun()
 
 if str_lit.sidebar.button("💬 Messages"):
@@ -392,163 +394,399 @@ if str_lit.sidebar.button("👤 Profil"):
     str_lit.rerun()
 
 if str_lit.sidebar.button("🚪 Logout"):
+    if supabase:
+        try:
+            supabase.auth.sign_out()
+        except:
+            pass
     str_lit.session_state.logged_in = False
     str_lit.session_state.pseudo = "Invité"
-    str_lit.query_params.clear()
+    if "user" in str_lit.query_params:
+        del str_lit.query_params["user"]
     str_lit.rerun()
 
-# --- ROUTAGE DES PAGES ---
-page = str_lit.session_state.get("page", "home")
-
-if page == "home":
+# --- NAVIGATION ---
+if str_lit.session_state.page == "home":
     str_lit.title("Explorer")
     str_lit.write("Découvre et discute avec les personnages du moment :")
 
-    cols = str_lit.columns(4)
-    idx = 0
-    for name, data in CHARACTERS.items():
-        with cols[idx % 4]:
-            str_lit.markdown(
-                f"""
-                <div class="storyia-card">
-                    <img src="{data['img']}" style="width:100%; height:220px; object-fit:cover;">
-                    <div style="padding: 12px;">
-                        <b style="font-size: 1.1em;">{name}</b>
-                        <p style="font-size: 0.85em; color: #8b949e; margin-top: 5px; margin-bottom: 15px;">"{data['quote']}"</p>
-                    </div>
-                </div>
-            """,
-                unsafe_allow_html=True,
+    public_items = []
+    if supabase:
+        try:
+            res_pub = (
+                supabase.table("custom_characters")
+                .select("*")
+                .eq("is_public", True)
+                .execute()
             )
-            if str_lit.button(f"Discuter", key=f"btn_chat_{name}"):
-                str_lit.session_state.char_select = name
-                str_lit.session_state.page = "chat"
-                str_lit.rerun()
-        idx += 1
+            public_custom_names = (
+                {item["name"] for item in res_pub.data} if res_pub.data else set()
+            )
 
-elif page == "chat":
-    char_name = str_lit.session_state.get("char_select", "Caelum")
-    char_data = CHARACTERS.get(char_name, list(CHARACTERS.values())[0])
+            for name, data in CHARACTERS.items():
+                if name in [
+                    "Caelum",
+                    "Alexei",
+                    "Killian",
+                    "Lucas",
+                    "Ethan",
+                    "Léo",
+                    "Liam",
+                    "Noah",
+                ] or name in public_custom_names:
+                    public_items.append((name, data))
+        except Exception:
+            public_items = list(CHARACTERS.items())
+    else:
+        public_items = list(CHARACTERS.items())
 
-    col_h1, col_h2 = str_lit.columns([1, 6])
-    with col_h1:
-        if str_lit.button("← Retour"):
-            str_lit.session_state.page = "home"
+    ITEMS_PER_PAGE = 8
+    if "home_page" not in str_lit.session_state:
+        str_lit.session_state.home_page = 0
+
+    total_pages = max(
+        1, (len(public_items) + ITEMS_PER_PAGE - 1) // ITEMS_PER_PAGE
+    )
+    str_lit.session_state.home_page = min(
+        str_lit.session_state.home_page, total_pages - 1
+    )
+
+    start_idx = str_lit.session_state.home_page * ITEMS_PER_PAGE
+    end_idx = start_idx + ITEMS_PER_PAGE
+    current_items = public_items[start_idx:end_idx]
+
+    grid_html = '<div class="storyia-grid">'
+    for idx, (name, data) in enumerate(current_items):
+        img_src = data["img"]
+        if not img_src.startswith("http") and not os.path.exists(img_src):
+            img_src = (
+                "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+            )
+
+        grid_html += f"""
+        <div class="storyia-card">
+            <div>
+                <img src="{img_src}" style="width: 100%; height: 140px; object-fit: cover; display: block;">
+                <div style="padding: 10px 10px 4px 10px;">
+                    <div style="font-weight: 700; font-size: 14px; color: #ffffff; margin-bottom: 2px;">{name}</div>
+                    <div style="font-size: 11px; color: #8b949e; font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 30px;">"{data['quote']}"</div>
+                </div>
+            </div>
+            <div style="padding: 0px 10px 10px 10px;">
+                <a href="?user={str_lit.session_state.pseudo}&chat_target={name}" target="_self" style="display: block; text-align: center; background-color: #21262d; color: #ffffff; padding: 6px 10px; border-radius: 6px; text-decoration: none; border: 1px solid rgba(255, 255, 255, 0.15); font-size: 12px; font-weight: 600;">💬 Discuter</a>
+            </div>
+        </div>
+        """
+    grid_html += "</div>"
+    str_lit.html(grid_html)
+
+    if "chat_target" in query_params:
+        target_char = query_params["chat_target"]
+        if target_char in CHARACTERS:
+            str_lit.session_state.char_select = target_char
+            str_lit.session_state.page = "chat"
+            if "chat_target" in str_lit.query_params:
+                del str_lit.query_params["chat_target"]
             str_lit.rerun()
-    with col_h2:
-        str_lit.title(f"Discussion avec {char_name}")
 
-    if "messages_cache" not in str_lit.session_state:
-        str_lit.session_state.messages_cache = load_msgs(
-            str_lit.session_state.pseudo, char_name
+elif str_lit.session_state.page == "create_character":
+    str_lit.title("✨ Créer un nouveau personnage")
+    with str_lit.form("create_char_form"):
+        char_name = str_lit.text_input("Nom du personnage")
+        char_sex = str_lit.selectbox(
+            "Sexe / Genre", ["Homme", "Femme", "Non-binaire", "Autre"]
+        )
+        char_quote = str_lit.text_input("Phrase d'accroche")
+        char_description = str_lit.text_area(
+            "Description et Personnalité (Histoire, ton, etc.)"
+        )
+        char_secondary = str_lit.text_area("Personnages secondaires (Optionnel)")
+        uploaded_char_img = str_lit.file_uploader(
+            "Image du personnage", type=["png", "jpg", "jpeg"]
+        )
+        visibility = str_lit.radio(
+            "Visibilité", ["Public (toute la communauté)", "Privé"]
+        )
+        submitted = str_lit.form_submit_button(
+            "🚀 Créer", use_container_width=True
         )
 
-    msgs = str_lit.session_state.messages_cache
-    if not msgs:
-        init_msg = f"*{char_data['quote']}*"
-        msgs.append({"role": "assistant", "content": init_msg})
-        save_msg(str_lit.session_state.pseudo, char_name, "assistant", init_msg)
+        if submitted and char_name and char_description:
+            img_path = (
+                "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+            )
+            if uploaded_char_img is not None:
+                img_path = f"char_{str_lit.session_state.pseudo}_{char_name}.png"
+                with open(img_path, "wb") as f:
+                    f.write(uploaded_char_img.getbuffer())
 
-    for m in msgs:
-        with str_lit.chat_message(m["role"]):
-            content = m["content"]
-            match = re.search(r"\[IMAGE:\s*(.*?)\]", content)
-            if match:
-                img_prompt = match.group(1)
-                clean_text = re.sub(r"\[IMAGE:\s*.*?\]", "", content).strip()
-                str_lit.write(clean_text)
-                with str_lit.spinner("Génération de l'illustration..."):
-                    img_bytes, err = generer_image_huggingface(img_prompt)
-                    if img_bytes:
-                        str_lit.image(img_bytes, use_container_width=True)
-                    else:
-                        str_lit.caption(f"(Impossible de générer l'image)")
-            else:
-                str_lit.write(content)
-
-    if user_prompt := str_lit.chat_input("Écris ton message..."):
-        msgs.append({"role": "user", "content": user_prompt})
-        save_msg(str_lit.session_state.pseudo, char_name, "user", user_prompt)
-        with str_lit.chat_message("user"):
-            str_lit.write(user_prompt)
-
-        if client:
-            history = [{"role": m["role"], "content": m["content"]} for m in msgs]
-            system_prompt = char_data["prompt"]
-            messages_payload = [{"role": "system", "content": system_prompt}] + history
-
-            with str_lit.chat_message("assistant"):
-                with str_lit.spinner(f"{char_name} est en train d'écrire..."):
-                    try:
-                        completion = client.chat.completions.create(
-                            model="llama-3.3-70b-versatile",
-                            messages=messages_payload,
-                            temperature=0.8,
-                        )
-                        reply = completion.choices[0].message.content
-                        msgs.append({"role": "assistant", "content": reply})
-                        save_msg(
-                            str_lit.session_state.pseudo, char_name, "assistant", reply
-                        )
-
-                        match = re.search(r"\[IMAGE:\s*(.*?)\]", reply)
-                        if match:
-                            img_prompt = match.group(1)
-                            clean_text = re.sub(
-                                r"\[IMAGE:\s*.*?\]", "", reply
-                            ).strip()
-                            str_lit.write(clean_text)
-                            img_bytes, err = generer_image_huggingface(
-                                img_prompt
-                            )
-                            if img_bytes:
-                                str_lit.image(
-                                    img_bytes, use_container_width=True
-                                )
-                        else:
-                            str_lit.write(reply)
-                    except Exception as e:
-                        str_lit.error(fErreur API : {e}")
-
-elif page == "create":
-    str_lit.title("✨ Créer un Personnage")
-    with str_lit.form("create_char_form"):
-        c_name = str_lit.text_input("Nom du personnage")
-        c_sex = str_lit.selectbox("Genre", ["Masculin", "Féminin", "Autre"])
-        c_desc = str_lit.text_area("Description / Personnalité")
-        c_quote = str_lit.text_input("Phrase d'accroche (Quote)")
-        c_img = str_lit.text_input("URL de l'image du personnage")
-        c_public = str_lit.checkbox("Rendre public pour tous les utilisateurs", value=True)
-
-        submitted = str_lit.form_submit_button("Créer le personnage")
-        if submitted:
-            if supabase and c_name:
+            is_public = True if "Public" in visibility else False
+            if supabase:
                 try:
                     supabase.table("custom_characters").insert({
-                        "name": c_name,
-                        "sex": c_sex,
-                        "description": c_desc,
-                        "quote": c_quote,
-                        "img_url": c_img,
-                        "is_public": c_public,
+                        "name": char_name,
+                        "sex": char_sex,
+                        "quote": char_quote,
+                        "description": char_description,
+                        "secondary_chars": char_secondary,
+                        "img_url": img_path,
+                        "is_public": is_public,
                         "creator": str_lit.session_state.pseudo,
                     }).execute()
                     str_lit.success("Personnage créé avec succès !")
+                    str_lit.session_state.page = "profile"
+                    str_lit.rerun()
                 except Exception as e:
                     str_lit.error(f"Erreur : {e}")
 
-elif page == "messages":
-    str_lit.title("💬 Mes Conversations")
-    convs = get_user_conversations(str_lit.session_state.pseudo)
-    if not convs:
-        str_lit.write("Tu n'as pas encore de conversations en cours.")
+elif str_lit.session_state.page == "messages":
+    str_lit.title("Mes Discussions")
+    char_names_with_conv = get_user_conversations(str_lit.session_state.pseudo)
+    if not char_names_with_conv:
+        str_lit.info(
+            "Aucune discussion en cours. Choisissez un personnage sur l'accueil !"
+        )
     else:
-        for c in convs:
-            if str_lit.button(f"Reprendre avec {c}"):
-                str_lit.session_state.char_select = c
-                str_lit.session_state.page = "chat"
-                str_lit.rerun()
+        for char_name in char_names_with_conv:
+            if char_name in CHARACTERS:
+                col1, col2, col3 = str_lit.columns([1, 4, 1])
+                with col1:
+                    str_lit.image(CHARACTERS[char_name]["img"], width=85)
+                with col2:
+                    str_lit.subheader(char_name)
+                    str_lit.caption(CHARACTERS[char_name]["quote"])
+                with col3:
+                    if str_lit.button(f"Ouvrir", key=f"open_msg_{char_name}"):
+                        str_lit.session_state.char_select = char_name
+                        str_lit.session_state.page = "chat"
+                        str_lit.rerun()
+                str_lit.markdown("---")
 
-elif page == "profile":
-    str_lit.title("👤 Mon Profil")
-    str_lit.write(f"Pseudo : **{str_lit.session_state.pseudo}**")
+elif str_lit.session_state.page == "profile":
+    str_lit.title("Mon Profil")
+    if supabase:
+        try:
+            user_db = (
+                supabase.table("users")
+                .select("*")
+                .eq("pseudo", str_lit.session_state.pseudo)
+                .single()
+                .execute()
+            )
+            user_info = user_db.data if user_db.data else {}
+            user_id = user_info.get("id")
+            avatar_path = user_info.get(
+                "avatar_url",
+                "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
+            )
+
+            col1, col2 = str_lit.columns([1, 3])
+            with col1:
+                str_lit.image(avatar_path, use_container_width=True)
+            with col2:
+                str_lit.subheader(str_lit.session_state.pseudo)
+                str_lit.write(f"📧 {user_info.get('email', 'N/A')}")
+
+            str_lit.markdown("---")
+            uploaded_file = str_lit.file_uploader(
+                "Changer votre photo de profil", type=["png", "jpg", "jpeg"]
+            )
+            if uploaded_file is not None and user_id:
+                file_name = f"avatar_{user_id}.png"
+                with open(file_name, "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+                supabase.table("users").update({"avatar_url": file_name}).eq(
+                    "id", user_id
+                ).execute()
+                str_lit.success("Photo mise à jour !")
+                str_lit.rerun()
+        except Exception as e:
+            str_lit.error(f"Erreur profil : {e}")
+
+elif str_lit.session_state.page == "chat":
+    current_char = str_lit.session_state.char_select
+    bg_image = CHARACTERS[current_char]["img"]
+    char_quote = CHARACTERS[current_char]["quote"]
+    char_prompt = CHARACTERS[current_char]["prompt"]
+
+    user_avatar_url = (
+        "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+    )
+    if supabase:
+        try:
+            u_res = (
+                supabase.table("users")
+                .select("avatar_url")
+                .eq("pseudo", str_lit.session_state.pseudo)
+                .single()
+                .execute()
+            )
+            if u_res.data and u_res.data.get("avatar_url"):
+                user_avatar_url = u_res.data.get("avatar_url")
+        except Exception:
+            pass
+
+    str_lit.markdown(
+        f"""
+        <style>
+        .stApp {{
+            background-image: linear-gradient(rgba(11, 14, 20, 0.90), rgba(11, 14, 20, 0.90)), url("{bg_image}");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }}
+        .chat-header-container {{
+            background-color: rgba(22, 27, 34, 0.85);
+            padding: 18px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            margin-bottom: 25px;
+            backdrop-filter: blur(5px);
+        }}
+        </style>
+    """,
+        unsafe_allow_html=True,
+    )
+
+    str_lit.markdown(
+        f"""
+        <div class="chat-header-container">
+            <h2 style="margin: 0; color: #ffffff;">Chat avec {current_char}</h2>
+            <p style='color: #a0a0a0; font-style: italic; margin: 6px 0 0 0;'>"{char_quote}"</p>
+        </div>
+    """,
+        unsafe_allow_html=True,
+    )
+
+    messages = load_msgs(str_lit.session_state.pseudo, current_char)
+
+    if not messages and client:
+        intro_system_prompt = [{
+            "role": "system",
+            "content": (
+                f"{char_prompt} Commence l'histoire en envoyant un premier message"
+                f" d'accroche immersif incluant une [IMAGE: ...]."
+            ),
+        }]
+        try:
+            res_intro = client.chat.completions.create(
+                model="llama-3.3-70b-versatile", messages=intro_system_prompt
+            )
+            first_message = res_intro.choices[0].message.content
+            save_msg(
+                str_lit.session_state.pseudo, current_char, "assistant", first_message
+            )
+            messages = load_msgs(str_lit.session_state.pseudo, current_char)
+        except Exception as e:
+            str_lit.error(f"Erreur Groq : {e}")
+
+    char_avatar_url = CHARACTERS[current_char]["img"]
+
+    for idx, msg in enumerate(messages):
+        is_user = msg["role"] == "user"
+        name_to_use = str_lit.session_state.pseudo if is_user else current_char
+        avatar_to_use = user_avatar_url if is_user else char_avatar_url
+
+        with str_lit.container():
+            col_av, col_txt = str_lit.columns([1, 11])
+            with col_av:
+                str_lit.markdown(
+                    f"<img src='{avatar_to_use}' style='width: 38px; height: 38px;"
+                    " border-radius: 50%; object-fit: cover; margin-top:"
+                    " 4px;'>",
+                    unsafe_allow_html=True,
+                )
+            with col_txt:
+                str_lit.markdown(
+                    f"<b style='color: #ffffff; font-size: 14px;'>{name_to_use}</b>",
+                    unsafe_allow_html=True,
+                )
+
+                if is_user:
+                    str_lit.write(msg["content"])
+                else:
+                    contenu_message = msg.get("content", "")
+                    match_image = re.search(
+                        r"\[IMAGE:\s*(.*?)\]", contenu_message, re.IGNORECASE
+                    )
+
+                    if match_image:
+                        prompt_image = match_image.group(1).strip()
+                        texte_propre = contenu_message.replace(
+                            match_image.group(0), ""
+                        ).strip()
+                    else:
+                        texte_propre = contenu_message
+                        prompt_image = None
+
+                    str_lit.write(texte_propre)
+
+                    if match_image and prompt_image:
+                        with str_lit.expander("🖼️ Voir l'illustration de la scène"):
+                            with str_lit.spinner(
+                                f"🎨 {current_char} génère l'illustration..."
+                            ):
+                                image_bytes, err_msg = generer_image_huggingface(prompt_image)
+                                if image_bytes:
+                                    str_lit.image(
+                                        image_bytes,
+                                        caption=f"Scène - {current_char}",
+                                        use_container_width=True,
+                                    )
+                                else:
+                                    str_lit.warning(
+                                        f"Impossible de charger l'illustration ({err_msg})."
+                                    )
+
+    col_input, col_btn = str_lit.columns([10, 2])
+
+    with col_input:
+        user_input = str_lit.chat_input("Écris ton message...")
+
+    with col_btn:
+        str_lit.markdown(
+            "<div style='margin-top: 28px;'></div>", unsafe_allow_html=True
+        )
+        generer_clique = str_lit.button("🎨 Image", key="btn_gen_img_direct")
+
+    if generer_clique and client:
+        dernier_prompt_image = (
+            f"Cinematic illustration of {current_char} in a fantasy magic school"
+            f" setting, dramatic lighting, high quality"
+        )
+        for m in reversed(messages):
+            if m["role"] == "assistant":
+                m_img = re.search(r"\[IMAGE:\s*(.*?)\]", m["content"], re.IGNORECASE)
+                if m_img:
+                    dernier_prompt_image = m_img.group(1).strip()
+                break
+
+        with str_lit.spinner(
+            f"🎨 {current_char} génère l'illustration à la volée..."
+        ):
+            image_bytes, err_msg = generer_image_huggingface(dernier_prompt_image)
+            if image_bytes:
+                str_lit.image(
+                    image_bytes,
+                    caption=f"Scène - {current_char}",
+                    use_container_width=True,
+                )
+            else:
+                str_lit.error(f"Erreur de génération : {err_msg}")
+
+    if user_input and client:
+        save_msg(str_lit.session_state.pseudo, current_char, "user", user_input)
+
+        formatted_history = [{"role": "system", "content": char_prompt}]
+        for m in load_msgs(str_lit.session_state.pseudo, current_char):
+            formatted_history.append({"role": m["role"], "content": m["content"]})
+
+        try:
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile", messages=formatted_history
+            )
+            bot_reply = response.choices[0].message.content
+            save_msg(str_lit.session_state.pseudo, current_char, "assistant", bot_reply)
+            str_lit.rerun()
+        except Exception as e:
+            str_lit.error(f"Erreur de communication avec Groq : {e}")
