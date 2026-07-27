@@ -499,28 +499,28 @@ if str_lit.session_state.page == "home":
 elif str_lit.session_state.page == "create_character":
     str_lit.title("✨ Créer un nouveau personnage")
     
-    char_name = str_lit.text_input("Nom du personnage")
+    # Utilisation de clés uniques (key="...") pour libérer le focus et autoriser la frappe fluide, retours à la ligne et tabulations
+    char_name = str_lit.text_input("Nom du personnage", key="input_char_name")
     char_sex = str_lit.selectbox(
-        "Sexe / Genre", ["Homme", "Femme", "Non-binaire", "Autre"]
+        "Sexe / Genre", ["Homme", "Femme", "Non-binaire", "Autre"], key="select_char_sex"
     )
-    char_quote = str_lit.text_input("Phrase d'accroche")
+    char_quote = str_lit.text_input("Phrase d'accroche", key="input_char_quote")
     
-    # Correction complète : Saisie directe sans formulaire parent pour permettre les retours à la ligne et tabulations sans blocage
     char_description = str_lit.text_area(
-        "Description et Personnalité (Histoire, ton, etc.)", height=150
+        "Description et Personnalité (Histoire, ton, etc.)", height=150, key="textarea_char_desc"
     )
     char_secondary = str_lit.text_area(
-        "Personnages secondaires (Optionnel)", height=100
+        "Personnages secondaires (Optionnel)", height=100, key="textarea_char_sec"
     )
     
     uploaded_char_img = str_lit.file_uploader(
-        "Image du personnage", type=["png", "jpg", "jpeg"]
+        "Image du personnage", type=["png", "jpg", "jpeg"], key="uploader_char_img"
     )
     visibility = str_lit.radio(
-        "Visibilité", ["Public (toute la communauté)", "Privé"]
+        "Visibilité", ["Public (toute la communauté)", "Privé"], key="radio_char_vis"
     )
     
-    if str_lit.button("🚀 Créer", use_container_width=True):
+    if str_lit.button("🚀 Créer", use_container_width=True, key="btn_submit_char"):
         if char_name and char_description:
             img_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
             if uploaded_char_img is not None:
