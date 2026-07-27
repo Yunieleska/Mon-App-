@@ -513,6 +513,17 @@ elif st.session_state.page == "chat":
             margin-bottom: 25px;
             backdrop-filter: blur(5px);
         }}
+        /* --- CORRECTION ESSENTIELLE POUR RENDRE LE CHAT INPUT CLIQUABLE ET VISIBLE --- */
+        [data-testid="stChatInput"] {{
+            position: fixed;
+            bottom: 20px;
+            z-index: 999999;
+            background-color: rgba(22, 27, 34, 0.95) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        }}
+        .main .block-container {{
+            padding-bottom: 110px;
+        }}
         </style>
     """, unsafe_allow_html=True)
 
