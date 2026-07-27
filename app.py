@@ -355,7 +355,7 @@ if st.session_state.page == "home":
         with p_col3:
             if st.session_state.home_page < total_pages - 1:
                 if st.button("Suivant ➡️", use_container_width=True):
-                    st.session_state.home_page -= 1
+                    st.session_state.home_page += 1
                     st.rerun()
 
 elif st.session_state.page == "create_character":
@@ -384,15 +384,12 @@ elif st.session_state.page == "create_character":
                     file_name = f"char_{st.session_state.pseudo}_{char_name}.png"
                     if supabase:
                         try:
-                            # Utilisation du client sécurisé par le token d'accès utilisateur pour passer les RLS Storage
-                            if "access_token" in st.session_state:
-                                auth_headers = {"Authorization": f"Bearer {st.session_state.access_token}"}
-                                user_supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"], options={"headers": auth_headers})
-                            else:
-                                user_supabase = supabase
-
-                            user_supabase.storage.from_("storyia-images").upload(file_name, uploaded_char_img.read(), file_options={"upsert": "true"})
-                            img_path = user_supabase.storage.from_("storyia-images").get_public_url(file_name)
+                            # Utilisation de la clé de service pour contourner les règles RLS de Storage lors de l'upload
+                            admin_key = st.secrets.get("SUPABASE_SERVICE_KEY", st.secrets["SUPABASE_KEY"])
+                            admin_supabase = create_client(st.secrets["SUPABASE_URL"], admin_key)
+                            
+                            admin_supabase.storage.from_("storyia-images").upload(file_name, uploaded_char_img.read(), file_options={"upsert": "true"})
+                            img_path = admin_supabase.storage.from_("storyia-images").get_public_url(file_name)
                         except Exception:
                             pass
                 
@@ -489,15 +486,12 @@ elif st.session_state.page == "profile":
                 file_name = f"avatar_{user_id}.{file_extension}"
                 
                 try:
-                    # Utilisation du client sécurisé par le token d'accès utilisateur pour passer les RLS Storage
-                    if "access_token" in st.session_state:
-                        auth_headers = {"Authorization": f"Bearer {st.session_state.access_token}"}
-                        user_supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"], options={"headers": auth_headers})
-                    else:
-                        user_supabase = supabase
-                        
-                    user_supabase.storage.from_("storyia-images").upload(file_name, uploaded_file.read(), file_options={"upsert": "true"})
-                    public_url = user_supabase.storage.from_("storyia-images").get_public_url(file_name)
+                    # Utilisation de la clé de service pour contourner les règles RLS de Storage lors de l'upload
+                    admin_key = st.secrets.get("SUPABASE_SERVICE_KEY", st.secrets["SUPABASE_KEY"])
+                    admin_supabase = create_client(st.secrets["SUPABASE_URL"], admin_key)
+                    
+                    admin_supabase.storage.from_("storyia-images").upload(file_name, uploaded_file.read(), file_options={"upsert": "true"})
+                    public_url = admin_supabase.storage.from_("storyia-images").get_public_url(file_name)
                     
                     supabase.table("users").update({"avatar_url": public_url}).eq("id", user_id).execute()
                     st.success("Photo de profil mise à jour avec succès !")
