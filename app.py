@@ -157,14 +157,14 @@ def load_msgs(pseudo, char):
         return []
     try:
         clean_pseudo = str(pseudo).strip()
-        # On récupère les messages triés par ordre croissant, limités aux 100 derniers
+        # On récupère les messages triés par ordre croissant, limités aux 1000 derniers
         res = (
             supabase.table("messages")
             .select("role, content")
             .eq("user_pseudo", clean_pseudo)
             .eq("char_name", str(char))
             .order("id", desc=True)
-            .limit(100)
+            .limit(1000)
             .execute()
         )
         if res.data:
@@ -735,109 +735,6 @@ elif str_lit.session_state.page == "profile":
                     with col_s2:
                         str_lit.metric("Souvenirs en galerie", total_memories)
                 except Exception as e:
-                    str_lit.error(f"Erreur chargement stats : {e}")
-
-            with tab_prof4:
-                str_lit.subheader("Galerie Souvenirs")
-                try:
-                    gal_res = supabase.table("user_gallery").select("*").eq("user_pseudo", str_lit.session_state.pseudo).execute()
-                    gallery_items = gal_res.data if gal_res.data else []
-
-                    if not gallery_items:
-                        str_lit.info("Aucune image enregistrée dans votre galerie pour le moment. Discutez avec les personnages pour générer des souvenirs !")
-                    else:
-                        import base64
-                        cols = str_lit.columns(3)
-                        for idx, g_item in enumerate(gallery_items):
-                            with cols[idx % 3]:
-                                img_b64 = g_item.get("image_base64")
-                                c_name = g_item.get("char_name")
-                                prompt_txt = g_item.get("image_prompt", "")
-                                if img_b64:
-                                    img_bytes = base64.b64decode(img_b64)
-                                    str_lit.image(img_bytes, use_container_width=True)
-                                    str_lit.caption(f"**{c_name}** : {prompt_txt}")
-                except Exception as e:
-                    str_lit.error(f"Erreur galerie : {e}")
-
-            with tab_prof5:
-                str_lit.subheader("Paramètres du compte")
-                str_lit.write("Gérez vos informations personnelles et préférences ici.")
+                    str_lit.error(f"Erreur : {e}")
         except Exception as e:
-                str_lit.error(f"Erreur chargement profil : {e}")
-
-elif str_lit.session_state.page == "chat":
-    char_name = str_lit.session_state.char_select
-    char_data = CHARACTERS.get(char_name, list(CHARACTERS.values())[0])
-
-    str_lit.title(f"Discussion avec {char_name}")
-    
-    col_h1, col_h2 = str_lit.columns([1, 6])
-    with col_h1:
-        str_lit.image(char_data["img"], width=80)
-    with col_h2:
-        str_lit.write(f"*{char_data['quote']}*")
-    
-    str_lit.markdown("---")
-
-    messages = load_msgs(str_lit.session_state.pseudo, char_name)
-    if not messages:
-        welcome_msg = f"*{char_data['quote']}*"
-        messages = [{"role": "assistant", "content": welcome_msg}]
-
-    for msg in messages:
-        with str_lit.chat_message(msg["role"]):
-            content = msg["content"]
-            img_match = re.search(r"\[IMAGE:\s*((.*?)\])", content)
-            if img_match:
-                clean_text = content.replace(img_match.group(0), "").strip()
-                str_lit.write(clean_text)
-                img_prompt = img_match.group(1).rstrip("]")
-                if str_lit.button("Générer l'illustration", key=f"btn_img_{hash(content)}"):
-                    with str_lit.spinner("Génération de l'image..."):
-                        img_bytes, err = generer_image_huggingface(img_prompt, char_name)
-                        if img_bytes:
-                            str_lit.image(img_bytes, use_container_width=True)
-                            save_to_gallery(str_lit.session_state.pseudo, char_name, img_bytes, img_prompt)
-                        else:
-                            str_lit.error(err)
-            else:
-                str_lit.write(content)
-
-    user_input = str_lit.chat_input("Écris ton message...")
-    if user_input:
-        with str_lit.chat_message("user"):
-            str_lit.write(user_input)
-        save_msg(str_lit.session_state.pseudo, char_name, "user", user_input)
-        messages.append({"role": "user", "content": user_input})
-
-        if client:
-            try:
-                system_prompt = char_data["prompt"]
-                formatted_msgs = [{"role": "system", "content": system_prompt}]
-                for m in messages[-10:]:
-                    formatted_msgs.append({"role": m["role"], "content": m["content"]})
-
-                response = client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
-                    messages=formatted_msgs,
-                    temperature=0.8,
-                )
-                assistant_reply = response.choices[0].message.content
-
-                with str_lit.chat_message("assistant"):
-                    img_match = re.search(r"\[IMAGE:\s*((.*?)\])", assistant_reply)
-                    if img_match:
-                        clean_text = assistant_reply.replace(img_match.group(0), "").strip()
-                        str_lit.write(clean_text)
-                        img_prompt = img_match.group(1).rstrip("]")
-                        img_bytes, err = generer_image_huggingface(img_prompt, char_name)
-                        if img_bytes:
-                            str_lit.image(img_bytes, use_container_width=True)
-                            save_to_gallery(str_lit.session_state.pseudo, char_name, img_bytes, img_prompt)
-                    else:
-                        str_lit.write(assistant_reply)
-
-                save_msg(str_lit.session_state.pseudo, char_name, "assistant", assistant_reply)
-            except Exception as e:
-                str_lit.error(f"Erreur Groq : {e}")
+            str_lit.error(f"Erreur chargement profil : {e}")
