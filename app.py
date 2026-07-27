@@ -157,15 +157,20 @@ def load_msgs(pseudo, char):
         return []
     try:
         clean_pseudo = str(pseudo).strip()
+        # On récupère les messages triés par ordre croissant, limités aux 100 derniers
         res = (
             supabase.table("messages")
             .select("role, content")
             .eq("user_pseudo", clean_pseudo)
             .eq("char_name", str(char))
+            .order("id", desc=True)
+            .limit(100)
             .execute()
         )
         if res.data:
-            return [{"role": r["role"], "content": r["content"]} for r in res.data]
+            # On inverse la liste pour retrouver l'ordre chronologique (du plus ancien au plus récent)
+            messages = [{"role": r["role"], "content": r["content"]} for r in res.data]
+            return messages[::-1]
         return []
     except Exception:
         return []
@@ -197,6 +202,11 @@ def get_all_characters():
     )
 
     chars = {
+        "Lord Valerian": {
+            "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
+            "prompt": "Tu es Lord Valerian Vance, un vampire ténébreux transformé au XVIIIe siècle, doté de cheveux sombres et ondulés, de perçants yeux ambre et d'un tatouage tribal et floral dans le cou. Tu es un prédateur solitaire, protecteur, tourmenté et magnétique dans une dynamique enemies-to-lovers." + base_instruction,
+            "quote": "Tu joues avec un feu que tu ne pourrais éteindre, même si tu en avais la force...",
+        },
         "Caelum": {
             "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
             "prompt": "Tu es Caelum, Prince des Ténèbres." + base_instruction,
@@ -248,7 +258,6 @@ def get_all_characters():
                     if not c_name:
                         continue
                     
-                    # Récupération sécurisée avec correspondance de colonnes
                     desc_val = item.get("description", "")
                     prompt_val = item.get("prompt", f"Tu es {c_name}. {desc_val}")
                     quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
@@ -417,7 +426,7 @@ if str_lit.session_state.page == "home":
 
             for name, data in CHARACTERS.items():
                 if name in [
-                    "Caelum", "Alexei", "Killian", "Lucas",
+                    "Lord Valerian", "Caelum", "Alexei", "Killian", "Lucas",
                     "Ethan", "Léo", "Liam", "Noah",
                 ] or name in public_custom_names:
                     public_items.append((name, data))
@@ -516,7 +525,6 @@ elif str_lit.session_state.page == "create_character":
 
             if supabase:
                 try:
-                    # Construction d'un prompt complet basé sur la description fournie
                     built_prompt = f"Tu es {char_name}, un personnage {char_sex}. Description et contexte : {char_description}."
 
                     insert_data = {
@@ -741,120 +749,95 @@ elif str_lit.session_state.page == "profile":
                         import base64
                         cols = str_lit.columns(3)
                         for idx, g_item in enumerate(gallery_items):
-                            col_target = cols[idx % 3]
-                            with col_target:
-                                img_bytes = base64.b64decode(g_item["image_base64"])
-                                str_lit.image(img_bytes, use_container_width=True)
-                                str_lit.caption(f"**{g_item['char_name']}** : {g_item['image_prompt']}")
+                            with cols[idx % 3]:
+                                img_b64 = g_item.get("image_base64")
+                                c_name = g_item.get("char_name")
+                                prompt_txt = g_item.get("image_prompt", "")
+                                if img_b64:
+                                    img_bytes = base64.b64decode(img_b64)
+                                    str_lit.image(img_bytes, use_container_width=True)
+                                    str_lit.caption(f"**{c_name}** : {prompt_txt}")
                 except Exception as e:
-                    str_lit.error(f"Erreur chargement galerie : {e}")
+                    str_lit.error(f"Erreur galerie : {e}")
 
             with tab_prof5:
                 str_lit.subheader("Paramètres du compte")
-                new_avatar_url = str_lit.text_input("URL de l'avatar", value=avatar_path)
-                if str_lit.button("Mettre à jour l'avatar"):
-                    try:
-                        supabase.table("users").update({"avatar_url": new_avatar_url}).eq("id", user_id).execute()
-                        str_lit.success("Avatar mis à jour avec succès !")
-                        str_lit.rerun()
-                    except Exception as e:
-                        str_lit.error(f"Erreur : {e}")
+                str_lit.write("Gérez vos informations personnelles et préférences ici.")
         except Exception as e:
-            str_lit.error(f"Erreur chargement profil : {e}")
+                str_lit.error(f"Erreur chargement profil : {e}")
 
 elif str_lit.session_state.page == "chat":
-    current_char = str_lit.session_state.char_select
-    char_data = CHARACTERS.get(current_char, {})
+    char_name = str_lit.session_state.char_select
+    char_data = CHARACTERS.get(char_name, list(CHARACTERS.values())[0])
 
-    str_lit.title(f"💬 Discussion avec {current_char}")
+    str_lit.title(f"Discussion avec {char_name}")
     
-    col_h1, col_h2 = str_lit.columns([1, 5])
+    col_h1, col_h2 = str_lit.columns([1, 6])
     with col_h1:
-        img_src = char_data.get("img", "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg")
-        if not img_src.startswith("http") and not os.path.exists(img_src):
-            img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-        str_lit.image(img_src, width=100)
+        str_lit.image(char_data["img"], width=80)
     with col_h2:
-        str_lit.write(f"*{char_data.get('quote', '')}*")
-
+        str_lit.write(f"*{char_data['quote']}*")
+    
     str_lit.markdown("---")
 
-    if "messages_cache" not in str_lit.session_state:
-        str_lit.session_state.messages_cache = {}
+    messages = load_msgs(str_lit.session_state.pseudo, char_name)
+    if not messages:
+        welcome_msg = f"*{char_data['quote']}*"
+        messages = [{"role": "assistant", "content": welcome_msg}]
 
-    cache_key = f"{str_lit.session_state.pseudo}_{current_char}"
-    if cache_key not in str_lit.session_state.messages_cache:
-        loaded = load_msgs(str_lit.session_state.pseudo, current_char)
-        if not loaded:
-            quote_text = char_data.get('quote', 'Bonjour...')
-            intro_msg = f"*{quote_text}*"
-            loaded = [{"role": "assistant", "content": intro_msg}]
-        str_lit.session_state.messages_cache[cache_key] = loaded
-
-    for msg in str_lit.session_state.messages_cache[cache_key]:
+    for msg in messages:
         with str_lit.chat_message(msg["role"]):
             content = msg["content"]
-            img_match = re.search(r"\[IMAGE:\s*(.*?)\]", content)
+            img_match = re.search(r"\[IMAGE:\s*((.*?)\])", content)
             if img_match:
-                img_prompt = img_match.group(1)
-                text_content = content.replace(img_match.group(0), "").strip()
-                str_lit.write(text_content)
-                with str_lit.spinner("Génération de l'image de scène..."):
-                    img_bytes, err = generer_image_huggingface(img_prompt, current_char)
-                    if img_bytes:
-                        str_lit.image(img_bytes, use_container_width=True)
-                        save_to_gallery(str_lit.session_state.pseudo, current_char, img_bytes, img_prompt)
-                    else:
-                        str_lit.warning(f"Impossible de générer l'image : {err}")
+                clean_text = content.replace(img_match.group(0), "").strip()
+                str_lit.write(clean_text)
+                img_prompt = img_match.group(1).rstrip("]")
+                if str_lit.button("Générer l'illustration", key=f"btn_img_{hash(content)}"):
+                    with str_lit.spinner("Génération de l'image..."):
+                        img_bytes, err = generer_image_huggingface(img_prompt, char_name)
+                        if img_bytes:
+                            str_lit.image(img_bytes, use_container_width=True)
+                            save_to_gallery(str_lit.session_state.pseudo, char_name, img_bytes, img_prompt)
+                        else:
+                            str_lit.error(err)
             else:
                 str_lit.write(content)
 
-    if user_input := str_lit.chat_input("Écris ton message..."):
-        user_msg = {"role": "user", "content": user_input}
-        str_lit.session_state.messages_cache[cache_key].append(user_msg)
-        save_msg(str_lit.session_state.pseudo, current_char, "user", user_input)
-
+    user_input = str_lit.chat_input("Écris ton message...")
+    if user_input:
         with str_lit.chat_message("user"):
             str_lit.write(user_input)
+        save_msg(str_lit.session_state.pseudo, char_name, "user", user_input)
+        messages.append({"role": "user", "content": user_input})
 
-        with str_lit.chat_message("assistant"):
-            with str_lit.spinner(f"{current_char} est en train d'écrire..."):
-                messages_history = [
-                    {"role": "system", "content": char_data.get("prompt", "Tu es un personnage de roman.")}
-                ]
-                for m in str_lit.session_state.messages_cache[cache_key]:
-                    messages_history.append({"role": m["role"], "content": m["content"]})
+        if client:
+            try:
+                system_prompt = char_data["prompt"]
+                formatted_msgs = [{"role": "system", "content": system_prompt}]
+                for m in messages[-10:]:
+                    formatted_msgs.append({"role": m["role"], "content": m["content"]})
 
-                reply_content = "..."
-                if client:
-                    try:
-                        completion = client.chat.completions.create(
-                            model="llama-3.3-70b-versatile",
-                            messages=messages_history,
-                            temperature=0.8,
-                            max_tokens=500,
-                        )
-                        reply_content = completion.choices[0].message.content
-                    except Exception as e:
-                        reply_content = f"Erreur de communication avec l'API Groq : {e}"
-                else:
-                    reply_content = "Client Groq non initialisé."
+                response = client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=formatted_msgs,
+                    temperature=0.8,
+                )
+                assistant_reply = response.choices[0].message.content
 
-                img_match = re.search(r"\[IMAGE:\s*(.*?)\]", reply_content)
-                if img_match:
-                    img_prompt = img_match.group(1)
-                    text_content = reply_content.replace(img_match.group(0), "").strip()
-                    str_lit.write(text_content)
-                    with str_lit.spinner("Génération de l'image de scène..."):
-                        img_bytes, err = generer_image_huggingface(img_prompt, current_char)
+                with str_lit.chat_message("assistant"):
+                    img_match = re.search(r"\[IMAGE:\s*((.*?)\])", assistant_reply)
+                    if img_match:
+                        clean_text = assistant_reply.replace(img_match.group(0), "").strip()
+                        str_lit.write(clean_text)
+                        img_prompt = img_match.group(1).rstrip("]")
+                        img_bytes, err = generer_image_huggingface(img_prompt, char_name)
                         if img_bytes:
                             str_lit.image(img_bytes, use_container_width=True)
-                            save_to_gallery(str_lit.session_state.pseudo, current_char, img_bytes, img_prompt)
-                        else:
-                            str_lit.warning(f"Impossible de générer l'image : {err}")
-                else:
-                    str_lit.write(reply_content)
+                            save_to_gallery(str_lit.session_state.pseudo, char_name, img_bytes, img_prompt)
+                    else:
+                        str_lit.write(assistant_reply)
 
-                assistant_msg = {"role": "assistant", "content": reply_content}
-                str_lit.session_state.messages_cache[cache_key].append(assistant_msg)
-                save_msg(str_lit.session_state.pseudo, current_char, "assistant", reply_content)
+                save_msg(str_lit.session_state.pseudo, char_name, "assistant", assistant_reply)
+            except Exception as e:
+                str_lit.error(f"Erreur Groq : {e}")
