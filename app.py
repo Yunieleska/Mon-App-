@@ -301,7 +301,8 @@ def get_user_conversations(pseudo):
                 if db_pseudo == clean_pseudo and c_name and c_name in CHARACTERS:
                     chars_met.add(c_name)
         return list(chars_met)
-    except Exception:
+    except Exception as e:
+        str_lit.error(f"Erreur chargement discussions : {e}")
         return []
 
 
