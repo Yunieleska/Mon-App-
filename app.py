@@ -1,10 +1,10 @@
 import io
 import os
 import re
+import requests
 import streamlit as str_lit
 from supabase import create_client
 from groq import Groq
-from huggingface_hub import InferenceClient
 
 # --- CONFIGURATION ---
 groq_key = os.getenv("GROQ_API_KEY")
@@ -15,21 +15,26 @@ hf_api_key = os.getenv("HUGGINGFACE_API_KEY")
 if not hf_api_key and "HUGGINGFACE_API_KEY" in str_lit.secrets:
     hf_api_key = str_lit.secrets["HUGGINGFACE_API_KEY"]
 
+IMAGE_API_URL = (
+    "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell"
+)
+
 
 def generer_image_huggingface(prompt_image):
     if not hf_api_key:
         return None, "Clé API Hugging Face manquante."
+    headers = {"Authorization": f"Bearer {hf_api_key}"}
+    payload = {"inputs": prompt_image}
     try:
-        client_hf = InferenceClient(
-            model="black-forest-labs/FLUX.1-schnell", token=hf_api_key
+        response = requests.post(
+            IMAGE_API_URL, headers=headers, json=payload, timeout=20
         )
-        image = client_hf.text_to_image(prompt_image)
-
-        buf = io.BytesIO()
-        image.save(buf, format="JPEG")
-        return buf.getvalue(), None
-    except Exception as e:
-        return None, f"Erreur Hugging Face : {str(e)}"
+        if response.status_code == 200:
+            return response.content, None
+        else:
+            return None, f"Erreur API ({response.status_code})"
+    except Exception:
+        return None, "Erreur réseau / DNS"
 
 
 try:
@@ -299,9 +304,13 @@ def get_user_conversations(pseudo):
 
 # --- LOGIN LOGIC ---
 if not str_lit.session_state.logged_in:
-    # 🌟 RESTAURATION DE LA BANNIÈRE / EN-TÊTE ICI
-    str_lit.title("✨ Storyia")
-    str_lit.subheader("Plonge au cœur de tes histoires interactives")
+    # 🌟 RESTAURATION DE LA BANNIÈRE bg.png ICI
+    if os.path.exists("bg.png"):
+        str_lit.image("bg.png", use_container_width=True)
+    else:
+        str_lit.title("✨ Storyia")
+        str_lit.subheader("Plonge au cœur de tes histoires interactives")
+    
     str_lit.markdown("---")
 
     col1, col2, col3 = str_lit.columns([1, 2, 1])
