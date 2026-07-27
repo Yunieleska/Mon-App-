@@ -37,7 +37,7 @@ return None, f"Erreur Hugging Face : {str(e)}"
 
 
 try:
-    client = Groq(api_key=groq_key)
+client = Groq(api_key=groq_key)
 except Exception:
     client = None
 
