@@ -30,7 +30,6 @@ st.markdown("""
     h1, h2, h3, p, span, label {
         color: #ffffff !important;
     }
-    /* Correction radicale pour forcer la boîte d'info de la sidebar en mode sombre */
     [data-testid="stSidebar"] [data-testid="stInfoBox"], 
     [data-testid="stSidebar"] div[data-baseweb="notification"],
     [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] {
@@ -42,7 +41,6 @@ st.markdown("""
     [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] p {
         color: #ffffff !important;
     }
-    /* Style de TOUS les boutons de l'application */
     .stButton>button {
         background-color: #21262d !important;
         color: #ffffff !important;
@@ -58,7 +56,6 @@ st.markdown("""
     .stButton>button p {
         color: #ffffff !important;
     }
-    /* Grille d'accueil */
     .storyia-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
@@ -85,11 +82,13 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- SESSION INITIALIZATION & STABILIZATION (CORRIGÉ CONTRE LES DÉCONNEXIONS) ---
+# --- SESSION INITIALIZATION & STABILIZATION (ANTI-DÉCONNEXION RADICALE) ---
 if "logged_in" not in st.session_state: 
     st.session_state.logged_in = False
 if "pseudo" not in st.session_state: 
     st.session_state.pseudo = "Invité"
+if "user_id" not in st.session_state: 
+    st.session_state.user_id = None
 if "page" not in st.session_state: 
     st.session_state.page = "home"
 if "char_select" not in st.session_state: 
@@ -216,6 +215,7 @@ if not st.session_state.logged_in:
                         res = supabase.auth.sign_in_with_password({"email": email_log, "password": password})
                         if res and res.user:
                             st.session_state.logged_in = True
+                            st.session_state.user_id = res.user.id
                             user_data = supabase.table("users").select("pseudo").eq("id", res.user.id).single().execute()
                             if user_data.data:
                                 st.session_state.pseudo = user_data.data["pseudo"]
@@ -279,6 +279,7 @@ if st.sidebar.button("🚪 Logout"):
             pass
     st.session_state.logged_in = False
     st.session_state.pseudo = "Invité"
+    st.session_state.user_id = None
     st.rerun()
 
 # --- NAVIGATION ENTRE PAGES ---
@@ -288,7 +289,6 @@ if st.session_state.page == "home":
     
     items = list(CHARACTERS.items())
     
-    # --- PAGINATION ---
     ITEMS_PER_PAGE = 8
     if "home_page" not in st.session_state:
         st.session_state.home_page = 0
@@ -492,7 +492,6 @@ elif st.session_state.page == "chat":
     if not str(bg_image).startswith("http"):
         bg_image = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
 
-    # Style pour l'arrière-plan de la discussion et la boîte d'en-tête dédiée
     st.markdown(f"""
         <style>
         .stApp {{
@@ -512,7 +511,6 @@ elif st.session_state.page == "chat":
         </style>
     """, unsafe_allow_html=True)
 
-    # Affichage de l'en-tête proprement isolé
     st.markdown(f"""
         <div class="chat-header-container">
             <h2 style="margin: 0; color: #ffffff;">Chat avec {current_char}</h2>
@@ -522,7 +520,6 @@ elif st.session_state.page == "chat":
 
     messages = load_msgs(st.session_state.pseudo, current_char)
 
-    # --- INITIAL MESSAGE GENERATION ---
     if not messages and client:
         intro_system_prompt = [
             {"role": "system", "content": f"{char_prompt} Commence l'histoire en envoyant un premier message d'accroche immersif en incarnant ton personnage, en te basant sur cette citation : '{char_quote}'."}
@@ -533,7 +530,7 @@ elif st.session_state.page == "chat":
             save_msg(st.session_state.pseudo, current_char, "assistant", first_message)
             messages = load_msgs(st.session_state.pseudo, current_char)
         except Exception as e:
-            st.error(f"Erreur d'authentification Groq (Vérifie ta clé 'GROQ_API_KEY' dans les Secrets) : {e}")
+            st.error(f"Erreur d'authentification Groq : {e}")
 
     for msg in messages:
         with st.chat_message(msg["role"]): 
