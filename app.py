@@ -127,15 +127,16 @@ if "page" not in str_lit.session_state:
 if "char_select" not in str_lit.session_state:
     str_lit.session_state.char_select = "Caelum"
 
-# --- SUPABASE FUNCTIONS ---
+# --- SUPABASE FUNCTIONS (Corrigées et normalisées) ---
 
 
 def save_msg(pseudo, char, role, content):
     if not supabase:
         return
     try:
+        clean_pseudo = str(pseudo).strip().lower()
         supabase.table("messages").insert({
-            "user_pseudo": str(pseudo),
+            "user_pseudo": clean_pseudo,
             "char_name": str(char),
             "role": str(role),
             "content": str(content),
@@ -148,10 +149,11 @@ def load_msgs(pseudo, char):
     if not supabase:
         return []
     try:
+        clean_pseudo = str(pseudo).strip().lower()
         res = (
             supabase.table("messages")
             .select("role, content")
-            .eq("user_pseudo", str(pseudo))
+            .eq("user_pseudo", clean_pseudo)
             .eq("char_name", str(char))
             .execute()
         )
@@ -285,10 +287,11 @@ def get_user_conversations(pseudo):
     if not supabase or not pseudo or pseudo == "Invité":
         return []
     try:
+        clean_pseudo = str(pseudo).strip().lower()
         res = (
             supabase.table("messages")
             .select("char_name")
-            .eq("user_pseudo", str(pseudo))
+            .eq("user_pseudo", clean_pseudo)
             .execute()
         )
         chars_met = set()
@@ -738,12 +741,10 @@ elif str_lit.session_state.page == "chat":
                                         f"Impossible de charger l'illustration ({err_msg})."
                                     )
 
-    # Zone de saisie corrigée et fluide
     st_container = str_lit.container()
     with st_container:
         user_input = str_lit.chat_input("Écris ton message...")
         
-        # Bouton secondaire pour générer une image si besoin
         if str_lit.button("🎨 Générer l'image de la dernière scène", key="btn_gen_img_direct"):
             if client:
                 dernier_prompt_image = (
