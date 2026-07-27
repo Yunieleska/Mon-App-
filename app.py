@@ -380,7 +380,8 @@ elif st.session_state.page == "create_character":
                     file_name = f"char_{st.session_state.pseudo}_{char_name}.png"
                     if supabase:
                         try:
-                            supabase.storage.from_("storyia-images").upload(file_name, uploaded_char_img.getbuffer(), file_options={"upsert": "true"})
+                            # CORRECTION ICI : utilisation de .read() au lieu de .getbuffer()
+                            supabase.storage.from_("storyia-images").upload(file_name, uploaded_char_img.read(), file_options={"upsert": "true"})
                             img_path = supabase.storage.from_("storyia-images").get_public_url(file_name)
                         except Exception:
                             pass
@@ -478,7 +479,8 @@ elif st.session_state.page == "profile":
                 file_name = f"avatar_{user_id}.{file_extension}"
                 
                 try:
-                    supabase.storage.from_("storyia-images").upload(file_name, uploaded_file.getbuffer(), file_options={"upsert": "true"})
+                    # CORRECTION ICI : utilisation de .read() au lieu de .getbuffer()
+                    supabase.storage.from_("storyia-images").upload(file_name, uploaded_file.read(), file_options={"upsert": "true"})
                     public_url = supabase.storage.from_("storyia-images").get_public_url(file_name)
                     
                     supabase.table("users").update({"avatar_url": public_url}).eq("id", user_id).execute()
