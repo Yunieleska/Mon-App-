@@ -124,21 +124,6 @@ def load_msgs(pseudo, char):
     except Exception:
         return []
 
-def get_user_conversations(pseudo):
-    """Retourne uniquement les noms des personnages avec lesquels cet utilisateur a un historique de messages."""
-    if not supabase:
-        return []
-    try:
-        res = supabase.table("messages").select("char_name").eq("user_pseudo", str(pseudo)).execute()
-        chars_met = set()
-        if res.data:
-            for r in res.data:
-                if r.get("char_name"):
-                    chars_met.add(r["char_name"])
-        return list(chars_met)
-    except Exception:
-        return []
-
 def get_all_characters():
     chars = {
         "Caelum": {
@@ -200,6 +185,23 @@ def get_all_characters():
     return chars
 
 CHARACTERS = get_all_characters()
+
+def get_user_conversations(pseudo):
+    """Retourne uniquement les noms des personnages valides avec lesquels cet utilisateur a un historique de messages."""
+    if not supabase or not pseudo or pseudo == "Invité":
+        return []
+    try:
+        res = supabase.table("messages").select("char_name").eq("user_pseudo", str(pseudo)).execute()
+        chars_met = set()
+        if res.data:
+            for r in res.data:
+                c_name = r.get("char_name")
+                # Vérification stricte : le personnage doit exister dans les personnages chargés
+                if c_name and c_name in CHARACTERS:
+                    chars_met.add(c_name)
+        return list(chars_met)
+    except Exception:
+        return []
 
 # --- LOGIN LOGIC ---
 if not st.session_state.logged_in:
