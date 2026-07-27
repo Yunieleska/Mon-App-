@@ -122,9 +122,9 @@ if "pseudo" not in str_lit.session_state:
 str_lit.session_state.pseudo = "Invité"
 
 if "page" not in str_lit.session_state:
-    str_lit.session_state.page = "home"
+str_lit.session_state.page = "home"
 if "char_select" not in str_lit.session_state:
-    str_lit.session_state.char_select = "Caelum"
+str_lit.session_state.char_select = "Caelum"
 
 # --- SUPABASE FUNCTIONS ---
 
