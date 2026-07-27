@@ -54,7 +54,7 @@ page_title="Storyia", layout="wide", initial_sidebar_state="expanded"
 
 # --- STYLE GLOBAL & DESIGN ---
 str_lit.markdown(
-    """
+  """
     <style>
     .stApp {
         background-color: #0b0e14;
