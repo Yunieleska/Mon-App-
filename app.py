@@ -44,9 +44,9 @@ client = None
 try:
 supabase = create_client(
 str_lit.secrets["SUPABASE_URL"], str_lit.secrets["SUPABASE_KEY"]
-    )
+)
 except Exception:
-    supabase = None
+supabase = None
 
 str_lit.set_page_config(
     page_title="Storyia", layout="wide", initial_sidebar_state="expanded"
