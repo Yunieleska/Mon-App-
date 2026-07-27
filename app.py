@@ -210,7 +210,7 @@ def get_all_characters():
         except Exception:
             pass
             
-    return CHARACTERS if 'CHARACTERS' in locals() and not supabase else chars # Sécurité fallback
+    return chars
 
 CHARACTERS = get_all_characters()
 
@@ -500,6 +500,7 @@ elif str_lit.session_state.page == "chat":
         except Exception:
             pass
 
+    # --- AFFICHAGE DES MESSAGES (Corrigé et remis en place) ---
     for msg in messages:
         is_user = (msg["role"] == "user")
         name_to_use = str_lit.session_state.pseudo if is_user else current_char
