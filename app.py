@@ -499,7 +499,7 @@ if str_lit.session_state.page == "home":
 elif str_lit.session_state.page == "create_character":
     str_lit.title("✨ Créer un nouveau personnage")
     
-    # Utilisation de clés uniques (key="...") pour libérer le focus et autoriser la frappe fluide, retours à la ligne et tabulations
+    # Saisie totalement libérée sans conteneur de formulaire bloquant (st.form)
     char_name = str_lit.text_input("Nom du personnage", key="input_char_name")
     char_sex = str_lit.selectbox(
         "Sexe / Genre", ["Homme", "Femme", "Non-binaire", "Autre"], key="select_char_sex"
