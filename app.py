@@ -129,7 +129,6 @@ if "char_select" not in str_lit.session_state:
 
 # --- SUPABASE FUNCTIONS ---
 
-
 def save_msg(pseudo, char, role, content):
     if not supabase:
         return
