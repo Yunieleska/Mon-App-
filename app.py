@@ -42,7 +42,7 @@ except Exception:
 client = None
 
 try:
-    supabase = create_client(
+supabase = create_client(
         str_lit.secrets["SUPABASE_URL"], str_lit.secrets["SUPABASE_KEY"]
     )
 except Exception:
