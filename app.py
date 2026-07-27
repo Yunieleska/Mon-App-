@@ -85,13 +85,14 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- SESSION INITIALIZATION ---
+# --- SESSION INITIALIZATION & STABILIZATION ---
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
 if "pseudo" not in st.session_state: st.session_state.pseudo = "Invité"
 if "page" not in st.session_state: st.session_state.page = "home"
 if "char_select" not in st.session_state: st.session_state.char_select = "Caelum"
 
-if supabase:
+# Vérification robuste et persistante pour éviter les déconnexions intempestives
+if supabase and not st.session_state.logged_in:
     try:
         session = supabase.auth.get_session()
         if session and session.user:
