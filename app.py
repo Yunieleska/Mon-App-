@@ -22,7 +22,7 @@ IMAGE_API_URL = (
 
 def generer_image_huggingface(prompt_image):
   if not hf_api_key:
-    return None, "Clé API Hugging Face manquante dans les secrets."
+    return None, "Clé API Hugging Face manquante."
   headers = {"Authorization": f"Bearer {hf_api_key}"}
   payload = {"inputs": prompt_image}
   try:
@@ -32,9 +32,9 @@ def generer_image_huggingface(prompt_image):
     if response.status_code == 200:
       return response.content, None
     else:
-      return None, f"Erreur API ({response.status_code}): {response.text}"
+      return None, f"Erreur API ({response.status_code})"
   except Exception as e:
-    return None, f"Erreur réseau : {str(e)}"
+    return None, "Erreur réseau / DNS"
 
 
 try:
@@ -75,7 +75,7 @@ str_lit.markdown(
         color: #ffffff !important;
         border: 1px solid rgba(255, 255, 255, 0.15) !important;
         border-radius: 8px !important;
-        width: 100%;
+        height: 42px;
     }
     .stButton>button:hover, button[kind="secondary"]:hover, button[kind="primary"]:hover, div.stFormSubmitButton > button:hover {
         background-color: #30363d !important;
@@ -683,7 +683,7 @@ elif str_lit.session_state.page == "chat":
             f"<img src='{avatar_to_use}' style='width: 38px; height: 38px;"
             " border-radius: 50%; object-fit: cover; margin-top:"
             " 4px;'>",
-            unsafe_allow_html=True,
+            unsafe_allow_html=Type := True,
         )
       with col_txt:
         str_lit.markdown(
@@ -706,32 +706,65 @@ elif str_lit.session_state.page == "chat":
             ).strip()
           else:
             texte_propre = contenu_message
-            prompt_image = (
-                f"Cinematic illustration of {current_char} in a fantasy magic"
-                f" school hallway, dramatic lighting, high quality"
-            )
+            prompt_image = None
 
           str_lit.write(texte_propre)
 
-          if prompt_image:
-            with str_lit.spinner(
-                f"🎨 {current_char} génère l'illustration..."
-            ):
-              image_bytes, err_msg = generer_image_huggingface(prompt_image)
-              if image_bytes:
-                str_lit.image(
-                    image_bytes,
-                    caption=f"Scène - {current_char}",
-                    use_container_width=True,
-                )
-              else:
-                str_lit.info(
-                    f"⚠️ Impossible de charger l'illustration ({err_msg})."
-                    " Vérifiez votre clé `HUGGINGFACE_API_KEY` dans les"
-                    " secrets Streamlit."
-                )
+          if match_image and prompt_image:
+            with str_lit.expander("🖼️ Voir l'illustration de la scène"):
+              with str_lit.spinner(
+                  f"🎨 {current_char} génère l'illustration..."
+              ):
+                image_bytes, err_msg = generer_image_huggingface(prompt_image)
+                if image_bytes:
+                  str_lit.image(
+                      image_bytes,
+                      caption=f"Scène - {current_char}",
+                      use_container_width=True,
+                  )
+                else:
+                  str_lit.warning(
+                      f"Impossible de charger l'illustration ({err_msg})."
+                  )
 
-  user_input = str_lit.chat_input("Écris ton message...")
+  # --- ZONE DE SAISIE AVEC BOUTON D'IMAGE À CÔTÉ ---
+  col_input, col_btn = str_lit.columns([10, 2])
+
+  with col_input:
+    user_input = str_lit.chat_input("Écris ton message...")
+
+  with col_btn:
+    str_lit.markdown(
+        "<div style='margin-top: 28px;'></div>", unsafe_allow_html=True
+    )
+    generer_clique = str_lit.button("🎨 Image", key="btn_gen_img_direct")
+
+  if generer_clique and client:
+    # Génère une image basée sur le dernier message de l'assistant ou le contexte
+    dernier_prompt_image = (
+        f"Cinematic illustration of {current_char} in a fantasy magic school"
+        f" setting, dramatic lighting, high quality"
+    )
+    for m in reversed(messages):
+      if m["role"] == "assistant":
+        m_img = re.search(r"\[IMAGE:\s*(.*?)\]", m["content"], re.IGNORECASE)
+        if m_img:
+          dernier_prompt_image = m_img.group(1).strip()
+        break
+
+    with str_lit.spinner(
+        f"🎨 {current_char} génère l'illustration à la volée..."
+    ):
+      image_bytes, err_msg = generer_image_huggingface(dernier_prompt_image)
+      if image_bytes:
+        str_lit.image(
+            image_bytes,
+            caption=f"Scène - {current_char}",
+            use_container_width=True,
+        )
+      else:
+        str_lit.error(f"Erreur de génération : {err_msg}")
+
   if user_input and client:
     save_msg(str_lit.session_state.pseudo, current_char, "user", user_input)
 
