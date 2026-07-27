@@ -8,8 +8,15 @@ groq_key = os.getenv("GROQ_API_KEY")
 if not groq_key and "GROQ_API_KEY" in st.secrets:
     groq_key = st.secrets["GROQ_API_KEY"]
 
-client = Groq(api_key=groq_key)
-supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+try:
+    client = Groq(api_key=groq_key)
+except Exception:
+    client = None
+
+try:
+    supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+except Exception:
+    supabase = None
 
 st.set_page_config(page_title="Storyia", layout="wide", initial_sidebar_state="expanded")
 
@@ -84,97 +91,113 @@ if "pseudo" not in st.session_state: st.session_state.pseudo = "Invité"
 if "page" not in st.session_state: st.session_state.page = "home"
 if "char_select" not in st.session_state: st.session_state.char_select = "Caelum"
 
-try:
-    session = supabase.auth.get_session()
-    if session and session.user:
-        st.session_state.logged_in = True
-        user_data = supabase.table("users").select("pseudo").eq("id", session.user.id).single().execute()
-        if user_data.data:
-            st.session_state.pseudo = user_data.data["pseudo"]
-except Exception:
-    pass
-
-# --- SUPABASE FUNCTIONS ---
-def save_msg(pseudo, char, role, content):
+if supabase:
     try:
-        supabase.table("messages").insert({"user_pseudo": pseudo, "char_name": char, "role": role, "content": content}).execute()
-    except Exception as e:
-        st.error(f"Erreur de sauvegarde : {e}")
+        session = supabase.auth.get_session()
+        if session and session.user:
+            st.session_state.logged_in = True
+            user_data = supabase.table("users").select("pseudo").eq("id", session.user.id).single().execute()
+            if user_data.data:
+                st.session_state.pseudo = user_data.data["pseudo"]
+    except Exception:
+        pass
+
+# --- SUPABASE FUNCTIONS SÉCURISÉES ---
+def save_msg(pseudo, char, role, content):
+    if not supabase:
+        return
+    try:
+        supabase.table("messages").insert({
+            "user_pseudo": str(pseudo), 
+            "char_name": str(char), 
+            "role": str(role), 
+            "content": str(content)
+        }).execute()
+    except Exception:
+        pass
 
 def load_msgs(pseudo, char):
+    if not supabase:
+        return []
     try:
-        res = supabase.table("messages").select("role, content").eq("user_pseudo", pseudo).eq("char_name", char).execute()
-        return [{"role": r["role"], "content": r["content"]} for r in res.data]
-    except:
+        res = supabase.table("messages").select("role, content").eq("user_pseudo", str(pseudo)).eq("char_name", str(char)).execute()
+        if res.data:
+            return [{"role": r["role"], "content": r["content"]} for r in res.data]
+        return []
+    except Exception:
         return []
 
 def get_user_conversations(pseudo):
+    if not supabase:
+        return {}
     try:
-        res = supabase.table("messages").select("char_name, content, role").eq("user_pseudo", pseudo).execute()
+        res = supabase.table("messages").select("char_name, content, role").eq("user_pseudo", str(pseudo)).execute()
         chars_met = {}
-        for r in res.data:
-            chars_met[r["char_name"]] = r["content"]
+        if res.data:
+            for r in res.data:
+                chars_met[r["char_name"]] = r["content"]
         return chars_met
-    except:
+    except Exception:
         return {}
 
 def get_all_characters():
     chars = {
         "Caelum": {
             "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg", 
-            "prompt": "Tu es Caelum, Prince des Ténèbres.",
+            "prompt": "Tu es Caelum, Prince des Ténèbres. Reste strictement dans ton rôle, adopte un ton immersif de roleplay.",
             "quote": "Ne t'approche pas de moi. Ma vie est déjà tracée, et tu n'as rien à y faire."
         },
         "Alexei": {
             "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg", 
-            "prompt": "Tu es Alexei, mafieux.",
+            "prompt": "Tu es Alexei, mafieux. Reste strictement dans ton rôle, adopte un ton immersif de roleplay.",
             "quote": "Regardez qui s'est perdue sur mon territoire. La petite princesse des Volkov..."
         },
         "Killian": {
             "img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg", 
-            "prompt": "Tu es Killian, motard.",
+            "prompt": "Tu es Killian, motard. Reste strictement dans ton rôle, adopte un ton immersif de roleplay.",
             "quote": "Respire, c'est fini... T'as pas changé, toujours aussi maladroite."
         },
         "Lucas": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/lucas.png.PNG", 
-            "prompt": "Tu es Lucas, populaire.",
+            "prompt": "Tu es Lucas, populaire. Reste strictement dans ton rôle, adopte un ton immersif de roleplay.",
             "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série ?"
         },
         "Ethan": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/ethan.png", 
-            "prompt": "Tu es Ethan, Loup Alpha.",
+            "prompt": "Tu es Ethan, Loup Alpha. Reste strictement dans ton rôle, adopte un ton immersif de roleplay.",
             "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines..."
         },
         "Léo": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/leo.png.PNG", 
-            "prompt": "Tu es Léo, streameur.",
+            "prompt": "Tu es Léo, streameur. Reste strictement dans ton rôle, adopte un ton immersif de roleplay.",
             "quote": "Prête à ce qu'on détruise l'équipe d'en face ?"
         },
         "Liam": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/sign/storyia-images/liam.png.PNG?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85OTJlMjk3Yy0zMjkyLTQ3OWMtYTFhYi1kNTkwOGMzYzdmNzQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJzdG9yeWlhLWltYWdlcy9saWFtLnBuZy5QTkciLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzg1MTAyNTM2LCJleHAiOjE4MTY2Mzg1MzZ9.u6k31EmGbpgzmcmKZcmidKDid0iqGqF_p78ALJdtP08", 
-            "prompt": "Tu es Liam, le grand frère.",
+            "prompt": "Tu es Liam, le grand frère. Reste strictement dans ton rôle, adopte un ton immersif de roleplay.",
             "quote": "Salut, l'amie de ma sœur. Essaie de ne pas faire trop de bruit."
         },
         "Noah": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/sign/storyia-images/noah.png.PNG?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85OTJlMjk3Yy0zMjkyLTQ3OWMtYTFhYi1kNTkwOGMzYzdmNzQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJzdG9yeWlhLWltYWdlcy9ub2FoLnBuZy5QTkciLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzg1MTAyNTgwLCJleHAiOjE4MTY2Mzg1ODB9.dSDMmVTEts9VHKhmbEHqleTJNbiqxhQQ96Q3P5AurFs", 
-            "prompt": "Tu es Noah, quarterback star.",
+            "prompt": "Tu es Noah, quarterback star. Reste strictement dans ton rôle, adopte un ton immersif de roleplay.",
             "quote": "Dis, tu crois qu'on est tous obligés de jouer un rôle pour plaire ?"
         }
     }
     
-    try:
-        res = supabase.table("custom_characters").select("*").execute()
-        if res.data:
-            for item in res.data:
-                if item["is_public"] or item["creator"] == st.session_state.pseudo:
-                    chars[item["name"]] = {
-                        "img": item["img_url"] if item["img_url"] and (item["img_url"].startswith("http") or os.path.exists(item["img_url"])) else "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
-                        "prompt": f"Tu es {item['name']}, un personnage {item['sex']}. Description : {item['description']}. Personnages secondaires / Contexte additionnel : {item['secondary_chars']}",
-                        "quote": item["quote"] if "quote" in item and item["quote"] else f"Bonjour, je suis {item['name']}."
-                    }
-    except Exception:
-        pass
-        
+    if supabase:
+        try:
+            res = supabase.table("custom_characters").select("*").execute()
+            if res.data:
+                for item in res.data:
+                    if item.get("is_public", True) or item.get("creator") == st.session_state.pseudo:
+                        chars[item["name"]] = {
+                            "img": item["img_url"] if item.get("img_url") and (item["img_url"].startswith("http") or os.path.exists(item["img_url"])) else "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
+                            "prompt": f"Tu es {item['name']}, un personnage {item.get('sex', '')}. Description : {item.get('description', '')}. Personnages secondaires / Contexte additionnel : {item.get('secondary_chars', '')}. Reste strictement dans ton rôle.",
+                            "quote": item.get("quote") if item.get("quote") else f"Bonjour, je suis {item['name']}."
+                        }
+        except Exception:
+            pass
+            
     return chars
 
 CHARACTERS = get_all_characters()
@@ -186,22 +209,28 @@ if not st.session_state.logged_in:
         if os.path.exists("bg.png"):
             st.image("bg.png")
         
+        if not supabase or not client:
+            st.error("⚠️ Attention : Vérifie tes clés Supabase et Groq dans les secrets de Streamlit Cloud.")
+
         tab1, tab2 = st.tabs(["Login", "Sign Up"])
         
         with tab1:
             email_log = st.text_input("E-mail", key="login_email")
             password = st.text_input("Password", type="password", key="login_pass")
             if st.button("Log In"):
-                try:
-                    res = supabase.auth.sign_in_with_password({"email": email_log, "password": password})
-                    if res.user:
-                        st.session_state.logged_in = True
-                        user_data = supabase.table("users").select("pseudo").eq("id", res.user.id).single().execute()
-                        if user_data.data:
-                            st.session_state.pseudo = user_data.data["pseudo"]
-                        st.rerun()
-                except Exception as e:
-                    st.error(f"Erreur de connexion : {e}")
+                if supabase:
+                    try:
+                        res = supabase.auth.sign_in_with_password({"email": email_log, "password": password})
+                        if res.user:
+                            st.session_state.logged_in = True
+                            user_data = supabase.table("users").select("pseudo").eq("id", res.user.id).single().execute()
+                            if user_data.data:
+                                st.session_state.pseudo = user_data.data["pseudo"]
+                            st.rerun()
+                    except Exception as e:
+                        st.error(f"Erreur de connexion : {e}")
+                else:
+                    st.error("Base de données non disponible.")
 
         with tab2:
             new_pseudo = st.text_input("Pseudo", key="sign_pseudo")
@@ -209,18 +238,21 @@ if not st.session_state.logged_in:
             new_pass = st.text_input("Password", type="password", key="sign_pass")
             reponse_secrete = st.text_input("Question : Ta couleur préférée ?", key="sign_q")
             if st.button("Sign Up"):
-                try:
-                    auth_res = supabase.auth.sign_up({"email": new_email, "password": new_pass})
-                    if auth_res.user:
-                        supabase.table("users").insert({
-                            "id": auth_res.user.id, 
-                            "pseudo": new_pseudo, 
-                            "email": new_email, 
-                            "secret_answer": reponse_secrete
-                        }).execute()
-                        st.success("Compte créé ! Veuillez vous connecter.")
-                except Exception as e:
-                    st.error(f"Erreur : {e}")
+                if supabase:
+                    try:
+                        auth_res = supabase.auth.sign_up({"email": new_email, "password": new_pass})
+                        if auth_res.user:
+                            supabase.table("users").insert({
+                                "id": auth_res.user.id, 
+                                "pseudo": new_pseudo, 
+                                "email": new_email, 
+                                "secret_answer": reponse_secrete
+                            }).execute()
+                            st.success("Compte créé ! Veuillez vous connecter.")
+                    except Exception as e:
+                        st.error(f"Erreur : {e}")
+                else:
+                    st.error("Base de données non disponible.")
     st.stop()
 
 # --- SIDEBAR ---
@@ -245,7 +277,11 @@ if st.sidebar.button("👤 Profil"):
     st.rerun()
 
 if st.sidebar.button("🚪 Logout"):
-    supabase.auth.sign_out()
+    if supabase:
+        try:
+            supabase.auth.sign_out()
+        except:
+            pass
     st.session_state.logged_in = False
     st.session_state.pseudo = "Invité"
     st.rerun()
@@ -348,23 +384,26 @@ elif st.session_state.page == "create_character":
                 
                 is_public = True if "Public" in visibility else False
                 
-                try:
-                    supabase.table("custom_characters").insert({
-                        "name": char_name,
-                        "sex": char_sex,
-                        "quote": char_quote,
-                        "description": char_description,
-                        "secondary_chars": char_secondary,
-                        "img_url": img_path,
-                        "is_public": is_public,
-                        "creator": st.session_state.pseudo
-                    }).execute()
-                    
-                    st.success(f"Le personnage {char_name} a été créé avec succès !")
-                    st.session_state.page = "home"
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Erreur lors de la création : {e}")
+                if supabase:
+                    try:
+                        supabase.table("custom_characters").insert({
+                            "name": char_name,
+                            "sex": char_sex,
+                            "quote": char_quote,
+                            "description": char_description,
+                            "secondary_chars": char_secondary,
+                            "img_url": img_path,
+                            "is_public": is_public,
+                            "creator": st.session_state.pseudo
+                        }).execute()
+                        
+                        st.success(f"Le personnage {char_name} a été créé avec succès !")
+                        st.session_state.page = "home"
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Erreur lors de la création : {e}")
+                else:
+                    st.error("Base de données non disponible.")
 
 elif st.session_state.page == "messages":
     st.title("Mes Discussions")
@@ -393,60 +432,61 @@ elif st.session_state.page == "messages":
 elif st.session_state.page == "profile":
     st.title("Mon Profil")
     
-    try:
-        user_db = supabase.table("users").select("*").eq("pseudo", st.session_state.pseudo).single().execute()
-        user_info = user_db.data if user_db.data else {}
-        
-        user_email = user_info.get("email", "Non disponible")
-        user_id = user_info.get("id")
-        
-        avatar_path = user_info.get("avatar_url", "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg")
-        if not avatar_path or (not str(avatar_path).startswith("http") and not os.path.exists(avatar_path)):
-            avatar_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+    if supabase:
+        try:
+            user_db = supabase.table("users").select("*").eq("pseudo", st.session_state.pseudo).single().execute()
+            user_info = user_db.data if user_db.data else {}
+            
+            user_email = user_info.get("email", "Non disponible")
+            user_id = user_info.get("id")
+            
+            avatar_path = user_info.get("avatar_url", "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg")
+            if not avatar_path or (not str(avatar_path).startswith("http") and not os.path.exists(avatar_path)):
+                avatar_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
 
-        convs = get_user_conversations(st.session_state.pseudo)
-        nb_collected = len(convs)
-        
-        col1, col2 = st.columns([1, 3])
-        
-        with col1:
-            st.image(avatar_path, use_container_width=True)
+            convs = get_user_conversations(st.session_state.pseudo)
+            nb_collected = len(convs)
             
-        with col2:
-            st.subheader(st.session_state.pseudo)
-            st.write(f"📧 {user_email}")
+            col1, col2 = st.columns([1, 3])
             
-            stat1, stat2, stat3 = st.columns(3)
-            with stat1:
-                st.metric(label="Personnages", value=nb_collected)
-            with stat2:
-                st.metric(label="Abonnés", value=0)
-            with stat3:
-                st.metric(label="Abonnements", value=0)
+            with col1:
+                st.image(avatar_path, use_container_width=True)
+                
+            with col2:
+                st.subheader(st.session_state.pseudo)
+                st.write(f"📧 {user_email}")
+                
+                stat1, stat2, stat3 = st.columns(3)
+                with stat1:
+                    st.metric(label="Personnages", value=nb_collected)
+                with stat2:
+                    st.metric(label="Abonnés", value=0)
+                with stat3:
+                    st.metric(label="Abonnements", value=0)
 
-        st.markdown("---")
-        
-        st.text_input("Pseudo (non modifiable)", value=st.session_state.pseudo, disabled=True)
-        
-        uploaded_file = st.file_uploader("Changer votre photo de profil", type=["png", "jpg", "jpeg"], key="avatar_uploader")
-        
-        if uploaded_file is not None and user_id:
-            file_extension = uploaded_file.name.split(".")[-1]
-            file_name = f"avatar_{user_id}.{file_extension}"
+            st.markdown("---")
             
-            with open(file_name, "wb") as f:
-                f.write(uploaded_file.getbuffer())
+            st.text_input("Pseudo (non modifiable)", value=st.session_state.pseudo, disabled=True)
             
-            try:
-                supabase.table("users").update({"avatar_url": file_name}).eq("id", user_id).execute()
-                st.success("Photo de profil mise à jour avec succès !")
-                st.rerun()
-            except Exception:
-                st.success("Photo enregistrée localement ! (Pour la lier à Supabase, ajoutez la colonne 'avatar_url' dans votre table users).")
-                st.rerun()
+            uploaded_file = st.file_uploader("Changer votre photo de profil", type=["png", "jpg", "jpeg"], key="avatar_uploader")
             
-    except Exception as e:
-        st.error(f"Impossible de charger les données du profil : {e}")
+            if uploaded_file is not None and user_id:
+                file_extension = uploaded_file.name.split(".")[-1]
+                file_name = f"avatar_{user_id}.{file_extension}"
+                
+                with open(file_name, "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+                
+                try:
+                    supabase.table("users").update({"avatar_url": file_name}).eq("id", user_id).execute()
+                    st.success("Photo de profil mise à jour avec succès !")
+                    st.rerun()
+                except Exception:
+                    st.success("Photo enregistrée localement !")
+                    st.rerun()
+                
+        except Exception as e:
+            st.error(f"Impossible de charger les données du profil : {e}")
 
 elif st.session_state.page == "chat":
     current_char = st.session_state.char_select
@@ -477,7 +517,7 @@ elif st.session_state.page == "chat":
         </style>
     """, unsafe_allow_html=True)
 
-    # Affichage de l'en-tête proprement isolé pour ne pas masquer le visage du personnage en arrière-plan
+    # Affichage de l'en-tête proprement isolé
     st.markdown(f"""
         <div class="chat-header-container">
             <h2 style="margin: 0; color: #ffffff;">Chat avec {current_char}</h2>
@@ -488,7 +528,7 @@ elif st.session_state.page == "chat":
     messages = load_msgs(st.session_state.pseudo, current_char)
 
     # --- INITIAL MESSAGE GENERATION ---
-    if not messages:
+    if not messages and client:
         intro_system_prompt = [
             {"role": "system", "content": f"{char_prompt} Commence l'histoire en envoyant un premier message d'accroche immersif en incarnant ton personnage, en te basant sur cette citation : '{char_quote}'."}
         ]
@@ -498,9 +538,7 @@ elif st.session_state.page == "chat":
             save_msg(st.session_state.pseudo, current_char, "assistant", first_message)
             messages = load_msgs(st.session_state.pseudo, current_char)
         except Exception as e:
-            st.error(f"Erreur d'authentification Groq (Vérifie que ta clé 'GROQ_API_KEY' est bien configurée dans les Secrets de Streamlit Cloud) : {e}")
-
-    full_messages = [{"role": "system", "content": char_prompt}] + messages
+            st.error(f"Erreur d'authentification Groq (Vérifie ta clé 'GROQ_API_KEY' dans les Secrets) : {e}")
 
     for msg in messages:
         with st.chat_message(msg["role"]): 
@@ -508,12 +546,16 @@ elif st.session_state.page == "chat":
 
     if prompt := st.chat_input("Écris ton message ici..."):
         save_msg(st.session_state.pseudo, current_char, "user", prompt)
-        full_messages.append({"role": "user", "content": prompt})
+        messages.append({"role": "user", "content": prompt})
         
-        try:
-            res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=full_messages)
-            assistant_reply = res.choices[0].message.content
-            save_msg(st.session_state.pseudo, current_char, "assistant", assistant_reply)
-            st.rerun()
-        except Exception as e:
-            st.error(f"Erreur lors de l'envoi du message : {e}")
+        if client:
+            try:
+                full_messages = [{"role": "system", "content": char_prompt}] + messages
+                res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=full_messages)
+                assistant_reply = res.choices[0].message.content
+                save_msg(st.session_state.pseudo, current_char, "assistant", assistant_reply)
+                st.rerun()
+            except Exception as e:
+                st.error(f"Erreur lors de l'envoi du message : {e}")
+        else:
+            st.error("Client Groq non initialisé.")
