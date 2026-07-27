@@ -224,6 +224,9 @@ if not st.session_state.logged_in:
                             
                             st.session_state.logged_in = True
                             st.session_state.pseudo = pseudo_val
+                            # Sauvegarde du jeton de session pour autoriser les actions Storage sécurisées par RLS
+                            if res.session:
+                                st.session_state.access_token = res.session.access_token
                             st.query_params["user"] = pseudo_val
                             st.rerun()
                     except Exception as e:
@@ -283,6 +286,8 @@ if st.sidebar.button("🚪 Logout"):
             pass
     st.session_state.logged_in = False
     st.session_state.pseudo = "Invité"
+    if "access_token" in st.session_state:
+        del st.session_state.access_token
     if "user" in st.query_params:
         del st.query_params["user"]
     st.rerun()
@@ -351,7 +356,7 @@ if st.session_state.page == "home":
         with p_col3:
             if st.session_state.home_page < total_pages - 1:
                 if st.button("Suivant ➡️", use_container_width=True):
-                    st.session_state.home_page += 1
+                    st.session_state.home_page -= 1
                     st.rerun()
 
 elif st.session_state.page == "create_character":
@@ -380,7 +385,9 @@ elif st.session_state.page == "create_character":
                     file_name = f"char_{st.session_state.pseudo}_{char_name}.png"
                     if supabase:
                         try:
-                            # CORRECTION ICI : utilisation de .read() au lieu de .getbuffer()
+                            # Utilisation du token de session si disponible pour respecter les RLS
+                            if "access_token" in st.session_state:
+                                supabase.auth.set_session(st.session_state.access_token, "")
                             supabase.storage.from_("storyia-images").upload(file_name, uploaded_char_img.read(), file_options={"upsert": "true"})
                             img_path = supabase.storage.from_("storyia-images").get_public_url(file_name)
                         except Exception:
@@ -479,7 +486,10 @@ elif st.session_state.page == "profile":
                 file_name = f"avatar_{user_id}.{file_extension}"
                 
                 try:
-                    # CORRECTION ICI : utilisation de .read() au lieu de .getbuffer()
+                    # Injection du token de session utilisateur pour valider les RLS de Supabase Storage
+                    if "access_token" in st.session_state:
+                        supabase.auth.set_session(st.session_state.access_token, "")
+                        
                     supabase.storage.from_("storyia-images").upload(file_name, uploaded_file.read(), file_options={"upsert": "true"})
                     public_url = supabase.storage.from_("storyia-images").get_public_url(file_name)
                     
@@ -648,4 +658,4 @@ elif st.session_state.page == "chat":
                 except Exception as e:
                     st.error(f"Erreur lors de l'envoi du message : {e}")
             else:
-                st.error("Client Groq non initialisé.")
+                st.error("Client Groq non initialisé.")     
