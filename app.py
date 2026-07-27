@@ -25,16 +25,15 @@ def generer_image_huggingface(prompt_image):
 if not hf_api_key:
 return None, "Clé API Hugging Face manquante."
 try:
-        client_hf = InferenceClient(
-            model="black-forest-labs/FLUX.1-schnell", token=hf_api_key
-        )
-        image = client_hf.text_to_image(prompt_image)
-
-        buf = io.BytesIO()
-        image.save(buf, format="JPEG")
-        return buf.getvalue(), None
-    except Exception as e:
-        return None, f"Erreur Hugging Face : {str(e)}"
+client_hf = InferenceClient(
+model="black-forest-labs/FLUX.1-schnell", token=hf_api_key
+)
+image = client_hf.text_to_image(prompt_image)
+buf = io.BytesIO()
+image.save(buf, format="JPEG")
+return buf.getvalue(), None
+except Exception as e:
+return None, f"Erreur Hugging Face : {str(e)}"
 
 
 try:
