@@ -496,10 +496,96 @@ if str_lit.session_state.page == "home":
                 del str_lit.query_params["chat_target"]
             str_lit.rerun()
 
+elif str_lit.session_state.page == "chat":
+    char_name = str_lit.session_state.get("char_select", "Caelum")
+    char_data = CHARACTERS.get(char_name, list(CHARACTERS.values())[0])
+
+    col_h1, col_h2 = str_lit.columns([1, 5])
+    with col_h1:
+        img_src = char_data["img"]
+        if not img_src.startswith("http") and not os.path.exists(img_src):
+            img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+        str_lit.image(img_src, width=70)
+    with col_h2:
+        str_lit.title(char_name)
+        str_lit.caption(f'"{char_data["quote"]}"')
+
+    str_lit.markdown("---")
+
+    messages = load_msgs(str_lit.session_state.pseudo, char_name)
+    if not messages:
+        welcome_msg = char_data["quote"]
+        messages = [{"role": "assistant", "content": welcome_msg}]
+        save_msg(str_lit.session_state.pseudo, char_name, "assistant", welcome_msg)
+
+    for message in messages:
+        with str_lit.chat_message(message["role"]):
+            content_text = message["content"]
+            match = re.search(r"\[IMAGE:\s*(.*?)\]", content_text)
+            if match:
+                img_prompt = match.group(1).strip()
+                clean_text = re.sub(r"\[IMAGE:\s*.*?\]", "", content_text).strip()
+                str_lit.write(clean_text)
+                
+                with str_lit.spinner("Génération de l'image..."):
+                    img_bytes, err = generer_image_huggingface(img_prompt, char_name)
+                    if img_bytes:
+                        str_lit.image(img_bytes, caption=img_prompt, use_container_width=True)
+                        save_to_gallery(str_lit.session_state.pseudo, char_name, img_bytes, img_prompt)
+                    else:
+                        str_lit.warning(f"Impossible de générer l'image : {err}")
+            else:
+                str_lit.write(content_text)
+
+    user_input = str_lit.chat_input("Écris ton message...")
+    if user_input:
+        with str_lit.chat_message("user"):
+            str_lit.write(user_input)
+        save_msg(str_lit.session_state.pseudo, char_name, "user", user_input)
+        messages.append({"role": "user", "content": user_input})
+
+        if client:
+            try:
+                system_prompt = char_data["prompt"]
+                formatted_msgs = [{"role": "system", "content": system_prompt}]
+                for m in messages[-10:]:
+                    formatted_msgs.append({"role": m["role"], "content": m["content"]})
+
+                response = client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=formatted_msgs,
+                    temperature=0.8,
+                    max_tokens=800,
+                )
+                assistant_response = response.choices[0].message.content
+            except Exception as e:
+                assistant_response = f"Erreur de communication avec l'IA : {str(e)}"
+        else:
+            assistant_response = "Client Groq non configuré."
+
+        with str_lit.chat_message("assistant"):
+            match = re.search(r"\[IMAGE:\s*(.*?)\]", assistant_response)
+            if match:
+                img_prompt = match.group(1).strip()
+                clean_text = re.sub(r"\[IMAGE:\s*.*?\]", "", assistant_response).strip()
+                str_lit.write(clean_text)
+                
+                with str_lit.spinner("Génération de l'image..."):
+                    img_bytes, err = generer_image_huggingface(img_prompt, char_name)
+                    if img_bytes:
+                        str_lit.image(img_bytes, caption=img_prompt, use_container_width=True)
+                        save_to_gallery(str_lit.session_state.pseudo, char_name, img_bytes, img_prompt)
+                    else:
+                        str_lit.warning(f"Impossible de générer l'image : {err}")
+            else:
+                str_lit.write(assistant_response)
+
+        save_msg(str_lit.session_state.pseudo, char_name, "assistant", assistant_response)
+        str_lit.rerun()
+
 elif str_lit.session_state.page == "create_character":
     str_lit.title("✨ Créer un nouveau personnage")
     
-    # Saisie totalement libérée sans conteneur de formulaire bloquant (st.form)
     char_name = str_lit.text_input("Nom du personnage", key="input_char_name")
     char_sex = str_lit.selectbox(
         "Sexe / Genre", ["Homme", "Femme", "Non-binaire", "Autre"], key="select_char_sex"
