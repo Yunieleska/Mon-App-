@@ -589,6 +589,51 @@ elif str_lit.session_state.page == "profile":
                 ).execute()
                 str_lit.success("Photo mise à jour !")
                 str_lit.rerun()
+
+            # --- SECTION : MES PERSONNAGES CRÉÉS ---
+            str_lit.markdown("---")
+            str_lit.subheader("✨ Mes Personnages Créés")
+            
+            chars_res = (
+                supabase.table("custom_characters")
+                .select("*")
+                .eq("creator", str_lit.session_state.pseudo)
+                .execute()
+            )
+            user_created_chars = chars_res.data if chars_res.data else []
+
+            if not user_created_chars:
+                str_lit.info("Vous n'avez pas encore créé de personnage. Rendez-vous dans l'onglet 'Créer un Personnage' !")
+            else:
+                for c_item in user_created_chars:
+                    c_name = c_item.get("name")
+                    c_img = c_item.get("img_url", "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg")
+                    c_quote = c_item.get("quote", "")
+                    c_vis = "Public" if c_item.get("is_public") else "Privé"
+
+                    if not c_img.startswith("http") and not os.path.exists(c_img):
+                        c_img = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+
+                    col_c1, col_c2, col_c3 = str_lit.columns([1, 4, 2])
+                    with col_c1:
+                        str_lit.image(c_img, width=70)
+                    with col_c2:
+                        str_lit.markdown(f"**{c_name}** ({c_vis})")
+                        str_lit.caption(f'"{c_quote}"')
+                    with col_c3:
+                        if str_lit.button("Discuter", key=f"chat_my_char_{c_name}"):
+                            str_lit.session_state.char_select = c_name
+                            str_lit.session_state.page = "chat"
+                            str_lit.rerun()
+                        if str_lit.button("Supprimer", key=f"del_my_char_{c_name}"):
+                            try:
+                                supabase.table("custom_characters").delete().eq("name", c_name).eq("creator", str_lit.session_state.pseudo).execute()
+                                str_lit.success(f"Personnage '{c_name}' supprimé.")
+                                str_lit.rerun()
+                            except Exception as e:
+                                str_lit.error(f"Erreur suppression : {e}")
+                    str_lit.markdown("<br>", unsafe_allow_html=True)
+
         except Exception as e:
             str_lit.error(f"Erreur profil : {e}")
 
