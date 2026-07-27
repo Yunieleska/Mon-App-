@@ -85,7 +85,6 @@ st.markdown("""
 # --- PERSISTANCE PAR URL (ANTI-RESET STREAMLIT) ---
 query_params = st.query_params
 
-# Synchronisation URL <-> Session State
 if "user" in query_params and query_params["user"]:
     st.session_state.logged_in = True
     st.session_state.pseudo = query_params["user"]
@@ -538,7 +537,7 @@ elif st.session_state.page == "chat":
         except Exception as e:
             st.error(f"Erreur d'authentification Groq : {e}")
 
-    # --- AFFICHAGE DES MESSAGES AVEC OPTION D'ÉDITION ---
+    # --- AFFICHAGE DES MESSAGES AVEC BOUTON DE MODIFICATION BIEN VISIBLE ---
     for idx, msg in enumerate(messages):
         with st.chat_message(msg["role"]): 
             if msg["role"] == "user":
@@ -547,14 +546,13 @@ elif st.session_state.page == "chat":
                     st.session_state[edit_key] = False
 
                 if not st.session_state[edit_key]:
-                    cols = st.columns([8, 1])
-                    with cols[0]:
-                        st.write(msg["content"])
-                    with cols[1]:
-                        if st.button("✏️", key=f"btn_edit_{idx}", help="Modifier ce message"):
-                            st.session_state[edit_key] = True
-                            st.rerun()
+                    # Affichage clair du message et d'un bouton explicite en dessous
+                    st.write(msg["content"])
+                    if st.button("✏️ Modifier ce message", key=f"btn_edit_{idx}"):
+                        st.session_state[edit_key] = True
+                        st.rerun()
                 else:
+                    # Mode édition actif avec zone de texte large
                     new_content = st.text_area("Modifier le message :", value=msg["content"], key=f"input_edit_{idx}")
                     col_save, col_cancel = st.columns([1, 1])
                     with col_save:
