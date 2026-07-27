@@ -10,7 +10,7 @@ from huggingface_hub import InferenceClient
 # --- CONFIGURATION ---
 groq_key = os.getenv("GROQ_API_KEY")
 if not groq_key and "GROQ_API_KEY" in str_lit.secrets:
-    groq_key = str_lit.secrets["GROQ_API_KEY"]
+groq_key = str_lit.secrets["GROQ_API_KEY"]
 
 hf_api_key = os.getenv("HUGGINGFACE_API_KEY")
 if not hf_api_key and "HUGGINGFACE_API_KEY" in str_lit.secrets:
