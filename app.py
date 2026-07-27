@@ -22,37 +22,45 @@ BACKGROUND_IMG_NAME = "bg.png"
 SIDEBAR_HEADER_IMG = "couple.png"
 
 
-def generer_image_huggingface(prompt_image, image_reference_url=None):
+def generer_image_huggingface(prompt_image, current_char_name=None):
+    """
+    Génère une image en mode Text-to-Image pur avec SDXL en ancrant l'identité 
+    du personnage pour que ses traits ne bougent pas d'une scène à l'autre.
+    """
     if not hf_api_key:
         return None, "Clé API Hugging Face manquante."
     try:
-        # Si une image de référence du personnage est fournie, on utilise SDXL en mode Image-to-Image
-        if image_reference_url and image_reference_url.startswith("http"):
-            response = requests.get(image_reference_url)
-            init_image = Image.open(io.BytesIO(response.content)).convert("RGB")
-            
-            client_hf = InferenceClient(
-                model="stabilityai/stable-diffusion-xl-base-1.0", token=hf_api_key
-            )
-            
-            prompt_realiste = (
-                f"Photorealistic, highly detailed raw photo, cinematic lighting, "
-                f"same face and character features as reference image, 8k resolution, {prompt_image}"
-            )
-            
-            # strength=0.4 permet de modifier le décor tout en préservant le visage du personnage
-            image = client_hf.image_to_image(
-                init_image, 
-                prompt=prompt_realiste, 
-                strength=0.4
-            )
-        else:
-            # Fallback par défaut si pas d'image de référence
-            client_hf = InferenceClient(
-                model="black-forest-labs/FLUX.1-schnell", token=hf_api_key
-            )
-            prompt_realiste = f"Photorealistic, highly detailed raw photo, cinematic lighting, 8k resolution, {prompt_image}"
-            image = client_hf.text_to_image(prompt_realiste)
+        # Client unique basé sur le modèle SDXL que vous souhaitez conserver
+        client_hf = InferenceClient(
+            model="stabilityai/stable-diffusion-xl-base-1.0", token=hf_api_key
+        )
+        
+        # Base d'ancrage visuel par personnage (similaire à une Character Sheet / Emochi)
+        character_identities = {
+            "Caelum": "A detailed anime illustration of Caelum, a handsome young man with dark piercing eyes, dark hair, prince of darkness style, fantasy outfit",
+            "Alexei": "A detailed anime illustration of Alexei, a dangerous mafia leader with sharp intense eyes, slick dark hair, elegant dark suit",
+            "Killian": "A detailed anime illustration of Killian, a cool biker with messy hair, leather jacket, intense gaze",
+            "Lucas": "A detailed anime illustration of Lucas, a popular high school boy with charming smile, trendy casual clothes",
+            "Ethan": "A detailed anime illustration of Ethan, a fierce alpha wolf man with wild hair, piercing eyes, mysterious aura",
+            "Léo": "A detailed anime illustration of Leo, a stylish streamer boy with headphones around his neck, energetic look",
+            "Liam": "A detailed anime illustration of Liam, an older brother figure with calm and protective expression",
+            "Noah": "A detailed anime illustration of Noah, a handsome quarterback athlete in sports jacket"
+        }
+
+        # Récupération de l'identité fixe ou description générique par défaut
+        char_identity = character_identities.get(
+            current_char_name, 
+            f"A detailed anime illustration of {current_char_name or 'the character'}"
+        )
+
+        # Construction du prompt final combinant l'identité fixe et la scène en cours
+        prompt_final = (
+            f"{char_identity}. In the scene: {prompt_image}. "
+            f"Masterwork, high quality, detailed background, cinematic lighting, 8k resolution."
+        )
+
+        # Appel strict en mode Text-to-Image
+        image = client_hf.text_to_image(prompt_final)
 
         buf = io.BytesIO()
         image.save(buf, format="JPEG")
@@ -753,8 +761,8 @@ elif str_lit.session_state.page == "chat":
                             with str_lit.spinner(
                                 f"🎨 {current_char} génère l'illustration..."
                             ):
-                                # Utilisation de l'image de référence du personnage pour garder les traits du visage
-                                image_bytes, err_msg = generer_image_huggingface(prompt_image, image_reference_url=bg_image)
+                                # Utilisation de Text-to-Image avec ancrage du personnage actif
+                                image_bytes, err_msg = generer_image_huggingface(prompt_image, current_char_name=current_char)
                                 if image_bytes:
                                     str_lit.image(
                                         image_bytes,
@@ -786,7 +794,7 @@ elif str_lit.session_state.page == "chat":
                 with str_lit.spinner(
                     f"🎨 {current_char} génère l'illustration à la volée..."
                 ):
-                    image_bytes, err_msg = generer_image_huggingface(dernier_prompt_image, image_reference_url=bg_image)
+                    image_bytes, err_msg = generer_image_huggingface(dernier_prompt_image, current_char_name=current_char)
                     if image_bytes:
                         str_lit.image(
                             image_bytes,
