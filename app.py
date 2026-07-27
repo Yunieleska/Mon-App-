@@ -41,19 +41,19 @@ st.markdown("""
     [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] p {
         color: #ffffff !important;
     }
-    .stButton>button {
+    .stButton>button, button[kind="secondary"], button[kind="primary"], div.stFormSubmitButton > button {
         background-color: #21262d !important;
         color: #ffffff !important;
         border: 1px solid rgba(255, 255, 255, 0.15) !important;
         border-radius: 8px !important;
         width: 100%;
     }
-    .stButton>button:hover {
+    .stButton>button:hover, button[kind="secondary"]:hover, button[kind="primary"]:hover, div.stFormSubmitButton > button:hover {
         background-color: #30363d !important;
         border-color: #ffffff !important;
         color: #ffffff !important;
     }
-    .stButton>button p {
+    .stButton>button p, div.stFormSubmitButton > button p {
         color: #ffffff !important;
     }
     .storyia-grid {
@@ -372,7 +372,6 @@ elif st.session_state.page == "create_character":
         
         visibility = st.radio("Visibilité", ["Public (visible par toute la communauté)", "Privé (uniquement pour moi)"])
         
-        # Bouton corrigé avec style cohérent (fond sombre + bordure)
         submitted = st.form_submit_button("🚀 Créer le personnage", use_container_width=True)
         
         if submitted:
@@ -544,7 +543,6 @@ elif st.session_state.page == "chat":
         except Exception as e:
             st.error(f"Erreur d'authentification Groq : {e}")
 
-    # --- RÉCUPÉRATION DE L'AVATAR UTILISATEUR POUR LE CHAT ---
     user_avatar_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
     if supabase:
         try:
@@ -558,7 +556,6 @@ elif st.session_state.page == "chat":
 
     char_avatar_path = bg_image
 
-    # --- AFFICHAGE DES MESSAGES AVEC AVATARS Ronds ---
     for idx, msg in enumerate(messages):
         is_user = (msg["role"] == "user")
         avatar_to_use = user_avatar_path if is_user else char_avatar_path
@@ -624,7 +621,6 @@ elif st.session_state.page == "chat":
             
             st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
 
-    # --- FORMULAIRE DE SAISIE STABLE (100% CLIQUABLE) ---
     st.markdown("<div style='margin-top: 40px;'></div>", unsafe_allow_html=True)
     with st.form(key="chat_form", clear_on_submit=True):
         col_input, col_btn = st.columns([5, 1])
