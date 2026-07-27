@@ -199,7 +199,6 @@ def get_all_characters():
         " l'ambiance, du personnage ou du décor, photorealistic shot]."
     )
 
-    # Lord Valerian a été retiré de cette liste
     chars = {
         "Caelum": {
             "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
@@ -475,6 +474,85 @@ if str_lit.session_state.page == "home":
             if "chat_target" in str_lit.query_params:
                 del str_lit.query_params["chat_target"]
             str_lit.rerun()
+
+elif str_lit.session_state.page == "chat":
+    current_char = str_lit.session_state.char_select
+    char_data = CHARACTERS.get(current_char, CHARACTERS["Caelum"])
+
+    col_h1, col_h2 = str_lit.columns([1, 5])
+    with col_h1:
+        str_lit.image(char_data["img"], width=80)
+    with col_h2:
+        str_lit.title(current_char)
+        str_lit.caption(char_data["quote"])
+
+    str_lit.markdown("---")
+
+    messages = load_msgs(str_lit.session_state.pseudo, current_char)
+    if not messages:
+        intro_msg = f"*{char_data['quote']}*"
+        messages.append({"role": "assistant", "content": intro_msg})
+        save_msg(str_lit.session_state.pseudo, current_char, "assistant", intro_msg)
+
+    for msg in messages:
+        with str_lit.chat_message(msg["role"]):
+            content = msg["content"]
+            match = re.search(r"\[IMAGE:\s*(.*?)\]", content)
+            if match:
+                img_prompt = match.group(1)
+                text_clean = content.replace(match.group(0), "").strip()
+                str_lit.write(text_clean)
+                with str_lit.spinner("Génération de l'image..."):
+                    img_bytes, err = generer_image_huggingface(img_prompt, current_char)
+                    if img_bytes:
+                        str_lit.image(img_bytes, caption=img_prompt, use_container_width=True)
+                        save_to_gallery(str_lit.session_state.pseudo, current_char, img_bytes, img_prompt)
+                    else:
+                        str_lit.warning(f"Impossible de générer l'image : {err}")
+            else:
+                str_lit.write(content)
+
+    user_input = str_lit.chat_input("Votre message...")
+    if user_input:
+        with str_lit.chat_message("user"):
+            str_lit.write(user_input)
+        save_msg(str_lit.session_state.pseudo, current_char, "user", user_input)
+        messages.append({"role": "user", "content": user_input})
+
+        if client:
+            try:
+                system_prompt = char_data["prompt"]
+                api_messages = [{"role": "system", "content": system_prompt}] + messages[-1000:]
+
+                response = client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=api_messages,
+                    temperature=0.8,
+                )
+                bot_reply = response.choices[0].message.content
+            except Exception as e:
+                bot_reply = f"Erreur de communication avec l'IA : {str(e)}"
+        else:
+            bot_reply = "Client Groq non initialisé."
+
+        with str_lit.chat_message("assistant"):
+            match = re.search(r"\[IMAGE:\s*(.*?)\]", bot_reply)
+            if match:
+                img_prompt = match.group(1)
+                text_clean = bot_reply.replace(match.group(0), "").strip()
+                str_lit.write(text_clean)
+                with str_lit.spinner("Génération de l'image..."):
+                    img_bytes, err = generer_image_huggingface(img_prompt, current_char)
+                    if img_bytes:
+                        str_lit.image(img_bytes, caption=img_prompt, use_container_width=True)
+                        save_to_gallery(str_lit.session_state.pseudo, current_char, img_bytes, img_prompt)
+                    else:
+                        str_lit.warning(f"Impossible de générer l'image : {err}")
+            else:
+                str_lit.write(bot_reply)
+
+        save_msg(str_lit.session_state.pseudo, current_char, "assistant", bot_reply)
+        str_lit.rerun()
 
 elif str_lit.session_state.page == "create_character":
     str_lit.title("✨ Créer un nouveau personnage")
