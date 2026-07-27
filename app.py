@@ -218,7 +218,7 @@ def get_all_characters():
         },
         "Lucas": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/lucas.png.PNG",
-            "prompt": "Tu es Lucas, populaire." + base_instruction,
+            "prompt": "Tu es Lucas, un garçon populaire, décontracté et complice. RÈGLE ABSOLUE : Tu n'as jamais sauvé Yuna d'un accident de voiture (c'est le rôle d'un autre personnage). Ton univers est celui d'un lycéen/étudiant populaire, tu proposes simplement de squatter le canapé pour regarder une série ensemble." + base_instruction,
             "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série ?",
         },
         "Ethan": {
@@ -496,7 +496,7 @@ elif str_lit.session_state.page == "chat":
                 user_pseudo = str_lit.session_state.pseudo
                 init_prompt = [
                     {"role": "system", "content": char_data["prompt"]},
-                    {"role": "user", "content": f"L'utilisateur qui te parle s'appelle {user_pseudo}. Écris un long premier message d'introduction immersif, descriptif et détaillé pour débuter notre roleplay avec {user_pseudo}. Ta phrase d'accroche de référence est : \"{char_data['quote']}\". Mets {user_pseudo} tout de suite dans l'ambiance, décris la scène, tes actions (sachant que c'est toi qui as sauvé {user_pseudo} de son accident de voiture si tu es Killian), sans JAMAIS décrire son physique ou ses vêtements, et termine obligatoirement par une balise [IMAGE: description précise en anglais]."}
+                    {"role": "user", "content": f"L'utilisateur qui te parle s'appelle {user_pseudo}. Écris un long premier message d'introduction immersif, descriptif et détaillé pour débuter notre roleplay avec {user_pseudo}. Ta phrase d'accroche de référence est : \"{char_data['quote']}\". Mets {user_pseudo} tout de suite dans l'ambiance, décris la scène, tes actions en restant strictement fidèle à ton propre profil (sans t'approprier les accidents des autres), sans JAMAIS décrire son physique ou ses vêtements, et termine obligatoirement par une balise [IMAGE: description précise en anglais]."}
                 ]
                 resp_init = client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
@@ -574,7 +574,7 @@ elif str_lit.session_state.page == "chat":
         if client:
             try:
                 user_pseudo = str_lit.session_state.pseudo
-                context_reminder = {"role": "system", "content": f"Rappel important : Ton interlocuteur actuel s'appelle {user_pseudo}. Adresse-toi directement à elle au féminin."}
+                context_reminder = {"role": "system", "content": f"Rappel important : Ton interlocuteur actuel s'appelle {user_pseudo}. Adresse-toi directement à elle au féminin en respectant strictement ton profil d'origine."}
                 system_prompt = char_data["prompt"]
                 api_messages = [{"role": "system", "content": system_prompt}, context_reminder] + messages[-1000:]
 
