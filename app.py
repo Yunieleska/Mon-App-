@@ -785,7 +785,6 @@ elif str_lit.session_state.page == "profile":
                             with col_u1:
                                 str_lit.write(f"**{u_pseudo}**")
                             with col_u2:
-                                # Vérifie si on suit déjà cet utilisateur
                                 is_following = False
                                 try:
                                     check_f = supabase.table("follows").select("id").eq("follower_pseudo", str_lit.session_state.pseudo).eq("following_pseudo", u_pseudo).execute()
@@ -862,4 +861,4 @@ elif str_lit.session_state.page == "profile":
                         str_lit.error(f"Erreur lors de la mise à jour : {e}")
 
         except Exception as e:
-        str_lit.error(f"Erreur de chargement du profil : {e}")
+            str_lit.error(f"Erreur de chargement du profil : {e}")
