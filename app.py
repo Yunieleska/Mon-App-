@@ -85,23 +85,15 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- SESSION INITIALIZATION & STABILIZATION ---
-if "logged_in" not in st.session_state: st.session_state.logged_in = False
-if "pseudo" not in st.session_state: st.session_state.pseudo = "Invité"
-if "page" not in st.session_state: st.session_state.page = "home"
-if "char_select" not in st.session_state: st.session_state.char_select = "Caelum"
-
-# Vérification robuste et persistante pour éviter les déconnexions intempestives
-if supabase and not st.session_state.logged_in:
-    try:
-        session = supabase.auth.get_session()
-        if session and session.user:
-            st.session_state.logged_in = True
-            user_data = supabase.table("users").select("pseudo").eq("id", session.user.id).single().execute()
-            if user_data.data:
-                st.session_state.pseudo = user_data.data["pseudo"]
-    except Exception:
-        pass
+# --- SESSION INITIALIZATION & STABILIZATION (CORRIGÉ CONTRE LES DÉCONNEXIONS) ---
+if "logged_in" not in st.session_state: 
+    st.session_state.logged_in = False
+if "pseudo" not in st.session_state: 
+    st.session_state.pseudo = "Invité"
+if "page" not in st.session_state: 
+    st.session_state.page = "home"
+if "char_select" not in st.session_state: 
+    st.session_state.char_select = "Caelum"
 
 # --- SUPABASE FUNCTIONS SÉCURISÉES ---
 def save_msg(pseudo, char, role, content):
@@ -222,11 +214,13 @@ if not st.session_state.logged_in:
                 if supabase:
                     try:
                         res = supabase.auth.sign_in_with_password({"email": email_log, "password": password})
-                        if res.user:
+                        if res and res.user:
                             st.session_state.logged_in = True
                             user_data = supabase.table("users").select("pseudo").eq("id", res.user.id).single().execute()
                             if user_data.data:
                                 st.session_state.pseudo = user_data.data["pseudo"]
+                            else:
+                                st.session_state.pseudo = email_log.split("@")[0]
                             st.rerun()
                     except Exception as e:
                         st.error(f"Erreur de connexion : {e}")
