@@ -540,56 +540,85 @@ elif st.session_state.page == "chat":
         except Exception as e:
             st.error(f"Erreur d'authentification Groq : {e}")
 
-    # --- AFFICHAGE DES MESSAGES AVEC BOUTON DE MODIFICATION ---
-    for idx, msg in enumerate(messages):
-        with st.chat_message(msg["role"]): 
-            if msg["role"] == "user":
-                edit_key = f"edit_mode_{idx}"
-                if edit_key not in st.session_state:
-                    st.session_state[edit_key] = False
+    # --- RÉCUPÉRATION DE L'AVATAR UTILISATEUR POUR LE CHAT ---
+    user_avatar_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+    if supabase:
+        try:
+            u_db = supabase.table("users").select("avatar_url").eq("pseudo", str(st.session_state.pseudo)).single().execute()
+            if u_db.data and u_db.data.get("avatar_url"):
+                p_url = u_db.data["avatar_url"]
+                if str(p_url).startswith("http") or os.path.exists(str(p_url)):
+                    user_avatar_path = p_url
+        except Exception:
+            pass
 
-                if not st.session_state[edit_key]:
-                    st.write(msg["content"])
-                    if st.button("✏️ Modifier ce message", key=f"btn_edit_{idx}"):
-                        st.session_state[edit_key] = True
-                        st.rerun()
-                else:
-                    new_content = st.text_area("Modifier le message :", value=msg["content"], key=f"input_edit_{idx}")
-                    col_save, col_cancel = st.columns([1, 1])
-                    with col_save:
-                        if st.button("💾 Enregistrer", key=f"save_edit_{idx}"):
-                            if supabase and new_content.strip():
-                                try:
-                                    supabase.table("messages").delete().eq("user_pseudo", str(st.session_state.pseudo)).eq("char_name", str(current_char)).execute()
-                                    
-                                    messages[idx]["content"] = new_content
-                                    trimmed_messages = messages[:idx+1]
-                                    
-                                    for m in trimmed_messages:
-                                        supabase.table("messages").insert({
-                                            "user_pseudo": str(st.session_state.pseudo),
-                                            "char_name": str(current_char),
-                                            "role": m["role"],
-                                            "content": m["content"]
-                                        }).execute()
-                                        
-                                    st.session_state[edit_key] = False
-                                    
-                                    if idx == len(messages) - 1 and client:
-                                        full_messages = [{"role": "system", "content": char_prompt}] + trimmed_messages
-                                        res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=full_messages)
-                                        assistant_reply = res.choices[0].message.content
-                                        save_msg(st.session_state.pseudo, current_char, "assistant", assistant_reply)
-                                        
-                                    st.rerun()
-                                except Exception as e:
-                                    st.error(f"Erreur lors de la modification : {e}")
-                    with col_cancel:
-                        if st.button("❌ Annuler", key=f"cancel_edit_{idx}"):
-                            st.session_state[edit_key] = False
+    char_avatar_path = bg_image
+
+    # --- AFFICHAGE DES MESSAGES AVEC AVATARS Ronds ---
+    for idx, msg in enumerate(messages):
+        is_user = (msg["role"] == "user")
+        avatar_to_use = user_avatar_path if is_user else char_avatar_path
+        name_to_use = st.session_state.pseudo if is_user else current_char
+
+        with st.container():
+            col_av, col_txt = st.columns([1, 11])
+            with col_av:
+                st.markdown(
+                    f"<img src='{avatar_to_use}' style='width: 38px; height: 38px; border-radius: 50%; object-fit: cover; margin-top: 4px;'>", 
+                    unsafe_allow_html=True
+                )
+            with col_txt:
+                st.markdown(f"<b style='color: #ffffff; font-size: 14px;'>{name_to_use}</b>", unsafe_allow_html=True)
+                
+                if is_user:
+                    edit_key = f"edit_mode_{idx}"
+                    if edit_key not in st.session_state:
+                        st.session_state[edit_key] = False
+
+                    if not st.session_state[edit_key]:
+                        st.write(msg["content"])
+                        if st.button("✏️ Modifier ce message", key=f"btn_edit_{idx}"):
+                            st.session_state[edit_key] = True
                             st.rerun()
-            else:
-                st.write(msg["content"])
+                    else:
+                        new_content = st.text_area("Modifier le message :", value=msg["content"], key=f"input_edit_{idx}")
+                        col_save, col_cancel = st.columns([1, 1])
+                        with col_save:
+                            if st.button("💾 Enregistrer", key=f"save_edit_{idx}"):
+                                if supabase and new_content.strip():
+                                    try:
+                                        supabase.table("messages").delete().eq("user_pseudo", str(st.session_state.pseudo)).eq("char_name", str(current_char)).execute()
+                                        
+                                        messages[idx]["content"] = new_content
+                                        trimmed_messages = messages[:idx+1]
+                                        
+                                        for m in trimmed_messages:
+                                            supabase.table("messages").insert({
+                                                "user_pseudo": str(st.session_state.pseudo),
+                                                "char_name": str(current_char),
+                                                "role": m["role"],
+                                                "content": m["content"]
+                                            }).execute()
+                                            
+                                        st.session_state[edit_key] = False
+                                        
+                                        if idx == len(messages) - 1 and client:
+                                            full_messages = [{"role": "system", "content": char_prompt}] + trimmed_messages
+                                            res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=full_messages)
+                                            assistant_reply = res.choices[0].message.content
+                                            save_msg(st.session_state.pseudo, current_char, "assistant", assistant_reply)
+                                            
+                                        st.rerun()
+                                    except Exception as e:
+                                        st.error(f"Erreur lors de la modification : {e}")
+                        with col_cancel:
+                            if st.button("❌ Annuler", key=f"cancel_edit_{idx}"):
+                                st.session_state[edit_key] = False
+                                st.rerun()
+                else:
+                    st.write(msg["content"])
+            
+            st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
 
     # --- FORMULAIRE DE SAISIE STABLE (100% CLIQUABLE) ---
     st.markdown("<div style='margin-top: 40px;'></div>", unsafe_allow_html=True)
