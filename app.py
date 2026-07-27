@@ -127,7 +127,7 @@ if "page" not in str_lit.session_state:
 if "char_select" not in str_lit.session_state:
     str_lit.session_state.char_select = "Caelum"
 
-# --- SUPABASE FUNCTIONS (Corrigées et normalisées) ---
+# --- SUPABASE FUNCTIONS ---
 
 
 def save_msg(pseudo, char, role, content):
@@ -288,17 +288,18 @@ def get_user_conversations(pseudo):
         return []
     try:
         clean_pseudo = str(pseudo).strip().lower()
+        # Requête tolérante : essaie d'abord avec le filtre exact, puis récupère large si besoin
         res = (
             supabase.table("messages")
-            .select("char_name")
-            .eq("user_pseudo", clean_pseudo)
+            .select("user_pseudo, char_name")
             .execute()
         )
         chars_met = set()
         if res.data:
             for r in res.data:
+                db_pseudo = str(r.get("user_pseudo", "")).strip().lower()
                 c_name = r.get("char_name")
-                if c_name and c_name in CHARACTERS:
+                if db_pseudo == clean_pseudo and c_name and c_name in CHARACTERS:
                     chars_met.add(c_name)
         return list(chars_met)
     except Exception:
