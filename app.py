@@ -33,7 +33,7 @@ def generer_image_huggingface(prompt_image):
       return response.content, None
     else:
       return None, f"Erreur API ({response.status_code})"
-  except Exception as e:
+  except Exception:
     return None, "Erreur réseau / DNS"
 
 
@@ -683,7 +683,7 @@ elif str_lit.session_state.page == "chat":
             f"<img src='{avatar_to_use}' style='width: 38px; height: 38px;"
             " border-radius: 50%; object-fit: cover; margin-top:"
             " 4px;'>",
-            unsafe_allow_html=Type := True,
+            unsafe_allow_html=True,
         )
       with col_txt:
         str_lit.markdown(
@@ -740,7 +740,6 @@ elif str_lit.session_state.page == "chat":
     generer_clique = str_lit.button("🎨 Image", key="btn_gen_img_direct")
 
   if generer_clique and client:
-    # Génère une image basée sur le dernier message de l'assistant ou le contexte
     dernier_prompt_image = (
         f"Cinematic illustration of {current_char} in a fantasy magic school"
         f" setting, dramatic lighting, high quality"
