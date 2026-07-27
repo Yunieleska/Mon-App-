@@ -56,14 +56,6 @@ st.markdown("""
     .stButton>button p {
         color: #ffffff !important;
     }
-    /* Correctif responsive pour forcer un affichage en grille propre sur mobile */
-    @media(max-width: 768px) {
-        [data-testid="column"] {
-            width: 48% !important;
-            flex: 1 1 48% !important;
-            min-width: 48% !important;
-        }
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -281,6 +273,44 @@ if st.session_state.page == "home":
     st.title("Explorer")
     st.write("Découvre et discute avec les personnages du moment :")
     
+    # CSS Grille Responsive (2 colonnes sur mobile, 4 sur PC)
+    st.markdown("""
+        <style>
+        .storyia-grid-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .storyia-card {
+            background-color: #161b22;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .storyia-card img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+        }
+        .storyia-card-content {
+            padding: 12px;
+        }
+        @media (max-width: 768px) {
+            .storyia-grid-container {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+            .storyia-card img {
+                height: 160px;
+            }
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
     items = list(CHARACTERS.items())
     
     ITEMS_PER_PAGE = 8
@@ -294,27 +324,39 @@ if st.session_state.page == "home":
     end_idx = start_idx + ITEMS_PER_PAGE
     current_items = items[start_idx:end_idx]
 
+    grid_html = '<div class="storyia-grid-container">'
+    for name, data in current_items:
+        img_src = data['img']
+        if not img_src.startswith("http") and not os.path.exists(img_src):
+            img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+        
+        quote = data.get('quote', '')
+        grid_html += f"""
+            <div class="storyia-card">
+                <div>
+                    <img src="{img_src}">
+                    <div class="storyia-card-content">
+                        <div style="font-weight: 700; font-size: 15px; color: #ffffff; margin-bottom: 4px;">{name}</div>
+                        <div style="font-size: 11px; color: #8b949e; font-style: italic;">"{quote}"</div>
+                    </div>
+                </div>
+            </div>
+        """
+    grid_html += '</div>'
+    
+    st.markdown(grid_html, unsafe_allow_html=True)
+
+    # Boutons cliquables en colonnes sous la grille HTML
     cols_per_row = 4
     for i in range(0, len(current_items), cols_per_row):
         row_items = current_items[i:i + cols_per_row]
         cols = st.columns(cols_per_row)
-        
         for idx, (name, data) in enumerate(row_items):
             with cols[idx]:
-                img_src = data['img']
-                if not img_src.startswith("http") and not os.path.exists(img_src):
-                    img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-                
-                with st.container():
-                    st.image(img_src, use_container_width=True)
-                    st.markdown(f"**{name}**")
-                    st.markdown(f"<span style='color: #8b949e; font-style: italic; font-size: 12px;'>\"{data['quote']}\"</span>", unsafe_allow_html=True)
-                    
-                    if st.button("💬 Discuter", key=f"btn_chat_{name}", use_container_width=True):
-                        st.session_state.char_select = name
-                        st.session_state.page = "chat"
-                        st.rerun()
-                st.markdown("<br>", unsafe_allow_html=True)
+                if st.button(f"💬 Discuter", key=f"btn_chat_grid_{name}", use_container_width=True):
+                    st.session_state.char_select = name
+                    st.session_state.page = "chat"
+                    st.rerun()
 
     if "chat_target" in query_params:
         target_char = query_params["chat_target"]
