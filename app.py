@@ -499,7 +499,17 @@ if str_lit.session_state.page == "home":
 elif str_lit.session_state.page == "create_character":
     str_lit.title("✨ Créer un nouveau personnage")
     
-    # Utilisation de clés uniques (key="...") pour libérer le focus et autoriser la frappe fluide, retours à la ligne et tabulations
+    # Correction CSS ciblée pour rendre les zones de texte bien visibles sur fond sombre
+    str_lit.markdown("""
+        <style>
+        textarea, input[type="text"] {
+            background-color: #21262d !important;
+            color: #ffffff !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    
     char_name = str_lit.text_input("Nom du personnage", key="input_char_name")
     char_sex = str_lit.selectbox(
         "Sexe / Genre", ["Homme", "Femme", "Non-binaire", "Autre"], key="select_char_sex"
@@ -715,43 +725,141 @@ elif str_lit.session_state.page == "profile":
                                         str_lit.rerun()
                                 else:
                                     if str_lit.button("Suivre", key=f"follow_{u_pseudo}"):
-                                        supabase.table("follows").insert({
-                                            "follower_pseudo": str_lit.session_state.pseudo,
-                                            "following_pseudo": u_pseudo
-                                        }).execute()
-                                        str_lit.success(f"Vous suivez désormais {u_pseudo}.")
+                                        supabase.table("follows").insert({"follower_pseudo": str_lit.session_state.pseudo, "following_pseudo": u_pseudo}).execute()
+                                        str_lit.success(f"Vous suivez désormais {u_pseudo} !")
                                         str_lit.rerun()
                 except Exception as e:
-                    str_lit.error(f"Erreur chargement communauté : {e}")
+                    str_lit.error(f"Erreur : {e}")
 
             with tab_prof3:
-                str_lit.subheader("📊 Activité & Stats")
-                str_lit.info("Statistiques de vos conversations et interactions à venir.")
+                str_lit.subheader("Statistiques d'activité")
+                try:
+                    msg_count_res = supabase.table("messages").select("id", count="exact").eq("user_pseudo", str_lit.session_state.pseudo).execute()
+                    total_msgs = msg_count_res.count if msg_count_res.count is not None else 0
+                    str_lit.metric("Messages envoyés", total_msgs)
+                except Exception:
+                    str_lit.metric("Messages envoyés", 0)
 
             with tab_prof4:
-                str_lit.subheader("🖼️ Galerie Souvenirs")
+                str_lit.subheader("Galerie Souvenirs")
                 try:
-                    gallery_res = supabase.table("user_gallery").select("*").eq("user_pseudo", str_lit.session_state.pseudo).execute()
-                    gallery_items = gallery_res.data if gallery_res.data else []
+                    gal_res = supabase.table("user_gallery").select("*").eq("user_pseudo", str_lit.session_state.pseudo).execute()
+                    gallery_items = gal_res.data if gal_res.data else []
                     if not gallery_items:
-                        str_lit.info("Aucune image enregistrée pour l'instant dans votre galerie.")
+                        str_lit.info("Aucune image enregistrée dans votre galerie pour l'instant.")
                     else:
-                        for g in gallery_items:
-                            import base64
-                            img_bytes = base64.b64decode(g["image_base64"])
-                            str_lit.image(img_bytes, caption=f"Personnage : {g['char_name']} | Prompt : {g['image_prompt']}")
+                        import base64
+                        cols = str_lit.columns(3)
+                        for idx, g in enumerate(gallery_items):
+                            img_b64 = g.get("image_base64")
+                            img_prompt = g.get("image_prompt", "")
+                            c_name = g.get("char_name", "")
+                            if img_b64:
+                                img_bytes = base64.b64decode(img_b64)
+                                with cols[idx % 3]:
+                                    str_lit.image(img_bytes, caption=f"{c_name}: {img_prompt[:40]}...", use_container_width=True)
                 except Exception as e:
-                    str_lit.error(f"Erreur chargement galerie : {e}")
+                    str_lit.error(f"Erreur lors du chargement de la galerie : {e}")
 
             with tab_prof5:
-                str_lit.subheader("⚙️ Paramètres")
-                new_avatar_url = str_lit.text_input("URL de votre avatar", value=avatar_path)
-                if str_lit.button("Mettre à jour l'avatar"):
+                str_lit.subheader("Paramètres du compte")
+                new_email_input = str_lit.text_input("Modifier l'e-mail", value=user_info.get("email", ""))
+                if str_lit.button("Mettre à jour l'e-mail"):
                     try:
-                        supabase.table("users").update({"avatar_url": new_avatar_url}).eq("pseudo", str_lit.session_state.pseudo).execute()
-                        str_lit.success("Avatar mis à jour avec succès !")
-                        str_lit.rerun()
+                        supabase.table("users").update({"email": new_email_input}).eq("pseudo", str_lit.session_state.pseudo).execute()
+                        str_lit.success("E-mail mis à jour avec succès !")
                     except Exception as e:
-                        str_lit.error(f"Erreur de mise à jour : {e}")
+                        str_lit.error(f"Erreur : {e}")
         except Exception as e:
-                str_lit.error(f"Erreur chargement profil : {e}")
+            str_lit.error(f"Erreur de chargement du profil : {e}")
+
+elif str_lit.session_state.page == "chat":
+    current_char = str_lit.session_state.get("char_select", "Caelum")
+    char_data = CHARACTERS.get(current_char, CHARACTERS["Caelum"])
+
+    col_h1, col_h2 = str_lit.columns([1, 6])
+    with col_h1:
+        img_chat = char_data["img"]
+        if not img_chat.startswith("http") and not os.path.exists(img_chat):
+            img_chat = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+        str_lit.image(img_chat, width=70)
+    with col_h2:
+        str_lit.title(f"Discussion avec {current_char}")
+        str_lit.caption(char_data["quote"])
+
+    str_lit.markdown("---")
+
+    if "messages_cache" not in str_lit.session_state or str_lit.session_state.get("current_chat_char") != current_char:
+        str_lit.session_state.current_chat_char = current_char
+        db_messages = load_msgs(str_lit.session_state.pseudo, current_char)
+        if not db_messages:
+            init_msg = char_data["quote"]
+            db_messages = [{"role": "assistant", "content": init_msg}]
+            save_msg(str_lit.session_state.pseudo, current_char, "assistant", init_msg)
+        str_lit.session_state.messages_cache = db_messages
+
+    for msg in str_lit.session_state.messages_cache:
+        with str_lit.chat_message(msg["role"]):
+            content = msg["content"]
+            match = re.search(r"\[IMAGE:\s*(.*?)\]", content)
+            if match:
+                img_prompt = match.group(1).strip()
+                clean_text = re.sub(r"\[IMAGE:\s*.*?\]", "", content).strip()
+                if clean_text:
+                    str_lit.write(clean_text)
+                
+                with str_lit.spinner("Génération de l'illustration en cours..."):
+                    img_bytes, err = generer_image_huggingface(img_prompt, current_char)
+                    if img_bytes:
+                        str_lit.image(img_bytes, caption=img_prompt, use_container_width=True)
+                        save_to_gallery(str_lit.session_state.pseudo, current_char, img_bytes, img_prompt)
+                    else:
+                        str_lit.warning(f"Impossible de générer l'image : {err}")
+            else:
+                str_lit.write(content)
+
+    if user_input := str_lit.chat_input("Écris ton message..."):
+        str_lit.session_state.messages_cache.append({"role": "user", "content": user_input})
+        save_msg(str_lit.session_state.pseudo, current_char, "user", user_input)
+        
+        with str_lit.chat_message("user"):
+            str_lit.write(user_input)
+
+        with str_lit.chat_message("assistant"):
+            with str_lit.spinner(f"{current_char} réfléchit..."):
+                if client:
+                    try:
+                        formatted_msgs = [{"role": "system", "content": char_data["prompt"]}]
+                        for m in str_lit.session_state.messages_cache:
+                            formatted_msgs.append({"role": m["role"], "content": m["content"]})
+
+                        response = client.chat.completions.create(
+                            model="llama-3.3-70b-versatile",
+                            messages=formatted_msgs,
+                            temperature=0.8,
+                            max_tokens=800,
+                        )
+                        bot_reply = response.choices[0].message.content
+                    except Exception as e:
+                        bot_reply = f"Erreur de communication avec le modèle : {e}"
+                else:
+                    bot_reply = "Client Groq non initialisé."
+
+                match = re.search(r"\[IMAGE:\s*(.*?)\]", bot_reply)
+                if match:
+                    img_prompt = match.group(1).strip()
+                    clean_text = re.sub(r"\[IMAGE:\s*.*?\]", "", bot_reply).strip()
+                    if clean_text:
+                        str_lit.write(clean_text)
+                    
+                    img_bytes, err = generer_image_huggingface(img_prompt, current_char)
+                    if img_bytes:
+                        str_lit.image(img_bytes, caption=img_prompt, use_container_width=True)
+                        save_to_gallery(str_lit.session_state.pseudo, current_char, img_bytes, img_prompt)
+                    else:
+                        str_lit.warning(f"Impossible de générer l'image : {err}")
+                else:
+                    str_lit.write(bot_reply)
+
+                str_lit.session_state.messages_cache.append({"role": "assistant", "content": bot_reply})
+                save_msg(str_lit.session_state.pseudo, current_char, "assistant", bot_reply)
