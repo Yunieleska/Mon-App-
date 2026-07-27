@@ -749,16 +749,87 @@ elif str_lit.session_state.page == "profile":
                 user_created_chars = chars_res.data if chars_res.data else []
 
                 if not user_created_chars:
-                    str_lit.info("Vous n'avez pas encore créé de personnage. Rendez-vous dans l'onglet 'Créer un Personnage' dans le menu latéral !")
+                    str_lit.info("Vous n'avez pas encore créé de personnage.")
                 else:
-                    for c_item in user_created_chars:
-                        c_name = c_item.get("name")
-                        c_img = c_item.get("img_url", "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg")
-                        c_quote = c_item.get("quote", "")
+                    for c in user_created_chars:
+                        c_name = c.get("name")
+                        col_c1, col_c2 = str_lit.columns([4, 1])
+                        with col_c1:
+                            str_lit.write(f"**{c_name}** - *{c.get('quote', '')}*")
+                        with col_c2:
+                            if str_lit.button("🗑️ Supprimer", key=f"del_char_{c_name}"):
+                                try:
+                                    supabase.table("custom_characters").delete().eq("name", c_name).eq("creator", str_lit.session_state.pseudo).execute()
+                                    str_lit.success(f"Personnage {c_name} supprimé.")
+                                    str_lit.rerun()
+                                except Exception as e:
+                                    str_lit.error(f"Erreur : {e}")
 
-                        if not c_img.startswith("http") and not os.path.exists(c_img):
-                            c_img = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+            with tab_prof2:
+                str_lit.subheader("Découvrir la communauté")
+                str_lit.write("Rechercher et suivre d'autres utilisateurs de Storyia.")
+                search_pseudo_input = str_lit.text_input("Rechercher un pseudo", key="search_user_input")
+                if search_pseudo_input:
+                    try:
+                        search_res = supabase.table("users").select("pseudo").ilike("pseudo", f"%{search_pseudo_input}%").execute()
+                        if search_res.data:
+                            for u in search_res.data:
+                                p_found = u.get("pseudo")
+                                if p_found != str_lit.session_state.pseudo:
+                                    col_u1, col_u2 = str_lit.columns([3, 1])
+                                    with col_u1:
+                                        str_lit.write(f"👤 **{p_found}**")
+                                    with col_u2:
+                                        if str_lit.button("Suivre", key=f"follow_{p_found}"):
+                                            supabase.table("follows").insert({
+                                                "follower_pseudo": str_lit.session_state.pseudo,
+                                                "following_pseudo": p_found
+                                            }).execute()
+                                            str_lit.success(f"Vous suivez désormais {p_found} !")
+                                            str_lit.rerun()
+                        else:
+                            str_lit.info("Aucun utilisateur trouvé.")
+                    except Exception as e:
+                        str_lit.error(f"Erreur : {e}")
 
-                        col_c1, col_c2, col_c3 = str_lit.columns([1, 4, 1])
+            with tab_prof3:
+                str_lit.subheader("Activité & Statistiques")
+                str_lit.write(f"Nombre total de personnages créés : **{len(user_created_chars)}**")
+                conv_list = get_user_conversations(str_lit.session_state.pseudo)
+                str_lit.write(f"Nombre de discussions actives : **{len(conv_list)}**")
+
+            with tab_prof4:
+                str_lit.subheader("Galerie Souvenirs")
+                try:
+                    gal_res = supabase.table("user_gallery").select("*").eq("user_pseudo", str_lit.session_state.pseudo).execute()
+                    if gal_res.data:
+                        import base64
+                        for item in gal_res.data:
+                            img_b64 = item.get("image_base64")
+                            img_prompt = item.get("image_prompt")
+                            char_n = item.get("char_name")
+                            if img_b64:
+                                decoded_bytes = base64.b64decode(img_b64)
+                                str_lit.image(decoded_bytes, caption=f"{char_n} - {img_prompt}", use_container_width=True)
+                    else:
+                        str_lit.info("Aucune image enregistrée pour le moment dans votre galerie.")
+                except Exception as e:
+                    str_lit.error(f"Erreur lors du chargement de la galerie : {e}")
+
+            with tab_prof5:
+                str_lit.subheader("Paramètres du compte")
+                new_avatar_file = str_lit.file_uploader("Modifier votre photo de profil", type=["png", "jpg", "jpeg"], key="avatar_uploader")
+                if new_avatar_file is not None and user_id:
+                    if str_lit.button("Enregistrer la photo de profil"):
+                        try:
+                            avatar_filename = f"avatar_{user_id}.png"
+                            with open(avatar_filename, "wb") as f:
+                                f.write(new_avatar_file.getbuffer())
+                            
+                            supabase.table("users").update({"avatar_url": avatar_filename}).eq("id", user_id).execute()
+                            str_lit.success("Photo de profil mise à jour avec succès !")
+                            str_lit.rerun()
+                        except Exception as e:
+                            str_lit.error(f"Erreur lors de la mise à jour : {e}")
         except Exception as e:
-            str_lit.error(f"Erreur lors du chargement du profil : {e}")
+            str_lit.error(f"Impossible de charger le profil : {e}")
