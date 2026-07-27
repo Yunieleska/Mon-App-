@@ -204,41 +204,49 @@ def get_all_characters():
             "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
             "prompt": "Tu es Caelum, Prince des Ténèbres." + base_instruction,
             "quote": "Ne t'approche pas de moi. Ma vie est déjà tracée, et tu n'as rien à y faire.",
+            "first_message": "Ne t'approche pas de moi. Ma vie est déjà tracée, et tu n'as rien à y faire. [IMAGE: dark mysterious prince standing in a gloomy gothic corridor, dramatic shadows, photorealistic shot]"
         },
         "Alexei": {
             "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg",
             "prompt": "Tu es Alexei, mafieux." + base_instruction,
             "quote": "Regardez qui s'est perdue sur mon territoire. La petite princesse des Volkov...",
+            "first_message": "Regardez qui s'est perdue sur mon territoire. La petite princesse des Volkov... Qu'est-ce qui te prend de rôder ici ? [IMAGE: dangerous mafia boss sitting in a luxurious dimly lit office, smoke, cinematic lighting, photorealistic shot]"
         },
         "Killian": {
             "img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg",
             "prompt": "Tu es Killian, motard." + base_instruction,
             "quote": "Respire, c'est fini... T'as pas changé, toujours aussi maladroite.",
+            "first_message": "Respire, c'est fini... T'as pas changé, toujours aussi maladroite à te mettre dans des situations pareilles. Viens là. [IMAGE: handsome biker leaning against a classic motorcycle at night under streetlights, realistic leather jacket, photorealistic shot]"
         },
         "Lucas": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/lucas.png.PNG",
             "prompt": "Tu es Lucas, populaire." + base_instruction,
             "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série ?",
+            "first_message": "On s'esquive tous les deux et on va squatter ton canapé devant une série ? Avoue que tu en meurs d'envie. [IMAGE: friendly popular college guy smiling casually in a cozy living room, warm ambient lighting, photorealistic shot]"
         },
         "Ethan": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/ethan.png",
             "prompt": "Tu es Ethan, Loup Alpha." + base_instruction,
             "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines...",
+            "first_message": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines... Reste près de moi si tu veux survivre à cette nuit. [IMAGE: alpha werewolf vibe guy standing at the edge of a misty dark pine forest at twilight, photorealistic shot]"
         },
         "Léo": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/leo.png.PNG",
             "prompt": "Tu es Léo, streameur." + base_instruction,
             "quote": "Prête à ce qu'on détruise l'équipe d'en face ?",
+            "first_message": "Prête à ce qu'on détruise l'équipe d'en face ? Le chat est en train de s'enflammer, montre-leur de quoi tu es capable. [IMAGE: young streamer setup with glowing RGB lights, headphones around neck, focused expression, photorealistic shot]"
         },
         "Liam": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/liam.png.PNG",
             "prompt": "Tu es Liam, le grand frère." + base_instruction,
             "quote": "Salut, l'amie de ma sœur. Essaie de ne pas faire trop de bruit.",
+            "first_message": "Salut, l'amie de ma sœur. Essaie de ne pas faire trop de bruit en entrant, elle dort déjà. Tu veux un verre d'eau ? [IMAGE: caring older brother figure leaning against a kitchen counter at night, casual hoodie, photorealistic shot]"
         },
         "Noah": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/noah.png.PNG",
             "prompt": "Tu es Noah, quarterback star." + base_instruction,
             "quote": "Dis, tu crois qu'on est tous obligés de jouer un rôle pour plaire ?",
+            "first_message": "Dis, tu crois qu'on est tous obligés de jouer un rôle pour plaire ? J'en ai marre des faux-semblants... surtout ici. [IMAGE: high school quarterback star sitting on stadium bleachers at sunset, letterman jacket, photorealistic shot]"
         },
     }
 
@@ -254,6 +262,7 @@ def get_all_characters():
                     desc_val = item.get("description", "")
                     prompt_val = item.get("prompt", f"Tu es {c_name}. {desc_val}")
                     quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
+                    first_msg_val = item.get("first_message", f"{quote_val} [IMAGE: cinematic portrait of {c_name}, photorealistic shot]")
                     img_url = item.get("img_url", "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg")
                     
                     chars[c_name] = {
@@ -264,6 +273,7 @@ def get_all_characters():
                         ),
                         "prompt": prompt_val + base_instruction,
                         "quote": quote_val,
+                        "first_message": first_msg_val,
                     }
         except Exception:
             pass
@@ -490,22 +500,9 @@ elif str_lit.session_state.page == "chat":
 
     messages = load_msgs(str_lit.session_state.pseudo, current_char)
     if not messages:
-        # Génération automatique d'un premier message long et immersif via l'IA
-        if client:
-            try:
-                init_prompt = [
-                    {"role": "system", "content": char_data["prompt"]},
-                    {"role": "user", "content": f"Écris un long premier message d'introduction immersif pour débuter notre roleplay. Ta phrase d'accroche de référence est : \"{char_data['quote']}\". Mets-moi tout de suite dans l'ambiance et termine obligatoirement par une balise [IMAGE: ...]."}
-                ]
-                resp_init = client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
-                    messages=init_prompt,
-                    temperature=0.8,
-                )
-                intro_msg = resp_init.choices[0].message.content
-            except Exception:
-                intro_msg = f"{char_data['quote']} [IMAGE: cinematic portrait of {current_char}, dramatic lighting]"
-        else:
+        # Utilisation du premier message personnalisé ou génération par défaut
+        intro_msg = char_data.get("first_message")
+        if not intro_msg:
             intro_msg = f"{char_data['quote']} [IMAGE: cinematic portrait of {current_char}, dramatic lighting]"
 
         messages.append({"role": "assistant", "content": intro_msg})
@@ -590,6 +587,14 @@ elif str_lit.session_state.page == "create_character":
     )
     char_quote = str_lit.text_input("Phrase d'accroche", key="input_char_quote")
     
+    # Nouveau champ pour le premier message immersif
+    char_first_message = str_lit.text_area(
+        "Premier message d'introduction (avec balise [IMAGE: ...] optionnelle pour l'ambiance)", 
+        height=120, 
+        key="textarea_char_first_msg",
+        placeholder="Ex: Bonjour... [IMAGE: cinematic portrait of character, moody lighting]"
+    )
+    
     char_description = str_lit.text_area(
         "Description et Personnalité (Histoire, ton, etc.)", height=150, key="textarea_char_desc"
     )
@@ -615,6 +620,7 @@ elif str_lit.session_state.page == "create_character":
             if supabase:
                 try:
                     built_prompt = f"Tu es {char_name}, un personnage {char_sex}. Description et contexte : {char_description}."
+                    final_first_msg = char_first_message if char_first_message else f"{char_quote if char_quote else 'Bonjour.'} [IMAGE: cinematic portrait of {char_name}, photorealistic shot]"
 
                     insert_data = {
                         "name": char_name,
@@ -623,6 +629,7 @@ elif str_lit.session_state.page == "create_character":
                         "description": char_description,
                         "sex": char_sex,
                         "quote": char_quote if char_quote else f"Bonjour, je suis {char_name}.",
+                        "first_message": final_first_msg,
                         "secondary_chars": char_secondary,
                         "img_url": img_path
                     }
