@@ -113,8 +113,8 @@ str_lit.markdown(
 query_params = str_lit.query_params
 
 if "user" in query_params and query_params["user"]:
-    str_lit.session_state.logged_in = True
-    str_lit.session_state.pseudo = query_params["user"]
+str_lit.session_state.logged_in = True
+str_lit.session_state.pseudo = query_params["user"]
 else:
     if "logged_in" not in str_lit.session_state:
         str_lit.session_state.logged_in = False
