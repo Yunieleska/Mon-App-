@@ -125,17 +125,19 @@ def load_msgs(pseudo, char):
         return []
 
 def get_user_conversations(pseudo):
+    """Retourne uniquement les noms des personnages avec lesquels cet utilisateur a un historique de messages."""
     if not supabase:
-        return {}
+        return []
     try:
-        res = supabase.table("messages").select("char_name, content, role").eq("user_pseudo", str(pseudo)).execute()
-        chars_met = {}
+        res = supabase.table("messages").select("char_name").eq("user_pseudo", str(pseudo)).execute()
+        chars_met = set()
         if res.data:
             for r in res.data:
-                chars_met[r["char_name"]] = r["content"]
-        return chars_met
+                if r.get("char_name"):
+                    chars_met.add(r["char_name"])
+        return list(chars_met)
     except Exception:
-        return {}
+        return []
 
 def get_all_characters():
     chars = {
@@ -409,12 +411,12 @@ elif st.session_state.page == "messages":
     st.title("Mes Discussions")
     st.write("Retrouvez ici l'ensemble de vos conversations avec les personnages.")
     
-    convs = get_user_conversations(st.session_state.pseudo)
+    char_names_with_conv = get_user_conversations(st.session_state.pseudo)
     
-    if not convs:
+    if not char_names_with_conv:
         st.info("Vous n'avez pas encore de discussions en cours. Allez sur l'accueil pour choisir un personnage !")
     else:
-        for char_name in convs.keys():
+        for char_name in char_names_with_conv:
             if char_name in CHARACTERS:
                 col1, col2, col3 = st.columns([1, 4, 1])
                 with col1:
@@ -444,8 +446,8 @@ elif st.session_state.page == "profile":
             if not avatar_path or (not str(avatar_path).startswith("http") and not os.path.exists(avatar_path)):
                 avatar_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
 
-            convs = get_user_conversations(st.session_state.pseudo)
-            nb_collected = len(convs)
+            char_names_with_conv = get_user_conversations(st.session_state.pseudo)
+            nb_collected = len(char_names_with_conv)
             
             col1, col2 = st.columns([1, 3])
             
