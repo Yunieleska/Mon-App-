@@ -20,13 +20,11 @@ def generer_image_huggingface(prompt_image):
     if not hf_api_key:
         return None, "Clé API Hugging Face manquante."
     try:
-        # Utilisation du client officiel pour éviter les erreurs DNS/Réseau sur Streamlit Cloud
         client_hf = InferenceClient(
             model="black-forest-labs/FLUX.1-schnell", token=hf_api_key
         )
         image = client_hf.text_to_image(prompt_image)
 
-        # Conversion de l'image PIL en bytes pour Streamlit
         buf = io.BytesIO()
         image.save(buf, format="JPEG")
         return buf.getvalue(), None
@@ -301,6 +299,11 @@ def get_user_conversations(pseudo):
 
 # --- LOGIN LOGIC ---
 if not str_lit.session_state.logged_in:
+    # 🌟 RESTAURATION DE LA BANNIÈRE / EN-TÊTE ICI
+    str_lit.title("✨ Storyia")
+    str_lit.subheader("Plonge au cœur de tes histoires interactives")
+    str_lit.markdown("---")
+
     col1, col2, col3 = str_lit.columns([1, 2, 1])
     with col2:
         tab1, tab2 = str_lit.tabs(["Login", "Sign Up"])
@@ -724,7 +727,6 @@ elif str_lit.session_state.page == "chat":
                                         f"Impossible de charger l'illustration ({err_msg})."
                                     )
 
-    # --- ZONE DE SAISIE AVEC BOUTON D'IMAGE À CÔTÉ ---
     col_input, col_btn = str_lit.columns([10, 2])
 
     with col_input:
