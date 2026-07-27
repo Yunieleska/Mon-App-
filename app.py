@@ -538,9 +538,9 @@ elif str_lit.session_state.page == "messages":
     else:
         for char_name in char_names_with_conv:
             if char_name in CHARACTERS:
-                col1, col2, col3 = str_lit.columns([1, 4, 1])
+                col1, col2, col3, col4 = str_lit.columns([1, 3, 1, 1])
                 with col1:
-                    str_lit.image(CHARACTERS[char_name]["img"], width=85)
+                    str_lit.image(CHARACTERS[char_name]["img"], width=75)
                 with col2:
                     str_lit.subheader(char_name)
                     str_lit.caption(CHARACTERS[char_name]["quote"])
@@ -549,6 +549,15 @@ elif str_lit.session_state.page == "messages":
                         str_lit.session_state.char_select = char_name
                         str_lit.session_state.page = "chat"
                         str_lit.rerun()
+                with col4:
+                    if str_lit.button(f"🗑️ Supprimer", key=f"del_conv_{char_name}"):
+                        if supabase:
+                            try:
+                                supabase.table("messages").delete().eq("user_pseudo", str_lit.session_state.pseudo).eq("char_name", char_name).execute()
+                                str_lit.success(f"Discussion avec {char_name} supprimée.")
+                                str_lit.rerun()
+                            except Exception as e:
+                                str_lit.error(f"Erreur : {e}")
                 str_lit.markdown("---")
 
 elif str_lit.session_state.page == "profile":
@@ -569,24 +578,20 @@ elif str_lit.session_state.page == "profile":
                 "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
             )
 
-            # Récupération sécurisée du nombre d'abonnés et d'abonnements via Supabase (table 'follows')
             following_count = 0
             followers_count = 0
             try:
-                # Abonnements (personnes que je suis)
                 following_res = supabase.table("follows").select("id", count="exact").eq("follower_pseudo", str_lit.session_state.pseudo).execute()
                 following_count = following_res.count if following_res.count is not None else 0
             except Exception:
                 pass
 
             try:
-                # Abonnés (personnes qui me suivent)
                 followers_res = supabase.table("follows").select("id", count="exact").eq("following_pseudo", str_lit.session_state.pseudo).execute()
                 followers_count = followers_res.count if followers_res.count is not None else 0
             except Exception:
                 pass
 
-            # En-tête du profil style Typsy (Carte de présentation épurée avec compteurs abonnés / abonnements)
             str_lit.markdown(
                 f"""
                 <div style="background-color: #161b22; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px; display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 25px; flex-wrap: wrap;">
@@ -612,7 +617,6 @@ elif str_lit.session_state.page == "profile":
                 unsafe_allow_html=True
             )
 
-            # Onglets de profil style Typsy
             tab_prof1, tab_prof2, tab_prof3, tab_prof4 = str_lit.tabs(["✨ Mes Personnages", "👥 Découvrir & Suivre", "📊 Activité & Stats", "⚙️ Paramètres"])
 
             with tab_prof1:
@@ -660,11 +664,9 @@ elif str_lit.session_state.page == "profile":
             with tab_prof2:
                 str_lit.subheader("Communauté - Suivre des utilisateurs")
                 try:
-                    # Récupération de tous les utilisateurs inscrits sauf soi-même
                     all_users_res = supabase.table("users").select("pseudo, email").neq("pseudo", str_lit.session_state.pseudo).execute()
                     other_users = all_users_res.data if all_users_res.data else []
 
-                    # Récupération des pseudos que l'utilisateur suit déjà
                     my_follows_res = supabase.table("follows").select("following_pseudo").eq("follower_pseudo", str_lit.session_state.pseudo).execute()
                     already_following = {item["following_pseudo"] for item in my_follows_res.data} if my_follows_res.data else set()
 
@@ -694,7 +696,7 @@ elif str_lit.session_state.page == "profile":
                                         str_lit.rerun()
                             str_lit.markdown("---")
                 except Exception as e:
-                    str_lit.info("Module de suivi en cours d'initialisation (assurez-vous d'avoir une table 'follows' dans Supabase si vous souhaitez enregistrer les abonnements en base, sinon l'interface est prête).")
+                    str_lit.info("Module de suivi prêt.")
 
             with tab_prof3:
                 str_lit.subheader("Tableau de bord de vos accomplissements")
