@@ -23,7 +23,7 @@ SIDEBAR_HEADER_IMG = "couple.png"
 
 def generer_image_huggingface(prompt_image):
 if not hf_api_key:
-        return None, "Clé API Hugging Face manquante."
+return None, "Clé API Hugging Face manquante."
     try:
         client_hf = InferenceClient(
             model="black-forest-labs/FLUX.1-schnell", token=hf_api_key
