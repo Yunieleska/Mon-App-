@@ -2,6 +2,7 @@ import io
 import os
 import re
 import requests
+from PIL import Image
 import streamlit as str_lit
 from supabase import create_client
 from groq import Groq
@@ -21,21 +22,37 @@ BACKGROUND_IMG_NAME = "bg.png"
 SIDEBAR_HEADER_IMG = "couple.png"
 
 
-def generer_image_huggingface(prompt_image):
+def generer_image_huggingface(prompt_image, image_reference_url=None):
     if not hf_api_key:
         return None, "Clé API Hugging Face manquante."
     try:
-        client_hf = InferenceClient(
-            model="black-forest-labs/FLUX.1-schnell", token=hf_api_key
-        )
-        
-        # 💡 Ajout de mots-clés stricts pour forcer le photoréalisme et un style cinématographique
-        prompt_realiste = (
-            f"Photorealistic, highly detailed raw photo, cinematic lighting, "
-            f"depth of field, professional photography, 8k resolution, {prompt_image}"
-        )
-        
-        image = client_hf.text_to_image(prompt_realiste)
+        # Si une image de référence du personnage est fournie, on utilise SDXL en mode Image-to-Image
+        if image_reference_url and image_reference_url.startswith("http"):
+            response = requests.get(image_reference_url)
+            init_image = Image.open(io.BytesIO(response.content)).convert("RGB")
+            
+            client_hf = InferenceClient(
+                model="stabilityai/stable-diffusion-xl-base-1.0", token=hf_api_key
+            )
+            
+            prompt_realiste = (
+                f"Photorealistic, highly detailed raw photo, cinematic lighting, "
+                f"same face and character features as reference image, 8k resolution, {prompt_image}"
+            )
+            
+            # strength=0.4 permet de modifier le décor tout en préservant le visage du personnage
+            image = client_hf.image_to_image(
+                init_image, 
+                prompt=prompt_realiste, 
+                strength=0.4
+            )
+        else:
+            # Fallback par défaut si pas d'image de référence
+            client_hf = InferenceClient(
+                model="black-forest-labs/FLUX.1-schnell", token=hf_api_key
+            )
+            prompt_realiste = f"Photorealistic, highly detailed raw photo, cinematic lighting, 8k resolution, {prompt_image}"
+            image = client_hf.text_to_image(prompt_realiste)
 
         buf = io.BytesIO()
         image.save(buf, format="JPEG")
@@ -736,7 +753,8 @@ elif str_lit.session_state.page == "chat":
                             with str_lit.spinner(
                                 f"🎨 {current_char} génère l'illustration..."
                             ):
-                                image_bytes, err_msg = generer_image_huggingface(prompt_image)
+                                # Utilisation de l'image de référence du personnage pour garder les traits du visage
+                                image_bytes, err_msg = generer_image_huggingface(prompt_image, image_reference_url=bg_image)
                                 if image_bytes:
                                     str_lit.image(
                                         image_bytes,
@@ -768,7 +786,7 @@ elif str_lit.session_state.page == "chat":
                 with str_lit.spinner(
                     f"🎨 {current_char} génère l'illustration à la volée..."
                 ):
-                    image_bytes, err_msg = generer_image_huggingface(dernier_prompt_image)
+                    image_bytes, err_msg = generer_image_huggingface(dernier_prompt_image, image_reference_url=bg_image)
                     if image_bytes:
                         str_lit.image(
                             image_bytes,
