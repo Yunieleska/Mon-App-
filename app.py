@@ -49,7 +49,7 @@ except Exception:
 supabase = None
 
 str_lit.set_page_config(
-    page_title="Storyia", layout="wide", initial_sidebar_state="expanded"
+page_title="Storyia", layout="wide", initial_sidebar_state="expanded"
 )
 
 # --- STYLE GLOBAL & DESIGN ---
