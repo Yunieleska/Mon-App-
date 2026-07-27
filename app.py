@@ -569,70 +569,88 @@ elif str_lit.session_state.page == "profile":
                 "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
             )
 
-            col1, col2 = str_lit.columns([1, 3])
-            with col1:
-                str_lit.image(avatar_path, use_container_width=True)
-            with col2:
-                str_lit.subheader(str_lit.session_state.pseudo)
-                str_lit.write(f"📧 {user_info.get('email', 'N/A')}")
-
-            str_lit.markdown("---")
-            uploaded_file = str_lit.file_uploader(
-                "Changer votre photo de profil", type=["png", "jpg", "jpeg"]
+            # En-tête du profil style Typsy (Carte de présentation épurée)
+            str_lit.markdown(
+                f"""
+                <div style="background-color: #161b22; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 20px; margin-bottom: 25px;">
+                    <img src="{avatar_path}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,0.2);">
+                    <div>
+                        <h2 style="margin: 0; color: #ffffff;">{str_lit.session_state.pseudo}</h2>
+                        <p style="margin: 4px 0 0 0; color: #8b949e; font-size: 14px;">📧 {user_info.get('email', 'N/A')}</p>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
             )
-            if uploaded_file is not None and user_id:
-                file_name = f"avatar_{user_id}.png"
-                with open(file_name, "wb") as f:
-                    f.write(uploaded_file.getbuffer())
-                supabase.table("users").update({"avatar_url": file_name}).eq(
-                    "id", user_id
-                ).execute()
-                str_lit.success("Photo mise à jour !")
-                str_lit.rerun()
 
-            # --- SECTION : MES PERSONNAGES CRÉÉS ---
-            str_lit.markdown("---")
-            str_lit.subheader("✨ Mes Personnages Créés")
-            
-            chars_res = (
-                supabase.table("custom_characters")
-                .select("*")
-                .eq("creator", str_lit.session_state.pseudo)
-                .execute()
-            )
-            user_created_chars = chars_res.data if chars_res.data else []
+            # Onglets de profil style Typsy (Navigation claire)
+            tab_prof1, tab_prof2, tab_prof3 = str_lit.tabs(["✨ Mes Personnages", "📊 Activité & Stats", "⚙️ Paramètres"])
 
-            if not user_created_chars:
-                str_lit.info("Vous n'avez pas encore créé de personnage. Rendez-vous dans l'onglet 'Créer un Personnage' !")
-            else:
-                for c_item in user_created_chars:
-                    c_name = c_item.get("name")
-                    c_img = c_item.get("img_url", "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg")
-                    c_quote = c_item.get("quote", "")
-                    c_vis = "Public" if c_item.get("is_public") else "Privé"
+            with tab_prof1:
+                str_lit.subheader("Personnages créés")
+                chars_res = (
+                    supabase.table("custom_characters")
+                    .select("*")
+                    .eq("creator", str_lit.session_state.pseudo)
+                    .execute()
+                )
+                user_created_chars = chars_res.data if chars_res.data else []
 
-                    if not c_img.startswith("http") and not os.path.exists(c_img):
-                        c_img = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+                if not user_created_chars:
+                    str_lit.info("Vous n'avez pas encore créé de personnage. Rendez-vous dans l'onglet 'Créer un Personnage' dans le menu latéral !")
+                else:
+                    for c_item in user_created_chars:
+                        c_name = c_item.get("name")
+                        c_img = c_item.get("img_url", "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg")
+                        c_quote = c_item.get("quote", "")
+                        c_vis = "Public" if c_item.get("is_public") else "Privé"
 
-                    col_c1, col_c2, col_c3 = str_lit.columns([1, 4, 2])
-                    with col_c1:
-                        str_lit.image(c_img, width=70)
-                    with col_c2:
-                        str_lit.markdown(f"**{c_name}** ({c_vis})")
-                        str_lit.caption(f'"{c_quote}"')
-                    with col_c3:
-                        if str_lit.button("Discuter", key=f"chat_my_char_{c_name}"):
-                            str_lit.session_state.char_select = c_name
-                            str_lit.session_state.page = "chat"
-                            str_lit.rerun()
-                        if str_lit.button("Supprimer", key=f"del_my_char_{c_name}"):
-                            try:
-                                supabase.table("custom_characters").delete().eq("name", c_name).eq("creator", str_lit.session_state.pseudo).execute()
-                                str_lit.success(f"Personnage '{c_name}' supprimé.")
+                        if not c_img.startswith("http") and not os.path.exists(c_img):
+                            c_img = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+
+                        col_c1, col_c2, col_c3 = str_lit.columns([1, 4, 2])
+                        with col_c1:
+                            str_lit.image(c_img, width=70)
+                        with col_c2:
+                            str_lit.markdown(f"**{c_name}** <span style='font-size:12px; color:#8b949e;'>({c_vis})</span>", unsafe_allow_html=True)
+                            str_lit.caption(f'"{c_quote}"')
+                        with col_c3:
+                            if str_lit.button("Discuter", key=f"chat_my_char_{c_name}"):
+                                str_lit.session_state.char_select = c_name
+                                str_lit.session_state.page = "chat"
                                 str_lit.rerun()
-                            except Exception as e:
-                                str_lit.error(f"Erreur suppression : {e}")
-                    str_lit.markdown("<br>", unsafe_allow_html=True)
+                            if str_lit.button("Supprimer", key=f"del_my_char_{c_name}"):
+                                try:
+                                    supabase.table("custom_characters").delete().eq("name", c_name).eq("creator", str_lit.session_state.pseudo).execute()
+                                    str_lit.success(f"Personnage '{c_name}' supprimé.")
+                                    str_lit.rerun()
+                                except Exception as e:
+                                    str_lit.error(f"Erreur suppression : {e}")
+                        str_lit.markdown("<br>", unsafe_allow_html=True)
+
+            with tab_prof2:
+                str_lit.subheader("Tableau de bord de vos accomplissements")
+                convs = get_user_conversations(str_lit.session_state.pseudo)
+                col_s1, col_s2 = str_lit.columns(2)
+                with col_s1:
+                    str_lit.metric("Personnages rencontrés / Discutés", len(convs))
+                with col_s2:
+                    str_lit.metric("Personnages créés", len(user_created_chars) if 'user_created_chars' in locals() else 0)
+
+            with tab_prof3:
+                str_lit.subheader("Paramètres du compte")
+                uploaded_file = str_lit.file_uploader(
+                    "Mettre à jour votre photo de profil", type=["png", "jpg", "jpeg"]
+                )
+                if uploaded_file is not None and user_id:
+                    file_name = f"avatar_{user_id}.png"
+                    with open(file_name, "wb") as f:
+                        f.write(uploaded_file.getbuffer())
+                    supabase.table("users").update({"avatar_url": file_name}).eq(
+                        "id", user_id
+                    ).execute()
+                    str_lit.success("Photo mise à jour !")
+                    str_lit.rerun()
 
         except Exception as e:
             str_lit.error(f"Erreur profil : {e}")
