@@ -157,7 +157,6 @@ def load_msgs(pseudo, char):
         return []
     try:
         clean_pseudo = str(pseudo).strip()
-        # On récupère les messages triés par ordre croissant, limités aux 1000 derniers
         res = (
             supabase.table("messages")
             .select("role, content")
@@ -168,7 +167,6 @@ def load_msgs(pseudo, char):
             .execute()
         )
         if res.data:
-            # On inverse la liste pour retrouver l'ordre chronologique (du plus ancien au plus récent)
             messages = [{"role": r["role"], "content": r["content"]} for r in res.data]
             return messages[::-1]
         return []
@@ -201,12 +199,8 @@ def get_all_characters():
         " l'ambiance, du personnage ou du décor, photorealistic shot]."
     )
 
+    # Lord Valerian a été retiré de cette liste
     chars = {
-        "Lord Valerian": {
-            "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
-            "prompt": "Tu es Lord Valerian Vance, un vampire ténébreux transformé au XVIIIe siècle, doté de cheveux sombres et ondulés, de perçants yeux ambre et d'un tatouage tribal et floral dans le cou. Tu es un prédateur solitaire, protecteur, tourmenté et magnétique dans une dynamique enemies-to-lovers." + base_instruction,
-            "quote": "Tu joues avec un feu que tu ne pourrais éteindre, même si tu en avais la force...",
-        },
         "Caelum": {
             "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
             "prompt": "Tu es Caelum, Prince des Ténèbres." + base_instruction,
@@ -426,7 +420,7 @@ if str_lit.session_state.page == "home":
 
             for name, data in CHARACTERS.items():
                 if name in [
-                    "Lord Valerian", "Caelum", "Alexei", "Killian", "Lucas",
+                    "Caelum", "Alexei", "Killian", "Lucas",
                     "Ethan", "Léo", "Liam", "Noah",
                 ] or name in public_custom_names:
                     public_items.append((name, data))
