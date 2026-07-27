@@ -738,41 +738,37 @@ elif str_lit.session_state.page == "chat":
                                         f"Impossible de charger l'illustration ({err_msg})."
                                     )
 
-    col_input, col_btn = str_lit.columns([10, 2])
-
-    with col_input:
+    # Zone de saisie corrigée et fluide
+    st_container = str_lit.container()
+    with st_container:
         user_input = str_lit.chat_input("Écris ton message...")
-
-    with col_btn:
-        str_lit.markdown(
-            "<div style='margin-top: 28px;'></div>", unsafe_allow_html=True
-        )
-        generer_clique = str_lit.button("🎨 Image", key="btn_gen_img_direct")
-
-    if generer_clique and client:
-        dernier_prompt_image = (
-            f"Cinematic illustration of {current_char} in a fantasy magic school"
-            f" setting, dramatic lighting, high quality"
-        )
-        for m in reversed(messages):
-            if m["role"] == "assistant":
-                m_img = re.search(r"\[IMAGE:\s*(.*?)\]", m["content"], re.IGNORECASE)
-                if m_img:
-                    dernier_prompt_image = m_img.group(1).strip()
-                break
-
-        with str_lit.spinner(
-            f"🎨 {current_char} génère l'illustration à la volée..."
-        ):
-            image_bytes, err_msg = generer_image_huggingface(dernier_prompt_image)
-            if image_bytes:
-                str_lit.image(
-                    image_bytes,
-                    caption=f"Scène - {current_char}",
-                    use_container_width=True,
+        
+        # Bouton secondaire pour générer une image si besoin
+        if str_lit.button("🎨 Générer l'image de la dernière scène", key="btn_gen_img_direct"):
+            if client:
+                dernier_prompt_image = (
+                    f"Cinematic illustration of {current_char} in a fantasy magic school"
+                    f" setting, dramatic lighting, high quality"
                 )
-            else:
-                str_lit.error(f"Erreur de génération : {err_msg}")
+                for m in reversed(messages):
+                    if m["role"] == "assistant":
+                        m_img = re.search(r"\[IMAGE:\s*(.*?)\]", m["content"], re.IGNORECASE)
+                        if m_img:
+                            dernier_prompt_image = m_img.group(1).strip()
+                        break
+
+                with str_lit.spinner(
+                    f"🎨 {current_char} génère l'illustration à la volée..."
+                ):
+                    image_bytes, err_msg = generer_image_huggingface(dernier_prompt_image)
+                    if image_bytes:
+                        str_lit.image(
+                            image_bytes,
+                            caption=f"Scène - {current_char}",
+                            use_container_width=True,
+                        )
+                    else:
+                        str_lit.error(f"Erreur de génération : {err_msg}")
 
     if user_input and client:
         save_msg(str_lit.session_state.pseudo, current_char, "user", user_input)
