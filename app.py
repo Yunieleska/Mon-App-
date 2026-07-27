@@ -499,16 +499,20 @@ if str_lit.session_state.page == "home":
 elif str_lit.session_state.page == "create_character":
     str_lit.title("✨ Créer un nouveau personnage")
     
-    # Saisie hors formulaire strict pour permettre le retour à la ligne et la tabulation fluides dans les text_area
     char_name = str_lit.text_input("Nom du personnage")
     char_sex = str_lit.selectbox(
         "Sexe / Genre", ["Homme", "Femme", "Non-binaire", "Autre"]
     )
     char_quote = str_lit.text_input("Phrase d'accroche")
+    
+    # Correction complète : Saisie directe sans formulaire parent pour permettre les retours à la ligne et tabulations sans blocage
     char_description = str_lit.text_area(
         "Description et Personnalité (Histoire, ton, etc.)", height=150
     )
-    char_secondary = str_lit.text_area("Personnages secondaires (Optionnel)", height=100)
+    char_secondary = str_lit.text_area(
+        "Personnages secondaires (Optionnel)", height=100
+    )
+    
     uploaded_char_img = str_lit.file_uploader(
         "Image du personnage", type=["png", "jpg", "jpeg"]
     )
