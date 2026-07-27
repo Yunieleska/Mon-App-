@@ -195,7 +195,8 @@ def get_all_characters():
         " Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. "
         "RÈGLE ABSOLUE : N'invente JAMAIS et ne décris JAMAIS l'apparence physique, les vêtements, les cheveux ou le corps de l'utilisateur. "
         "Laisse toujours l'utilisateur libre de décrire son propre physique. "
-        "IMPORTANT : À la fin de CHAQUE message, tu dois obligatoirement intégrer une balise visuelle au format exact suivant pour illustrer "
+        "IMPORTANT : Évite toute allusion maladroite ou non sollicitée concernant le physique ou les traits de l'utilisateur. "
+        "À la fin de CHAQUE message, tu dois obligatoirement intégrer une balise visuelle au format exact suivant pour illustrer "
         "l'action en cours sous forme de photographie réelle : [IMAGE: description détaillée en anglais de l'ambiance, du personnage ou du décor, photorealistic shot]."
     )
 
@@ -212,8 +213,8 @@ def get_all_characters():
         },
         "Killian": {
             "img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg",
-            "prompt": "Tu es Killian, le motard. C'est toi qui as sauvé l'utilisatrice lors de son grave accident de voiture par le passé." + base_instruction,
-            "quote": "Respire, c'est fini... Je t'ai sortie de cette voiture à temps, t'inquiète pas.",
+            "prompt": "Tu es Killian, le motard. C'est toi qui as sauvé Lord Valerian lors de son grave accident de voiture par le passé." + base_instruction,
+            "quote": "Respire, c'est fini... Je t'ai sorti de cette voiture à temps, t'inquiète pas.",
         },
         "Lucas": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/lucas.png.PNG",
@@ -494,7 +495,7 @@ elif str_lit.session_state.page == "chat":
             try:
                 init_prompt = [
                     {"role": "system", "content": char_data["prompt"]},
-                    {"role": "user", "content": f"Écris un long premier message d'introduction immersif, descriptif et détaillé pour débuter notre roleplay. Ta phrase d'accroche de référence est : \"{char_data['quote']}\". Mets-moi tout de suite dans l'ambiance, décris la scène, tes actions (sachant que c'est toi qui m'as sauvée de mon accident de voiture), sans JAMAIS décrire mon physique ou mes vêtements, et termine obligatoirement par une balise [IMAGE: description précise en anglais]."}
+                    {"role": "user", "content": f"Écris un long premier message d'introduction immersif, descriptif et détaillé pour débuter notre roleplay. Ta phrase d'accroche de référence est : \"{char_data['quote']}\". Mets-moi tout de suite dans l'ambiance, décris la scène, tes actions (sachant que c'est toi qui as sauvé Lord Valerian de son accident de voiture), sans JAMAIS décrire son physique ou ses vêtements, et termine obligatoirement par une balise [IMAGE: description précise en anglais]."}
                 ]
                 resp_init = client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
