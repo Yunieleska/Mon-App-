@@ -530,6 +530,40 @@ elif str_lit.session_state.page == "chat":
             else:
                 str_lit.write(content)
 
+    # --- INTÉGRATION DU BOUTON MODIFIER POUR LE DERNIER MESSAGE DE L'ASSISTANT ---
+    if messages and messages[-1]["role"] == "assistant":
+        last_msg = messages[-1]
+        edit_key = f"edit_mode_{len(messages)}"
+        if edit_key not in str_lit.session_state:
+            str_lit.session_state[edit_key] = False
+
+        col_btn1, col_btn2 = str_lit.columns([1, 5])
+        with col_btn1:
+            if str_lit.button("✏️ Modifier", key=f"btn_edit_{len(messages)}"):
+                str_lit.session_state[edit_key] = not str_lit.session_state[edit_key]
+                str_lit.rerun()
+
+        if str_lit.session_state[edit_key]:
+            new_text = str_lit.text_area(
+                "Modifier la réponse de l'IA :",
+                value=last_msg["content"],
+                key=f"textarea_edit_{len(messages)}"
+            )
+            if str_lit.button("💾 Enregistrer la modification", key=f"save_edit_{len(messages)}"):
+                last_msg["content"] = new_text
+                str_lit.session_state[edit_key] = False
+                
+                if supabase:
+                    try:
+                        supabase.table("messages").delete().eq("user_pseudo", str_lit.session_state.pseudo).eq("char_name", current_char).eq("role", "assistant").execute()
+                        for m in messages:
+                            save_msg(str_lit.session_state.pseudo, current_char, m["role"], m["content"])
+                    except Exception as e:
+                        str_lit.error(f"Erreur lors de la sauvegarde : {e}")
+                        
+                str_lit.success("Message modifié avec succès !")
+                str_lit.rerun()
+
     user_input = str_lit.chat_input("Votre message...")
     if user_input:
         with str_lit.chat_message("user"):
@@ -756,46 +790,12 @@ elif str_lit.session_state.page == "profile":
                         with col_c1:
                             str_lit.write(f"**{c_name}** - {c.get('quote', '')}")
                         with col_c2:
-                            if str_lit.button("Supprimer", key=f"del_char_{c_name}"):
+                            if str_lit.button("🗑️ Supprimer", key=f"del_char_{c_name}"):
                                 try:
                                     supabase.table("custom_characters").delete().eq("name", c_name).eq("creator", str_lit.session_state.pseudo).execute()
                                     str_lit.success(f"Personnage {c_name} supprimé.")
                                     str_lit.rerun()
                                 except Exception as e:
                                     str_lit.error(f"Erreur : {e}")
-
-            with tab_prof2:
-                str_lit.subheader("Découvrir d'autres utilisateurs")
-                str_lit.info("Fonctionnalité en cours de développement.")
-
-            with tab_prof3:
-                str_lit.subheader("Statistiques d'utilisation")
-                str_lit.write(f"Nombre total de messages échangés : ...")
-
-            with tab_prof4:
-                str_lit.subheader("Galerie des souvenirs")
-                try:
-                    gallery_res = supabase.table("user_gallery").select("*").eq("user_pseudo", str_lit.session_state.pseudo).execute()
-                    if gallery_res.data:
-                        for g in gallery_res.data:
-                            import base64
-                            img_bytes = base64.b64decode(g["image_base64"])
-                            str_lit.image(img_bytes, caption=f"Avec {g['char_name']} : {g['image_prompt']}", use_container_width=True)
-                    else:
-                        str_lit.info("Aucune image enregistrée pour le moment.")
-                except Exception:
-                    str_lit.info("Impossible de charger la galerie.")
-
-            with tab_prof5:
-                str_lit.subheader("Paramètres du compte")
-                new_avatar = str_lit.text_input("URL de votre avatar", value=avatar_path)
-                if str_lit.button("Mettre à jour l'avatar"):
-                    try:
-                        supabase.table("users").update({"avatar_url": new_avatar}).eq("pseudo", str_lit.session_state.pseudo).execute()
-                        str_lit.success("Avatar mis à jour avec succès !")
-                        str_lit.rerun()
-                    except Exception as e:
-                        str_lit.error(f"Erreur : {e}")
-
         except Exception as e:
-           str_lit.error(f"Erreur lors du chargement du profil : {e}")
+            str_lit.error(f"Erreur de chargement du profil : {e}")
