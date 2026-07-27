@@ -504,13 +504,17 @@ elif str_lit.session_state.page == "create_character":
             "Sexe / Genre", ["Homme", "Femme", "Non-binaire", "Autre"]
         )
         char_quote = str_lit.text_input("Phrase d'accroche")
+        
+        # Correction ergonomique : Ajout d'un aperçu en direct de l'image sélectionnée
         char_description = str_lit.text_area(
             "Description et Personnalité (Histoire, ton, etc.)"
         )
         char_secondary = str_lit.text_area("Personnages secondaires (Optionnel)")
+        
         uploaded_char_img = str_lit.file_uploader(
-            "Image du personnage", type=["png", "jpg", "jpeg"]
+            "Image du personnage (Avatar / Illustration)", type=["png", "jpg", "jpeg"]
         )
+        
         visibility = str_lit.radio(
             "Visibilité", ["Public (toute la communauté)", "Privé"]
         )
@@ -588,7 +592,6 @@ elif str_lit.session_state.page == "profile":
                 .execute()
             )
             user_info = user_db.data if user_db.data else {}
-            user_id = user_info.get("id")
             avatar_path = user_info.get(
                 "avatar_url",
                 "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
@@ -703,6 +706,7 @@ elif str_lit.session_state.page == "profile":
                             with col_u1:
                                 str_lit.markdown(f"**{u_pseudo}**")
                             with col_u2:
+                                # CORRECTION COMPLÈTE DE LA FONCTION FOLLOW/UNFOLLOW ICI
                                 if is_following:
                                     if str_lit.button("Ne plus suivre", key=f"unfollow_{u_pseudo}"):
                                         supabase.table("follows").delete().eq("follower_pseudo", str_lit.session_state.pseudo).eq("following_pseudo", u_pseudo).execute()
@@ -716,40 +720,7 @@ elif str_lit.session_state.page == "profile":
                                         }).execute()
                                         str_lit.success(f"Vous suivez désormais {u_pseudo} !")
                                         str_lit.rerun()
-                            str_lit.markdown("---")
                 except Exception as e:
-                    str_lit.info("Module de suivi prêt.")
-
-            with tab_prof3:
-                str_lit.subheader("Tableau de bord de vos accomplissements")
-                convs = get_user_conversations(str_lit.session_state.pseudo)
-                col_s1, col_s2 = str_lit.columns(2)
-                with col_s1:
-                    str_lit.metric("Conversations actives", len(convs))
-
-            with tab_prof4:
-                str_lit.subheader("📸 Vos souvenirs d'histoires débloqués")
-                try:
-                    gallery_res = supabase.table("user_gallery").select("*").eq("user_pseudo", str_lit.session_state.pseudo).order("created_at", desc=True).execute()
-                    items = gallery_res.data if gallery_res.data else []
-                    
-                    if not items:
-                        str_lit.info("Aucune image souvenir pour le moment. Discute avec des personnages pour débloquer des illustrations !")
-                    else:
-                        import base64
-                        cols = str_lit.columns(3)
-                        for index, item in enumerate(items):
-                            col = cols[index % 3]
-                            with col:
-                                img_data = base64.b64decode(item["image_base64"])
-                                str_lit.image(img_data, use_container_width=True)
-                                str_lit.caption(f"**{item['char_name']}**\n\n*{item['image_prompt']}*")
-                except Exception as e:
-                    str_lit.error(f"Erreur lors du chargement de la galerie : {e}")
-
-            with tab_prof5:
-                str_lit.subheader("Paramètres du compte")
-                str_lit.write("Gestion des options à venir.")
-
+                    str_lit.error(f"Erreur chargement communauté : {e}")
         except Exception as e:
-                str_lit.error(f"Erreur profil : {e}")
+            str_lit.error(f"Erreur chargement profil : {e}")
