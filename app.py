@@ -758,71 +758,108 @@ elif str_lit.session_state.page == "profile":
                         with col_c1:
                             str_lit.image(c_img, width=70)
                         with col_c2:
-                            str_lit.markdown(f"**{c_name}**", unsafe_allow_html=True)
-                            str_lit.caption(f'"{c_quote}"')
+                            str_lit.subheader(c_name)
+                            str_lit.caption(c_quote)
                         with col_c3:
-                            if str_lit.button("Discuter", key=f"chat_my_char_{c_name}"):
-                                str_lit.session_state.char_select = c_name
-                                str_lit.session_state.page = "chat"
-                                str_lit.rerun()
-                            if str_lit.button("Supprimer", key=f"del_my_char_{c_name}"):
+                            if str_lit.button("Supprimer", key=f"del_custom_{c_name}"):
                                 try:
                                     supabase.table("custom_characters").delete().eq("name", c_name).eq("creator", str_lit.session_state.pseudo).execute()
-                                    str_lit.success(f"Personnage '{c_name}' supprimé.")
+                                    str_lit.success(f"Personnage {c_name} supprimé.")
                                     str_lit.rerun()
                                 except Exception as e:
-                                    str_lit.error(f"Erreur suppression : {e}")
-                        str_lit.markdown("<br>", unsafe_allow_html=True)
+                                    str_lit.error(f"Erreur : {e}")
+                        str_lit.markdown("---")
 
             with tab_prof2:
-                str_lit.subheader("Communauté - Suivre des utilisateurs")
+                str_lit.subheader("Explorer les utilisateurs")
                 try:
-                    all_users_res = supabase.table("users").select("pseudo, email").neq("pseudo", str_lit.session_state.pseudo).execute()
-                    other_users = all_users_res.data if all_users_res.data else []
-
-                    my_follows_res = supabase.table("follows").select("following_pseudo").eq("follower_pseudo", str_lit.session_state.pseudo).execute()
-                    already_following = {item["following_pseudo"] for item in my_follows_res.data} if my_follows_res.data else set()
-
+                    users_res = supabase.table("users").select("pseudo, email").neq("pseudo", str_lit.session_state.pseudo).execute()
+                    other_users = users_res.data if users_res.data else []
+                    
                     if not other_users:
-                        str_lit.info("Aucun autre utilisateur inscrit pour le moment.")
+                        str_lit.info("Aucun autre utilisateur pour le moment.")
                     else:
                         for u in other_users:
                             u_pseudo = u.get("pseudo")
-                            is_following = u_pseudo in already_following
-
-                            col_u1, col_u2 = str_lit.columns([4, 1])
+                            col_u1, col_u2 = str_lit.columns([3, 1])
                             with col_u1:
-                                str_lit.markdown(f"**{u_pseudo}**")
+                                str_lit.write(f"**{u_pseudo}**")
                             with col_u2:
+                                # Vérifie si on suit déjà cet utilisateur
+                                is_following = False
+                                try:
+                                    check_f = supabase.table("follows").select("id").eq("follower_pseudo", str_lit.session_state.pseudo).eq("following_pseudo", u_pseudo).execute()
+                                    if check_f.data:
+                                        is_following = True
+                                except Exception:
+                                    pass
+
                                 if is_following:
                                     if str_lit.button("Ne plus suivre", key=f"unfollow_{u_pseudo}"):
                                         supabase.table("follows").delete().eq("follower_pseudo", str_lit.session_state.pseudo).eq("following_pseudo", u_pseudo).execute()
                                         str_lit.rerun()
                                 else:
                                     if str_lit.button("Suivre", key=f"follow_{u_pseudo}"):
-                                        supabase.table("follows").insert({
-                                            "follower_pseudo": str_lit.session_state.pseudo,
-                                            "following_pseudo": u_pseudo
-                                        }).execute()
+                                        supabase.table("follows").insert({"follower_pseudo": str_lit.session_state.pseudo, "following_pseudo": u_pseudo}).execute()
                                         str_lit.rerun()
                 except Exception as e:
-                    str_lit.error(f"Erreur : {e}")
+                    str_lit.error(f"Erreur de chargement des utilisateurs : {e}")
 
             with tab_prof3:
-                str_lit.subheader("Statistiques d'activité")
+                str_lit.subheader("Statistiques d'utilisation")
                 try:
-                    msg_count_res = supabase.table("messages").select("id", count="exact").eq("user_pseudo", str_lit.session_state.pseudo).execute()
-                    total_messages = msg_count_res.count if msg_count_res.count is not None else 0
+                    msg_res = supabase.table("messages").select("id", count="exact").eq("user_pseudo", str_lit.session_state.pseudo).execute()
+                    total_messages = msg_res.count if msg_res.count is not None else 0
 
-                    gallery_count_res = supabase.table("user_gallery").select("id", count="exact").eq("user_pseudo", str_lit.session_state.pseudo).execute()
-                    total_memories = gallery_count_res.count if gallery_count_res.count is not None else 0
+                    gal_res = supabase.table("user_gallery").select("id", count="exact").eq("user_pseudo", str_lit.session_state.pseudo).execute()
+                    total_images = gal_res.count if gal_res.count is not None else 0
 
                     col_s1, col_s2 = str_lit.columns(2)
                     with col_s1:
                         str_lit.metric("Messages échangés", total_messages)
                     with col_s2:
-                        str_lit.metric("Souvenirs en galerie", total_memories)
+                        str_lit.metric("Images générées", total_images)
                 except Exception as e:
-                    str_lit.error(f"Erreur : {e}")
+                    str_lit.error(f"Impossible de charger les statistiques : {e}")
+
+            with tab_prof4:
+                str_lit.subheader("Galerie de souvenirs")
+                try:
+                    gal_data = supabase.table("user_gallery").select("*").eq("user_pseudo", str_lit.session_state.pseudo).order("id", desc=True).execute()
+                    images_list = gal_data.data if gal_data.data else []
+
+                    if not images_list:
+                        str_lit.info("Aucune image générée pour l'instant dans vos discussions.")
+                    else:
+                        import base64
+                        cols = str_lit.columns(3)
+                        for idx, img_item in enumerate(images_list):
+                            b64_str = img_item.get("image_base64")
+                            img_prompt = img_item.get("image_prompt", "")
+                            char_source = img_item.get("char_name", "")
+                            if b64_str:
+                                img_bytes = base64.b64decode(b64_str)
+                                with cols[idx % 3]:
+                                    str_lit.image(img_bytes, caption=f"{char_source}: {img_prompt}", use_container_width=True)
+                except Exception as e:
+                    str_lit.error(f"Erreur lors du chargement de la galerie : {e}")
+
+            with tab_prof5:
+                str_lit.subheader("Paramètres du compte")
+                new_pseudo_input = str_lit.text_input("Modifier le pseudo", value=str_lit.session_state.pseudo)
+                new_avatar_input = str_lit.text_input("URL de l'avatar", value=avatar_path)
+                
+                if str_lit.button("Mettre à jour le profil"):
+                    try:
+                        supabase.table("users").update({
+                            "pseudo": new_pseudo_input,
+                            "avatar_url": new_avatar_input
+                        }).eq("id", user_id).execute()
+                        str_lit.session_state.pseudo = new_pseudo_input
+                        str_lit.success("Profil mis à jour avec succès !")
+                        str_lit.rerun()
+                    except Exception as e:
+                        str_lit.error(f"Erreur lors de la mise à jour : {e}")
+
         except Exception as e:
-            str_lit.error(f"Erreur chargement profil : {e}")
+        str_lit.error(f"Erreur de chargement du profil : {e}")
