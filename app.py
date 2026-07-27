@@ -56,29 +56,6 @@ st.markdown("""
     .stButton>button p {
         color: #ffffff !important;
     }
-    .storyia-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
-        margin-top: 10px;
-        margin-bottom: 20px;
-    }
-    @media (min-width: 900px) {
-        .storyia-grid {
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
-        }
-    }
-    .storyia-card {
-        background-color: #161b22;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 12px;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        height: 100%;
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -309,29 +286,27 @@ if st.session_state.page == "home":
     end_idx = start_idx + ITEMS_PER_PAGE
     current_items = items[start_idx:end_idx]
 
-    grid_html = '<div class="storyia-grid">'
-    for idx, (name, data) in enumerate(current_items):
-        img_src = data['img']
-        if not img_src.startswith("http") and not os.path.exists(img_src):
-            img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-            
-        grid_html += f"""
-        <div class="storyia-card">
-            <div>
-                <img src="{img_src}" style="width: 100%; height: 140px; object-fit: cover; display: block;">
-                <div style="padding: 10px 10px 4px 10px;">
-                    <div style="font-weight: 700; font-size: 14px; color: #ffffff; margin-bottom: 2px;">{name}</div>
-                    <div style="font-size: 11px; color: #8b949e; font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 30px;">"{data['quote']}"</div>
-                </div>
-            </div>
-            <div style="padding: 0px 10px 10px 10px;">
-                <a href="?user={st.session_state.pseudo}&chat_target={name}" target="_self" style="display: block; text-align: center; background-color: #21262d; color: #ffffff; padding: 6px 10px; border-radius: 6px; text-decoration: none; border: 1px solid rgba(255, 255, 255, 0.15); font-size: 12px; font-weight: 600;">💬 Discuter</a>
-            </div>
-        </div>
-        """
-    grid_html += '</div>'
-    
-    st.markdown(grid_html, unsafe_allow_html=True)
+    cols_per_row = 4
+    for i in range(0, len(current_items), cols_per_row):
+        row_items = current_items[i:i + cols_per_row]
+        cols = st.columns(cols_per_row)
+        
+        for idx, (name, data) in enumerate(row_items):
+            with cols[idx]:
+                img_src = data['img']
+                if not img_src.startswith("http") and not os.path.exists(img_src):
+                    img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+                
+                with st.container():
+                    st.image(img_src, use_container_width=True)
+                    st.markdown(f"**{name}**")
+                    st.markdown(f"<span style='color: #8b949e; font-style: italic; font-size: 12px;'>\"{data['quote']}\"</span>", unsafe_allow_html=True)
+                    
+                    if st.button("💬 Discuter", key=f"btn_chat_{name}", use_container_width=True):
+                        st.session_state.char_select = name
+                        st.session_state.page = "chat"
+                        st.rerun()
+                st.markdown("<br>", unsafe_allow_html=True)
 
     if "chat_target" in query_params:
         target_char = query_params["chat_target"]
@@ -370,7 +345,6 @@ elif st.session_state.page == "create_character":
         char_secondary = st.text_area("Personnages secondaires / Éléments contextuels (Optionnel)", help="Ex: Inclut des mentions de ses frères ou de rivaux si nécessaire dans l'histoire.")
         
         uploaded_char_img = st.file_uploader("Image du personnage (PNG, JPG)", type=["png", "jpg", "jpeg"])
-        
         visibility = st.radio("Visibilité", ["Public (visible par toute la communauté)", "Privé (uniquement pour moi)"])
         
         submitted = st.form_submit_button("Créer le personnage")
@@ -433,7 +407,7 @@ elif st.session_state.page == "messages":
                     st.subheader(char_name)
                     st.caption(CHARACTERS[char_name]["quote"])
                 with col3:
-                    if st.button(f"Ouvrir", key=f"open_msg_{char_name}"):
+                    if st.button("Ouvrir", key=f"open_msg_{char_name}", use_container_width=True):
                         st.session_state.char_select = char_name
                         st.session_state.page = "chat"
                         st.rerun()
@@ -475,7 +449,6 @@ elif st.session_state.page == "profile":
                     st.metric(label="Abonnements", value=0)
 
             st.markdown("---")
-            
             st.text_input("Pseudo (non modifiable)", value=st.session_state.pseudo, disabled=True)
             
             uploaded_file = st.file_uploader("Changer votre photo de profil", type=["png", "jpg", "jpeg"], key="avatar_uploader")
