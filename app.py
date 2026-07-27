@@ -130,9 +130,9 @@ str_lit.session_state.char_select = "Caelum"
 
 
 def save_msg(pseudo, char, role, content):
-    if not supabase:
-        return
-    try:
+if not supabase:
+return
+try:
         clean_pseudo = str(pseudo).strip()
         supabase.table("messages").insert({
             "user_pseudo": clean_pseudo,
