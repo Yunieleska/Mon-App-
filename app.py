@@ -56,6 +56,29 @@ st.markdown("""
     .stButton>button p {
         color: #ffffff !important;
     }
+    .storyia-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-top: 10px;
+        margin-bottom: 20px;
+    }
+    @media (min-width: 900px) {
+        .storyia-grid {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+    }
+    .storyia-card {
+        background-color: #161b22;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 100%;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -201,8 +224,6 @@ if not st.session_state.logged_in:
                             
                             st.session_state.logged_in = True
                             st.session_state.pseudo = pseudo_val
-                            if res.session:
-                                st.session_state.access_token = res.session.access_token
                             st.query_params["user"] = pseudo_val
                             st.rerun()
                     except Exception as e:
@@ -262,8 +283,6 @@ if st.sidebar.button("🚪 Logout"):
             pass
     st.session_state.logged_in = False
     st.session_state.pseudo = "Invité"
-    if "access_token" in st.session_state:
-        del st.session_state.access_token
     if "user" in st.query_params:
         del st.query_params["user"]
     st.rerun()
@@ -286,27 +305,29 @@ if st.session_state.page == "home":
     end_idx = start_idx + ITEMS_PER_PAGE
     current_items = items[start_idx:end_idx]
 
-    # Grille propre sécurisée via composants natifs Streamlit (fini les bugs de texte brut)
-    cols_per_row = 2
-    for i in range(0, len(current_items), cols_per_row):
-        row_items = current_items[i:i + cols_per_row]
-        cols = st.columns(cols_per_row)
-        for idx, (name, data) in enumerate(row_items):
-            with cols[idx]:
-                with st.container(border=True):
-                    img_src = data['img']
-                    if not img_src.startswith("http") and not os.path.exists(img_src):
-                        img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-                    
-                    st.image(img_src, use_container_width=True)
-                    st.markdown(f"**{name}**")
-                    quote = data.get('quote', '')
-                    st.markdown(f"<p style='color: #8b949e; font-style: italic; font-size: 13px;'>\"{quote}\"</p>", unsafe_allow_html=True)
-                    
-                    if st.button(f"💬 Discuter", key=f"btn_chat_grid_{name}_{start_idx + idx}", use_container_width=True):
-                        st.session_state.char_select = name
-                        st.session_state.page = "chat"
-                        st.rerun()
+    grid_html = '<div class="storyia-grid">'
+    for idx, (name, data) in enumerate(current_items):
+        img_src = data['img']
+        if not img_src.startswith("http") and not os.path.exists(img_src):
+            img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+            
+        grid_html += f"""
+        <div class="storyia-card">
+            <div>
+                <img src="{img_src}" style="width: 100%; height: 140px; object-fit: cover; display: block;">
+                <div style="padding: 10px 10px 4px 10px;">
+                    <div style="font-weight: 700; font-size: 14px; color: #ffffff; margin-bottom: 2px;">{name}</div>
+                    <div style="font-size: 11px; color: #8b949e; font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 30px;">"{data['quote']}"</div>
+                </div>
+            </div>
+            <div style="padding: 0px 10px 10px 10px;">
+                <a href="?user={st.session_state.pseudo}&chat_target={name}" target="_self" style="display: block; text-align: center; background-color: #21262d; color: #ffffff; padding: 6px 10px; border-radius: 6px; text-decoration: none; border: 1px solid rgba(255, 255, 255, 0.15); font-size: 12px; font-weight: 600;">💬 Discuter</a>
+            </div>
+        </div>
+        """
+    grid_html += '</div>'
+    
+    st.html(grid_html)
 
     if "chat_target" in query_params:
         target_char = query_params["chat_target"]
@@ -345,6 +366,7 @@ elif st.session_state.page == "create_character":
         char_secondary = st.text_area("Personnages secondaires / Éléments contextuels (Optionnel)", help="Ex: Inclut des mentions de ses frères ou de rivaux si nécessaire dans l'histoire.")
         
         uploaded_char_img = st.file_uploader("Image du personnage (PNG, JPG)", type=["png", "jpg", "jpeg"])
+        
         visibility = st.radio("Visibilité", ["Public (visible par toute la communauté)", "Privé (uniquement pour moi)"])
         
         submitted = st.form_submit_button("Créer le personnage")
@@ -355,16 +377,10 @@ elif st.session_state.page == "create_character":
             else:
                 img_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
                 if uploaded_char_img is not None:
-                    file_name = f"char_{st.session_state.pseudo}_{char_name}.png"
-                    if supabase:
-                        try:
-                            admin_key = st.secrets.get("SUPABASE_SERVICE_KEY", st.secrets["SUPABASE_KEY"])
-                            admin_supabase = create_client(st.secrets["SUPABASE_URL"], admin_key)
-                            
-                            admin_supabase.storage.from_("storyia-images").upload(file_name, uploaded_char_img.read(), file_options={"upsert": "true"})
-                            img_path = admin_supabase.storage.from_("storyia-images").get_public_url(file_name)
-                        except Exception:
-                            pass
+                    img_path_saved = f"char_{st.session_state.pseudo}_{char_name}.png"
+                    with open(img_path_saved, "wb") as f:
+                        f.write(uploaded_char_img.getbuffer())
+                    img_path = img_path_saved
                 
                 is_public = True if "Public" in visibility else False
                 
@@ -407,7 +423,7 @@ elif st.session_state.page == "messages":
                     st.subheader(char_name)
                     st.caption(CHARACTERS[char_name]["quote"])
                 with col3:
-                    if st.button("Ouvrir", key=f"open_msg_{char_name}", use_container_width=True):
+                    if st.button(f"Ouvrir", key=f"open_msg_{char_name}"):
                         st.session_state.char_select = char_name
                         st.session_state.page = "chat"
                         st.rerun()
@@ -425,7 +441,7 @@ elif st.session_state.page == "profile":
             user_id = user_info.get("id")
             
             avatar_path = user_info.get("avatar_url", "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg")
-            if not avatar_path or not str(avatar_path).startswith("http"):
+            if not avatar_path or (not str(avatar_path).startswith("http") and not os.path.exists(avatar_path)):
                 avatar_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
 
             convs = get_user_conversations(st.session_state.pseudo)
@@ -449,6 +465,7 @@ elif st.session_state.page == "profile":
                     st.metric(label="Abonnements", value=0)
 
             st.markdown("---")
+            
             st.text_input("Pseudo (non modifiable)", value=st.session_state.pseudo, disabled=True)
             
             uploaded_file = st.file_uploader("Changer votre photo de profil", type=["png", "jpg", "jpeg"], key="avatar_uploader")
@@ -457,18 +474,16 @@ elif st.session_state.page == "profile":
                 file_extension = uploaded_file.name.split(".")[-1]
                 file_name = f"avatar_{user_id}.{file_extension}"
                 
+                with open(file_name, "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+                
                 try:
-                    admin_key = st.secrets.get("SUPABASE_SERVICE_KEY", st.secrets["SUPABASE_KEY"])
-                    admin_supabase = create_client(st.secrets["SUPABASE_URL"], admin_key)
-                    
-                    admin_supabase.storage.from_("storyia-images").upload(file_name, uploaded_file.read(), file_options={"upsert": "true"})
-                    public_url = admin_supabase.storage.from_("storyia-images").get_public_url(file_name)
-                    
-                    supabase.table("users").update({"avatar_url": public_url}).eq("id", user_id).execute()
+                    supabase.table("users").update({"avatar_url": file_name}).eq("id", user_id).execute()
                     st.success("Photo de profil mise à jour avec succès !")
                     st.rerun()
-                except Exception as e:
-                    st.error(f"Erreur lors de l'upload de la photo : {e}")
+                except Exception:
+                    st.success("Photo enregistrée localement !")
+                    st.rerun()
                 
         except Exception as e:
             st.error(f"Impossible de charger les données du profil : {e}")
@@ -525,20 +540,21 @@ elif st.session_state.page == "chat":
         except Exception as e:
             st.error(f"Erreur d'authentification Groq : {e}")
 
-    default_avatar = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-    user_avatar_path = default_avatar
+    # --- RÉCUPÉRATION DE L'AVATAR UTILISATEUR POUR LE CHAT ---
+    user_avatar_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
     if supabase:
         try:
             u_db = supabase.table("users").select("avatar_url").eq("pseudo", str(st.session_state.pseudo)).single().execute()
             if u_db.data and u_db.data.get("avatar_url"):
                 p_url = u_db.data["avatar_url"]
-                if str(p_url).startswith("http"):
+                if str(p_url).startswith("http") or os.path.exists(str(p_url)):
                     user_avatar_path = p_url
         except Exception:
             pass
 
     char_avatar_path = bg_image
 
+    # --- AFFICHAGE DES MESSAGES AVEC AVATARS Ronds ---
     for idx, msg in enumerate(messages):
         is_user = (msg["role"] == "user")
         avatar_to_use = user_avatar_path if is_user else char_avatar_path
@@ -591,7 +607,7 @@ elif st.session_state.page == "chat":
                                             res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=full_messages)
                                             assistant_reply = res.choices[0].message.content
                                             save_msg(st.session_state.pseudo, current_char, "assistant", assistant_reply)
-                                        
+                                            
                                         st.rerun()
                                     except Exception as e:
                                         st.error(f"Erreur lors de la modification : {e}")
@@ -604,6 +620,7 @@ elif st.session_state.page == "chat":
             
             st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
 
+    # --- FORMULAIRE DE SAISIE STABLE (100% CLIQUABLE) ---
     st.markdown("<div style='margin-top: 40px;'></div>", unsafe_allow_html=True)
     with st.form(key="chat_form", clear_on_submit=True):
         col_input, col_btn = st.columns([5, 1])
