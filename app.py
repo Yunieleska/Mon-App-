@@ -14,7 +14,7 @@ groq_key = str_lit.secrets["GROQ_API_KEY"]
 
 hf_api_key = os.getenv("HUGGINGFACE_API_KEY")
 if not hf_api_key and "HUGGINGFACE_API_KEY" in str_lit.secrets:
-    hf_api_key = str_lit.secrets["HUGGINGFACE_API_KEY"]
+hf_api_key = str_lit.secrets["HUGGINGFACE_API_KEY"]
 
 # --- CONSTANTES IMAGES ---
 BACKGROUND_IMG_NAME = "bg.png"
