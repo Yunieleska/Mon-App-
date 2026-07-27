@@ -377,10 +377,13 @@ elif st.session_state.page == "create_character":
             else:
                 img_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
                 if uploaded_char_img is not None:
-                    img_path_saved = f"char_{st.session_state.pseudo}_{char_name}.png"
-                    with open(img_path_saved, "wb") as f:
-                        f.write(uploaded_char_img.getbuffer())
-                    img_path = img_path_saved
+                    file_name = f"char_{st.session_state.pseudo}_{char_name}.png"
+                    if supabase:
+                        try:
+                            supabase.storage.from_("storyia-images").upload(file_name, uploaded_char_img.getbuffer(), file_options={"upsert": "true"})
+                            img_path = supabase.storage.from_("storyia-images").get_public_url(file_name)
+                        except Exception:
+                            pass
                 
                 is_public = True if "Public" in visibility else False
                 
@@ -441,7 +444,7 @@ elif st.session_state.page == "profile":
             user_id = user_info.get("id")
             
             avatar_path = user_info.get("avatar_url", "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg")
-            if not avatar_path or (not str(avatar_path).startswith("http") and not os.path.exists(avatar_path)):
+            if not avatar_path or not str(avatar_path).startswith("http"):
                 avatar_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
 
             convs = get_user_conversations(st.session_state.pseudo)
@@ -474,16 +477,15 @@ elif st.session_state.page == "profile":
                 file_extension = uploaded_file.name.split(".")[-1]
                 file_name = f"avatar_{user_id}.{file_extension}"
                 
-                with open(file_name, "wb") as f:
-                    f.write(uploaded_file.getbuffer())
-                
                 try:
-                    supabase.table("users").update({"avatar_url": file_name}).eq("id", user_id).execute()
+                    supabase.storage.from_("storyia-images").upload(file_name, uploaded_file.getbuffer(), file_options={"upsert": "true"})
+                    public_url = supabase.storage.from_("storyia-images").get_public_url(file_name)
+                    
+                    supabase.table("users").update({"avatar_url": public_url}).eq("id", user_id).execute()
                     st.success("Photo de profil mise à jour avec succès !")
                     st.rerun()
-                except Exception:
-                    st.success("Photo enregistrée localement !")
-                    st.rerun()
+                except Exception as e:
+                    st.error(f"Erreur lors de l'upload de la photo : {e}")
                 
         except Exception as e:
             st.error(f"Impossible de charger les données du profil : {e}")
@@ -541,20 +543,21 @@ elif st.session_state.page == "chat":
             st.error(f"Erreur d'authentification Groq : {e}")
 
     # --- RÉCUPÉRATION DE L'AVATAR UTILISATEUR POUR LE CHAT ---
-    user_avatar_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+    default_avatar = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+    user_avatar_path = default_avatar
     if supabase:
         try:
             u_db = supabase.table("users").select("avatar_url").eq("pseudo", str(st.session_state.pseudo)).single().execute()
             if u_db.data and u_db.data.get("avatar_url"):
                 p_url = u_db.data["avatar_url"]
-                if str(p_url).startswith("http") or os.path.exists(str(p_url)):
+                if str(p_url).startswith("http"):
                     user_avatar_path = p_url
         except Exception:
             pass
 
     char_avatar_path = bg_image
 
-    # --- AFFICHAGE DES MESSAGES AVEC AVATARS Ronds ---
+    # --- AFFICHAGE DES MESSAGES AVEC AVATARS RONDS ---
     for idx, msg in enumerate(messages):
         is_user = (msg["role"] == "user")
         avatar_to_use = user_avatar_path if is_user else char_avatar_path
