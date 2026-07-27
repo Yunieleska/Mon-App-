@@ -22,18 +22,19 @@ IMAGE_API_URL = (
 
 def generer_image_huggingface(prompt_image):
   if not hf_api_key:
-    return None
+    return None, "Clé API Hugging Face manquante dans les secrets."
   headers = {"Authorization": f"Bearer {hf_api_key}"}
   payload = {"inputs": prompt_image}
   try:
     response = requests.post(
-        IMAGE_API_URL, headers=headers, json=payload, timeout=15
+        IMAGE_API_URL, headers=headers, json=payload, timeout=20
     )
     if response.status_code == 200:
-      return response.content
-  except Exception:
-    pass
-  return None
+      return response.content, None
+    else:
+      return None, f"Erreur API ({response.status_code}): {response.text}"
+  except Exception as e:
+    return None, f"Erreur réseau : {str(e)}"
 
 
 try:
@@ -52,7 +53,7 @@ str_lit.set_page_config(
     page_title="Storyia", layout="wide", initial_sidebar_state="expanded"
 )
 
-# --- STYLE GLOBAL & DESIGN EMOCHI-LIKE ---
+# --- STYLE GLOBAL & DESIGN ---
 str_lit.markdown(
     """
     <style>
@@ -69,11 +70,6 @@ str_lit.markdown(
         background-color: #161b22 !important;
         color: #ffffff !important;
     }
-    [data-testid="stSidebar"] [data-testid="stInfoBox"] *, 
-    [data-testid="stSidebar"] div[data-baseweb="notification"] *,
-    [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] p {
-        color: #ffffff !important;
-    }
     .stButton>button, button[kind="secondary"], button[kind="primary"], div.stFormSubmitButton > button {
         background-color: #21262d !important;
         color: #ffffff !important;
@@ -84,9 +80,6 @@ str_lit.markdown(
     .stButton>button:hover, button[kind="secondary"]:hover, button[kind="primary"]:hover, div.stFormSubmitButton > button:hover {
         background-color: #30363d !important;
         border-color: #ffffff !important;
-        color: #ffffff !important;
-    }
-    .stButton>button p, div.stFormSubmitButton > button p {
         color: #ffffff !important;
     }
     .storyia-grid {
@@ -313,9 +306,6 @@ def get_user_conversations(pseudo):
 if not str_lit.session_state.logged_in:
   col1, col2, col3 = str_lit.columns([1, 2, 1])
   with col2:
-    if os.path.exists("bg.png"):
-      str_lit.image("bg.png")
-
     tab1, tab2 = str_lit.tabs(["Login", "Sign Up"])
 
     with tab1:
@@ -374,8 +364,6 @@ if not str_lit.session_state.logged_in:
   str_lit.stop()
 
 # --- SIDEBAR ---
-if os.path.exists("couple.png"):
-  str_lit.sidebar.image("couple.png")
 str_lit.sidebar.info(f"Connecté : **{str_lit.session_state.pseudo}**")
 
 if str_lit.sidebar.button("🏠 Home"):
@@ -729,12 +717,18 @@ elif str_lit.session_state.page == "chat":
             with str_lit.spinner(
                 f"🎨 {current_char} génère l'illustration..."
             ):
-              image_bytes = generer_image_huggingface(prompt_image)
+              image_bytes, err_msg = generer_image_huggingface(prompt_image)
               if image_bytes:
                 str_lit.image(
                     image_bytes,
                     caption=f"Scène - {current_char}",
                     use_container_width=True,
+                )
+              else:
+                str_lit.info(
+                    f"⚠️ Impossible de charger l'illustration ({err_msg})."
+                    " Vérifiez votre clé `HUGGINGFACE_API_KEY` dans les"
+                    " secrets Streamlit."
                 )
 
   user_input = str_lit.chat_input("Écris ton message...")
