@@ -134,7 +134,7 @@ def save_msg(pseudo, char, role, content):
     if not supabase:
         return
     try:
-        clean_pseudo = str(pseudo).strip().lower()
+        clean_pseudo = str(pseudo).strip()
         supabase.table("messages").insert({
             "user_pseudo": clean_pseudo,
             "char_name": str(char),
@@ -149,7 +149,7 @@ def load_msgs(pseudo, char):
     if not supabase:
         return []
     try:
-        clean_pseudo = str(pseudo).strip().lower()
+        clean_pseudo = str(pseudo).strip()
         res = (
             supabase.table("messages")
             .select("role, content")
@@ -160,7 +160,7 @@ def load_msgs(pseudo, char):
         if res.data:
             return [{"role": r["role"], "content": r["content"]} for r in res.data]
         return []
-    except Exception:
+    except Exception as e:
         return []
 
 
@@ -287,7 +287,7 @@ def get_user_conversations(pseudo):
     if not supabase or not pseudo or pseudo == "Invité":
         return []
     try:
-        clean_pseudo = str(pseudo).strip().lower()
+        clean_pseudo = str(pseudo).strip()
         res = (
             supabase.table("messages")
             .select("user_pseudo, char_name")
@@ -296,9 +296,9 @@ def get_user_conversations(pseudo):
         chars_met = set()
         if res.data:
             for r in res.data:
-                db_pseudo = str(r.get("user_pseudo", "")).strip().lower()
+                db_pseudo = str(r.get("user_pseudo", "")).strip()
                 c_name = r.get("char_name")
-                if db_pseudo == clean_pseudo and c_name and c_name in CHARACTERS:
+                if db_pseudo.lower() == clean_pseudo.lower() and c_name and c_name in CHARACTERS:
                     chars_met.add(c_name)
         return list(chars_met)
     except Exception as e:
