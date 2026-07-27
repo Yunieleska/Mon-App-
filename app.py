@@ -9,12 +9,11 @@ from groq import Groq
 # --- CONFIGURATION ---
 groq_key = os.getenv("GROQ_API_KEY")
 if not groq_key and "GROQ_API_KEY" in str_lit.secrets:
-    groq_key = str_lit.secrets["GROQ_API_KEY"]
+  groq_key = str_lit.secrets["GROQ_API_KEY"]
 
-# Configuration Hugging Face pour la génération d'images
 hf_api_key = os.getenv("HUGGINGFACE_API_KEY")
 if not hf_api_key and "HUGGINGFACE_API_KEY" in str_lit.secrets:
-    hf_api_key = str_lit.secrets["HUGGINGFACE_API_KEY"]
+  hf_api_key = str_lit.secrets["HUGGINGFACE_API_KEY"]
 
 IMAGE_API_URL = (
     "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell"
@@ -28,7 +27,7 @@ def generer_image_huggingface(prompt_image):
   payload = {"inputs": prompt_image}
   try:
     response = requests.post(
-        IMAGE_API_URL, headers=headers, json=payload, timeout=30
+        IMAGE_API_URL, headers=headers, json=payload, timeout=45
     )
     if response.status_code == 200:
       return response.content
@@ -53,7 +52,7 @@ str_lit.set_page_config(
     page_title="Storyia", layout="wide", initial_sidebar_state="expanded"
 )
 
-# --- STYLE GLOBAL & CORRECTIONS VISUELLES ---
+# --- STYLE GLOBAL & DESIGN EMOCHI-LIKE ---
 str_lit.markdown(
     """
     <style>
@@ -118,7 +117,7 @@ str_lit.markdown(
     unsafe_allow_html=True,
 )
 
-# --- PERSISTANCE PAR URL (ANTI-RESET STREAMLIT) ---
+# --- PERSISTANCE PAR URL ---
 query_params = str_lit.query_params
 
 if "user" in query_params and query_params["user"]:
@@ -135,7 +134,7 @@ if "page" not in str_lit.session_state:
 if "char_select" not in str_lit.session_state:
   str_lit.session_state.char_select = "Caelum"
 
-# --- SUPABASE FUNCTIONS SÉCURISÉES ---
+# --- SUPABASE FUNCTIONS ---
 
 
 def save_msg(pseudo, char, role, content):
@@ -171,20 +170,21 @@ def load_msgs(pseudo, char):
 
 
 def get_all_characters():
+  # Prompt optimisé pour inclure très régulièrement des images à la manière d'Emochi World
+  base_instruction = (
+      " Reste strictement dans ton rôle, adopte un ton immersif de roleplay"
+      " romancé. IMPORTANT : À la fin de la plupart de tes messages, intègre"
+      " une balise visuelle au format exact suivant pour illustrer la scène :"
+      " [IMAGE: description détaillée en anglais de l'ambiance, du personnage ou"
+      " du décor]."
+  )
+
   chars = {
       "Caelum": {
           "img": (
               "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
           ),
-          "prompt": (
-              "Tu es Caelum, Prince des Ténèbres. Reste strictement dans ton"
-              " rôle, adopte un ton immersif de roleplay. Si la situation s'y"
-              " prête (action marquante, paysage, expression forte), tu peux"
-              " ajouter à la toute fin de ton message une balise au format"
-              " exact suivant : [IMAGE: description en anglais de ce qu'on"
-              " doit voir]. N'utilise cette balise qu'occasionnellement pour"
-              " surprendre l'utilisateur."
-          ),
+          "prompt": "Tu es Caelum, Prince des Ténèbres." + base_instruction,
           "quote": (
               "Ne t'approche pas de moi. Ma vie est déjà tracée, et tu n'as"
               " rien à y faire."
@@ -194,15 +194,7 @@ def get_all_characters():
           "img": (
               "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg"
           ),
-          "prompt": (
-              "Tu es Alexei, mafieux. Reste strictement dans ton rôle, adopte"
-              " un ton immersif de roleplay. Si la situation s'y prête (action"
-              " marquante, paysage, expression forte), tu peux ajouter à la"
-              " toute fin de ton message une balise au format exact suivant :"
-              " [IMAGE: description en anglais de ce qu'on doit voir]."
-              " N'utilise cette balise qu'occasionnellement pour surprendre"
-              " l'utilisateur."
-          ),
+          "prompt": "Tu es Alexei, mafieux." + base_instruction,
           "quote": (
               "Regardez qui s'est perdue sur mon territoire. La petite princesse"
               " des Volkov..."
@@ -212,30 +204,14 @@ def get_all_characters():
           "img": (
               "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg"
           ),
-          "prompt": (
-              "Tu es Killian, motard. Reste strictement dans ton rôle, adopte"
-              " un ton immersif de roleplay. Si la situation s'y prête (action"
-              " marquante, paysage, expression forte), tu peux ajouter à la"
-              " toute fin de ton message une balise au format exact suivant :"
-              " [IMAGE: description en anglais de ce qu'on doit voir]."
-              " N'utilise cette balise qu'occasionnellement pour surprendre"
-              " l'utilisateur."
-          ),
+          "prompt": "Tu es Killian, motard." + base_instruction,
           "quote": "Respire, c'est fini... T'as pas changé, toujours aussi maladroite.",
       },
       "Lucas": {
           "img": (
               "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/lucas.png.PNG"
           ),
-          "prompt": (
-              "Tu es Lucas, populaire. Reste strictement dans ton rôle, adopte"
-              " un ton immersif de roleplay. Si la situation s'y prête (action"
-              " marquante, paysage, expression forte), tu peux ajouter à la"
-              " toute fin de ton message une balise au format exact suivant :"
-              " [IMAGE: description en anglais de ce qu'on doit voir]."
-              " N'utilise cette balise qu'occasionnellement pour surprendre"
-              " l'utilisateur."
-          ),
+          "prompt": "Tu es Lucas, populaire." + base_instruction,
           "quote": (
               "On s'esquive tous les deux et on va squatter ton canapé devant"
               " une série ?"
@@ -245,15 +221,7 @@ def get_all_characters():
           "img": (
               "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/ethan.png"
           ),
-          "prompt": (
-              "Tu es Ethan, Loup Alpha. Reste strictement dans ton rôle,"
-              " adopte un ton immersif de roleplay. Si la situation s'y prête"
-              " (action marquante, paysage, expression forte), tu peux ajouter"
-              " à la toute fin de ton message une balise au format exact"
-              " suivant : [IMAGE: description en anglais de ce qu'on doit"
-              " voir]. N'utilise cette balise qu'occasionnellement pour"
-              " surprendre l'utilisateur."
-          ),
+          "prompt": "Tu es Ethan, Loup Alpha." + base_instruction,
           "quote": (
               "La forêt cache des prédateurs bien plus dangereux que tu ne"
               " l'imagines..."
@@ -263,45 +231,21 @@ def get_all_characters():
           "img": (
               "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/leo.png.PNG"
           ),
-          "prompt": (
-              "Tu es Léo, streameur. Reste strictement dans ton rôle, adopte un"
-              " ton immersif de roleplay. Si la situation s'y prête (action"
-              " marquante, paysage, expression forte), tu peux ajouter à la"
-              " toute fin de ton message une balise au format exact suivant :"
-              " [IMAGE: description en anglais de ce qu'on doit voir]."
-              " N'utilise cette balise qu'occasionnellement pour surprendre"
-              " l'utilisateur."
-          ),
+          "prompt": "Tu es Léo, streameur." + base_instruction,
           "quote": "Prête à ce qu'on détruise l'équipe d'en face ?",
       },
       "Liam": {
           "img": (
               "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/liam.png.PNG"
           ),
-          "prompt": (
-              "Tu es Liam, le grand frère. Reste strictement dans ton rôle,"
-              " adopte un ton immersif de roleplay. Si la situation s'y prête"
-              " (action marquante, paysage, expression forte), tu peux ajouter"
-              " à la toute fin de ton message une balise au format exact"
-              " suivant : [IMAGE: description en anglais de ce qu'on doit"
-              " voir]. N'utilise cette balise qu'occasionnellement pour"
-              " surprendre l'utilisateur."
-          ),
+          "prompt": "Tu es Liam, le grand frère." + base_instruction,
           "quote": "Salut, l'amie de ma sœur. Essaie de ne pas faire trop de bruit.",
       },
       "Noah": {
           "img": (
               "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/noah.png.PNG"
           ),
-          "prompt": (
-              "Tu es Noah, quarterback star. Reste strictement dans ton rôle,"
-              " adopte un ton immersif de roleplay. Si la situation s'y prête"
-              " (action marquante, paysage, expression forte), tu peux ajouter"
-              " à la toute fin de ton message une balise au format exact"
-              " suivant : [IMAGE: description en anglais de ce qu'on doit"
-              " voir]. N'utilise cette balise qu'occasionnellement pour"
-              " surprendre l'utilisateur."
-          ),
+          "prompt": "Tu es Noah, quarterback star." + base_instruction,
           "quote": "Dis, tu crois qu'on est tous obligés de jouer un rôle pour plaire ?",
       },
   }
@@ -327,14 +271,8 @@ def get_all_characters():
                 "prompt": (
                     f"Tu es {item['name']}, un personnage"
                     f" {item.get('sex', '')}. Description :"
-                    f" {item.get('description', '')}. Personnages secondaires /"
-                    f" Contexte additionnel : {item.get('secondary_chars', '')}."
-                    " Reste strictement dans ton rôle. Si la situation s'y"
-                    " prête (action marquante, paysage, expression forte), tu"
-                    " peux ajouter à la toute fin de ton message une balise au"
-                    " format exact suivant : [IMAGE: description en anglais de"
-                    " ce qu'on doit voir]. N'utilise cette balise"
-                    " qu'occasionnellement pour surprendre l'utilisateur."
+                    f" {item.get('description', '')}. Personnages secondaires :"
+                    f" {item.get('secondary_chars', '')}." + base_instruction
                 ),
                 "quote": (
                     item.get("quote")
@@ -379,12 +317,6 @@ if not str_lit.session_state.logged_in:
     if os.path.exists("bg.png"):
       str_lit.image("bg.png")
 
-    if not supabase or not client:
-      str_lit.error(
-          "⚠️ Attention : Vérifie tes clés Supabase et Groq dans les secrets"
-          " de Streamlit Cloud."
-      )
-
     tab1, tab2 = str_lit.tabs(["Login", "Sign Up"])
 
     with tab1:
@@ -416,8 +348,6 @@ if not str_lit.session_state.logged_in:
               str_lit.rerun()
           except Exception as e:
             str_lit.error(f"Erreur de connexion : {e}")
-        else:
-          str_lit.error("Base de données non disponible.")
 
     with tab2:
       new_pseudo = str_lit.text_input("Pseudo", key="sign_pseudo")
@@ -442,8 +372,6 @@ if not str_lit.session_state.logged_in:
               str_lit.success("Compte créé ! Veuillez vous connecter.")
           except Exception as e:
             str_lit.error(f"Erreur : {e}")
-        else:
-          str_lit.error("Base de données non disponible.")
   str_lit.stop()
 
 # --- SIDEBAR ---
@@ -479,7 +407,7 @@ if str_lit.sidebar.button("🚪 Logout"):
     del str_lit.query_params["user"]
   str_lit.rerun()
 
-# --- NAVIGATION ENTRE PAGES ---
+# --- NAVIGATION ---
 if str_lit.session_state.page == "home":
   str_lit.title("Explorer")
   str_lit.write("Découvre et discute avec les personnages du moment :")
@@ -552,7 +480,6 @@ if str_lit.session_state.page == "home":
         </div>
         """
   grid_html += "</div>"
-
   str_lit.html(grid_html)
 
   if "chat_target" in query_params:
@@ -564,125 +491,62 @@ if str_lit.session_state.page == "home":
         del str_lit.query_params["chat_target"]
       str_lit.rerun()
 
-  if total_pages > 1:
-    str_lit.markdown("---")
-    p_col1, p_col2, p_col3 = str_lit.columns([1, 2, 1])
-    with p_col1:
-      if str_lit.session_state.home_page > 0:
-        if str_lit.button("⬅️ Précédent", use_container_width=True):
-          str_lit.session_state.home_page -= 1
-          str_lit.rerun()
-    with p_col2:
-      str_lit.markdown(
-          f"<p style='text-align: center; color: #8b949e;'>Page"
-          f" {str_lit.session_state.home_page + 1} sur {total_pages}</p>",
-          unsafe_allow_html=True,
-      )
-    with p_col3:
-      if str_lit.session_state.home_page < total_pages - 1:
-        if str_lit.button("Suivant ➡️", use_container_width=True):
-          str_lit.session_state.home_page += 1
-          str_lit.rerun()
-
 elif str_lit.session_state.page == "create_character":
   str_lit.title("✨ Créer un nouveau personnage")
-  str_lit.write(
-      "Conçois ton propre personnage sur mesure, définis son univers et choisis"
-      " s'il est visible par tous ou uniquement par toi."
-  )
-
   with str_lit.form("create_char_form"):
     char_name = str_lit.text_input("Nom du personnage")
     char_sex = str_lit.selectbox(
         "Sexe / Genre", ["Homme", "Femme", "Non-binaire", "Autre"]
     )
-    char_quote = str_lit.text_input(
-        "Phrase d'accroche (Citation affichée sous l'image)"
-    )
+    char_quote = str_lit.text_input("Phrase d'accroche")
     char_description = str_lit.text_area(
-        "Description et Personnalité (Comment se comporte-t-il, son histoire,"
-        " son ton...)",
-        help="Ex: Tu es ténébreux, protecteur, un peu distant au début...",
+        "Description et Personnalité (Histoire, ton, etc.)"
     )
-    char_secondary = str_lit.text_area(
-        "Personnages secondaires / Éléments contextuels (Optionnel)",
-        help=(
-            "Ex: Inclut des mentions de ses frères ou de rivaux si nécessaire"
-            " dans l'histoire."
-        ),
-    )
-
+    char_secondary = str_lit.text_area("Personnages secondaires (Optionnel)")
     uploaded_char_img = str_lit.file_uploader(
-        "Image du personnage (PNG, JPG)", type=["png", "jpg", "jpeg"]
+        "Image du personnage", type=["png", "jpg", "jpeg"]
     )
-
     visibility = str_lit.radio(
-        "Visibilité",
-        [
-            "Public (visible par toute la communauté)",
-            "Privé (uniquement pour moi)",
-        ],
+        "Visibilité", ["Public (toute la communauté)", "Privé"]
     )
-
     submitted = str_lit.form_submit_button(
-        "🚀 Créer le personnage", use_container_width=True
+        "🚀 Créer", use_container_width=True
     )
 
-    if submitted:
-      if not char_name or not char_description:
-        str_lit.warning(
-            "Veuillez remplir au moins le nom et la description du personnage."
-        )
-      else:
-        img_path = (
-            "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-        )
-        if uploaded_char_img is not None:
-          img_path_saved = (
-              f"char_{str_lit.session_state.pseudo}_{char_name}.png"
-          )
-          with open(img_path_saved, "wb") as f:
-            f.write(uploaded_char_img.getbuffer())
-          img_path = img_path_saved
+    if submitted and char_name and char_description:
+      img_path = (
+          "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+      )
+      if uploaded_char_img is not None:
+        img_path = f"char_{str_lit.session_state.pseudo}_{char_name}.png"
+        with open(img_path, "wb") as f:
+          f.write(uploaded_char_img.getbuffer())
 
-        is_public = True if "Public" in visibility else False
-
-        if supabase:
-          try:
-            supabase.table("custom_characters").insert({
-                "name": char_name,
-                "sex": char_sex,
-                "quote": char_quote,
-                "description": char_description,
-                "secondary_chars": char_secondary,
-                "img_url": img_path,
-                "is_public": is_public,
-                "creator": str_lit.session_state.pseudo,
-            }).execute()
-
-            str_lit.success(
-                f"Le personnage {char_name} a été créé avec succès !"
-                " Retrouvez-le dans votre Profil."
-            )
-            str_lit.session_state.page = "profile"
-            str_lit.rerun()
-          except Exception as e:
-            str_lit.error(f"Erreur lors de la création : {e}")
-        else:
-          str_lit.error("Base de données non disponible.")
+      is_public = True if "Public" in visibility else False
+      if supabase:
+        try:
+          supabase.table("custom_characters").insert({
+              "name": char_name,
+              "sex": char_sex,
+              "quote": char_quote,
+              "description": char_description,
+              "secondary_chars": char_secondary,
+              "img_url": img_path,
+              "is_public": is_public,
+              "creator": str_lit.session_state.pseudo,
+          }).execute()
+          str_lit.success("Personnage créé avec succès !")
+          str_lit.session_state.page = "profile"
+          str_lit.rerun()
+        except Exception as e:
+          str_lit.error(f"Erreur : {e}")
 
 elif str_lit.session_state.page == "messages":
   str_lit.title("Mes Discussions")
-  str_lit.write(
-      "Retrouvez ici l'ensemble de vos conversations avec les personnages."
-  )
-
   char_names_with_conv = get_user_conversations(str_lit.session_state.pseudo)
-
   if not char_names_with_conv:
     str_lit.info(
-        "Vous n'avez pas encore de discussions en cours. Allez sur l'accueil pour"
-        " choisir un personnage !"
+        "Aucune discussion en cours. Choisissez un personnage sur l'accueil !"
     )
   else:
     for char_name in char_names_with_conv:
@@ -702,7 +566,6 @@ elif str_lit.session_state.page == "messages":
 
 elif str_lit.session_state.page == "profile":
   str_lit.title("Mon Profil")
-
   if supabase:
     try:
       user_db = (
@@ -713,156 +576,40 @@ elif str_lit.session_state.page == "profile":
           .execute()
       )
       user_info = user_db.data if user_db.data else {}
-
-      user_email = user_info.get("email", "Non disponible")
       user_id = user_info.get("id")
-
       avatar_path = user_info.get(
           "avatar_url",
           "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
       )
-      if not avatar_path or (
-          not str(avatar_path).startswith("http")
-          and not os.path.exists(avatar_path)
-      ):
-        avatar_path = (
-            "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-        )
-
-      char_names_with_conv = get_user_conversations(str_lit.session_state.pseudo)
-      nb_collected = len(char_names_with_conv)
 
       col1, col2 = str_lit.columns([1, 3])
-
       with col1:
         str_lit.image(avatar_path, use_container_width=True)
-
       with col2:
         str_lit.subheader(str_lit.session_state.pseudo)
-        str_lit.write(f"📧 {user_email}")
-
-        stat1, stat2, stat3 = str_lit.columns(3)
-        with stat1:
-          str_lit.metric(label="Discussions", value=nb_collected)
-        with stat2:
-          str_lit.metric(label="Abonnés", value=0)
-        with stat3:
-          str_lit.metric(label="Abonnements", value=0)
+        str_lit.write(f"📧 {user_info.get('email', 'N/A')}")
 
       str_lit.markdown("---")
-
-      str_lit.text_input(
-          "Pseudo (non modifiable)",
-          value=str_lit.session_state.pseudo,
-          disabled=True,
-      )
-
       uploaded_file = str_lit.file_uploader(
-          "Changer votre photo de profil",
-          type=["png", "jpg", "jpeg"],
-          key="avatar_uploader",
+          "Changer votre photo de profil", type=["png", "jpg", "jpeg"]
       )
-
       if uploaded_file is not None and user_id:
-        file_extension = uploaded_file.name.split(".")[-1]
-        file_name = f"avatar_{user_id}.{file_extension}"
-
+        file_name = f"avatar_{user_id}.png"
         with open(file_name, "wb") as f:
           f.write(uploaded_file.getbuffer())
-
-        try:
-          supabase.table("users").update({"avatar_url": file_name}).eq(
-              "id", user_id
-          ).execute()
-          str_lit.success("Photo de profil mise à jour avec succès !")
-          str_lit.rerun()
-        except Exception:
-          str_lit.success("Photo enregistrée localement !")
-          str_lit.rerun()
-
-      str_lit.markdown("---")
-      str_lit.subheader("🎭 Mes personnages créés & privés")
-      str_lit.write(
-          "Retrouvez ici tous les personnages sur mesure que vous avez imaginés"
-          " (publics ou privés)."
-      )
-
-      try:
-        my_chars_res = (
-            supabase.table("custom_characters")
-            .select("*")
-            .eq("creator", str_lit.session_state.pseudo)
-            .execute()
-        )
-        my_chars = my_chars_res.data if my_chars_res.data else []
-
-        if not my_chars:
-          str_lit.info(
-              "Vous n'avez pas encore créé de personnage. Rendez-vous dans"
-              " l'onglet 'Créer un Personnage' !"
-          )
-        else:
-          for mc in my_chars:
-            mc_name = mc["name"]
-            mc_quote = mc.get("quote", "Pas de citation")
-            mc_img = mc.get(
-                "img_url",
-                "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
-            )
-            if not str(mc_img).startswith("http") and not os.path.exists(mc_img):
-              mc_img = (
-                  "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-              )
-
-            is_pub_status = (
-                "🌍 Public" if mc.get("is_public", True) else "🔒 Privé"
-            )
-
-            c_img, c_info, c_act1, c_act2 = str_lit.columns(
-                [1, 4, 1, 1]
-            )
-            with c_img:
-              str_lit.image(mc_img, width=65)
-            with c_info:
-              str_lit.markdown(f"**{mc_name}** ({is_pub_status})")
-              str_lit.caption(f'"{mc_quote}"')
-            with c_act1:
-              if str_lit.button("Discuter", key=f"chat_my_char_{mc_name}"):
-                str_lit.session_state.char_select = mc_name
-                str_lit.session_state.page = "chat"
-                str_lit.rerun()
-            with c_act2:
-              if str_lit.button("Supprimer", key=f"del_my_char_{mc_name}"):
-                try:
-                  supabase.table("custom_characters").delete().eq(
-                      "name", mc_name
-                  ).eq("creator", str_lit.session_state.pseudo).execute()
-                  str_lit.success(f"Personnage {mc_name} supprimé.")
-                  str_lit.rerun()
-                except Exception as e:
-                  str_lit.error(f"Erreur : {e}")
-            str_lit.markdown(
-                "<div style='margin-bottom: 5px;'></div>", unsafe_allow_html=True
-            )
-
-      except Exception as e:
-        str_lit.error(
-            f"Erreur lors du chargement de vos personnages : {e}"
-        )
-
+        supabase.table("users").update({"avatar_url": file_name}).eq(
+            "id", user_id
+        ).execute()
+        str_lit.success("Photo mise à jour !")
+        str_lit.rerun()
     except Exception as e:
-      str_lit.error(f"Impossible de charger les données du profil : {e}")
+      str_lit.error(f"Erreur profil : {e}")
 
 elif str_lit.session_state.page == "chat":
   current_char = str_lit.session_state.char_select
   bg_image = CHARACTERS[current_char]["img"]
   char_quote = CHARACTERS[current_char]["quote"]
   char_prompt = CHARACTERS[current_char]["prompt"]
-
-  if not str(bg_image).startswith("http") and not os.path.exists(str(bg_image)):
-    bg_image = (
-        "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-    )
 
   str_lit.markdown(
       f"""
@@ -880,9 +627,6 @@ elif str_lit.session_state.page == "chat":
             border: 1px solid rgba(255, 255, 255, 0.12);
             margin-bottom: 25px;
             backdrop-filter: blur(5px);
-        }}
-        .main .block-container {{
-            padding-bottom: 100px;
         }}
         </style>
     """,
@@ -906,8 +650,7 @@ elif str_lit.session_state.page == "chat":
         "role": "system",
         "content": (
             f"{char_prompt} Commence l'histoire en envoyant un premier message"
-            f" d'accroche immersif en incarnant ton personnage, en te basant sur"
-            f" cette citation : '{char_quote}'."
+            f" d'accroche immersif incluant une [IMAGE: ...]."
         ),
     }]
     try:
@@ -920,40 +663,20 @@ elif str_lit.session_state.page == "chat":
       )
       messages = load_msgs(str_lit.session_state.pseudo, current_char)
     except Exception as e:
-      str_lit.error(f"Erreur d'authentification Groq : {e}")
+      str_lit.error(f"Erreur Groq : {e}")
 
   user_avatar_path = (
       "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
   )
-  if supabase:
-    try:
-      u_db = (
-          supabase.table("users")
-          .select("avatar_url")
-          .eq("pseudo", str(str_lit.session_state.pseudo))
-          .single()
-          .execute()
-      )
-      if u_db.data and u_db.data.get("avatar_url"):
-        p_url = u_db.data["avatar_url"]
-        if str(p_url).startswith("http") or os.path.exists(str(p_url)):
-          user_avatar_path = p_url
-    except Exception:
-      pass
-
-  char_avatar_path = bg_image
-
   for idx, msg in enumerate(messages):
     is_user = msg["role"] == "user"
-    avatar_to_use = user_avatar_path if is_user else char_avatar_path
     name_to_use = str_lit.session_state.pseudo if is_user else current_char
 
     with str_lit.container():
       col_av, col_txt = str_lit.columns([1, 11])
       with col_av:
         str_lit.markdown(
-            f"<img src='{avatar_to_use}' style='width: 38px; height: 38px;"
-            " border-radius: 50%; object-fit: cover; margin-top: 4px;'>",
+            f"<b style='color:#a0a0a0;'>{name_to_use[:2].upper()}</b>",
             unsafe_allow_html=True,
         )
       with col_txt:
@@ -963,57 +686,13 @@ elif str_lit.session_state.page == "chat":
         )
 
         if is_user:
-          edit_key = f"edit_mode_{idx}"
-          if edit_key not in str_lit.session_state:
-            str_lit.session_state[edit_key] = False
-
-          if not str_lit.session_state[edit_key]:
-            str_lit.write(msg["content"])
-            if str_lit.button(
-                "✏️ Modifier ce message", key=f"btn_edit_{idx}"
-            ):
-              str_lit.session_state[edit_key] = True
-              str_lit.rerun()
-          else:
-            new_content = str_lit.text_area(
-                "Modifier le message :",
-                value=msg["content"],
-                key=f"input_edit_{idx}",
-            )
-            col_save, col_cancel = str_lit.columns([1, 1])
-            with col_save:
-              if str_lit.button("💾 Enregistrer", key=f"save_edit_{idx}"):
-                if supabase and new_content.strip():
-                  try:
-                    supabase.table("messages").delete().eq(
-                        "user_pseudo", str(str_lit.session_state.pseudo)
-                    ).eq("char_name", str(current_char)).execute()
-
-                    messages[idx]["content"] = new_content
-                    trimmed_messages = messages[: idx + 1]
-
-                    for m in trimmed_messages:
-                      supabase.table("messages").insert({
-                          "user_pseudo": str(str_lit.session_state.pseudo),
-                          "char_name": str(current_char),
-                          "role": m["role"],
-                          "content": m["content"],
-                      }).execute()
-
-                    str_lit.session_state[edit_key] = False
-                    str_lit.rerun()
-                  except Exception as e:
-                    str_lit.error(f"Erreur lors de la modification : {e}")
-            with col_cancel:
-              if str_lit.button("❌ Annuler", key=f"cancel_edit_{idx}"):
-                str_lit.session_state[edit_key] = False
-                str_lit.rerun()
+          str_lit.write(msg["content"])
         else:
-          # --- GESTION DU MESSAGE DE L'ASSISTANT & BALISE IMAGE HUGGING FACE ---
           contenu_message = msg.get("content", "")
-
-          # Recherche de la balise [IMAGE: description]
-          match_image = re.search(r"\[IMAGE:\s*(.*?)\]", contenu_message)
+          # Extraction plus souple de la balise image (insensible aux espaces/majuscules)
+          match_image = re.search(
+              r"\[IMAGE:\s*(.*?)\]", contenu_message, re.IGNORECASE
+          )
 
           if match_image:
             prompt_image = match_image.group(1).strip()
@@ -1027,22 +706,27 @@ elif str_lit.session_state.page == "chat":
           str_lit.write(texte_propre)
 
           if prompt_image:
-            with str_lit.spinner("📸 Génération de la photo en cours..."):
+            with str_lit.spinner(
+                f"🎨 {current_char} partage une image..."
+            ):
               image_bytes = generer_image_huggingface(prompt_image)
               if image_bytes:
                 str_lit.image(
-                    image_bytes, caption=f"Photo envoyée par {current_char}"
+                    image_bytes,
+                    caption=f"Instantané de {current_char}",
+                    use_container_width=True,
                 )
               else:
-                str_lit.warning("Impossible de charger la photo pour le moment.")
+                str_lit.info(
+                    "*(L'image n'a pas pu être générée instantanément par"
+                    " l'API)*"
+                )
 
-  # --- ZONE DE SAISIE DU CHAT ---
   user_input = str_lit.chat_input("Écris ton message...")
   if user_input and client:
     save_msg(str_lit.session_state.pseudo, current_char, "user", user_input)
 
-    formatted_history = []
-    formatted_history.append({"role": "system", "content": char_prompt})
+    formatted_history = [{"role": "system", "content": char_prompt}]
     for m in load_msgs(str_lit.session_state.pseudo, current_char):
       formatted_history.append({"role": m["role"], "content": m["content"]})
 
