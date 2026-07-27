@@ -24,8 +24,8 @@ SIDEBAR_HEADER_IMG = "couple.png"
 
 def generer_image_huggingface(prompt_image, current_char_name=None):
     """
-    Génère une image en mode Text-to-Image pur avec un style photoréaliste 
-    et cinématographique cohérent pour chaque personnage.
+    Génère une image en mode Text-to-Image pur avec un style STRICTEMENT PHOTORÉALISTE 
+    et cinématographique pour chaque personnage.
     """
     if not hf_api_key:
         return None, "Clé API Hugging Face manquante."
@@ -34,28 +34,28 @@ def generer_image_huggingface(prompt_image, current_char_name=None):
             model="stabilityai/stable-diffusion-xl-base-1.0", token=hf_api_key
         )
         
-        # Identités visuelles basées sur un rendu PHOTORÉALISTE et cinématique
+        # Identités visuelles rigoureusement axées sur le PHOTORÉALISME et la photographie réelle
         character_identities = {
-            "Caelum": "A hyper-realistic cinematic portrait of Caelum, a handsome young man with dark piercing eyes, dark hair, prince of darkness style, fantasy outfit, photorealistic, 8k resolution, cinematic lighting, sharp focus",
-            "Alexei": "A hyper-realistic cinematic portrait of Alexei, a dangerous mafia leader with sharp intense eyes, slick dark hair, elegant dark suit, photorealistic, dramatic studio lighting, detailed skin texture",
-            "Killian": "A hyper-realistic cinematic portrait of Killian, a cool biker with messy hair, leather jacket, intense gaze, photorealistic, dramatic lighting, detailed texture",
-            "Lucas": "A hyper-realistic cinematic portrait of Lucas, a popular high school boy with charming smile, trendy casual clothes, photorealistic, soft natural lighting",
-            "Ethan": "A hyper-realistic cinematic portrait of Ethan, a fierce alpha wolf man with wild hair, piercing eyes, mysterious aura, photorealistic, cinematic moonlight",
-            "Léo": "A hyper-realistic cinematic portrait of Leo, a stylish streamer boy with headphones around his neck, energetic look, photorealistic, colorful rgb studio lighting",
-            "Liam": "A hyper-realistic cinematic portrait of Liam, an older brother figure with calm and protective expression, photorealistic, warm natural lighting",
-            "Noah": "A hyper-realistic cinematic portrait of Noah, a handsome quarterback athlete in sports jacket, photorealistic, athletic photoshoot style"
+            "Caelum": "A hyper-realistic cinematic photograph of Caelum, a handsome young man with dark piercing eyes and dark hair, wearing a dark modern luxury coat, shot on 35mm lens, photorealistic skin texture, dramatic studio lighting, 8k resolution, raw photo style",
+            "Alexei": "A hyper-realistic cinematic photograph of Alexei, a dangerous mafia leader with sharp intense eyes and slick dark hair, wearing an elegant dark tailored suit, professional color grading, photorealistic, cinematic lighting, detailed skin pores",
+            "Killian": "A hyper-realistic cinematic photograph of Killian, a cool biker with messy hair and a leather jacket, intense gaze, outdoor natural daylight, photorealistic portrait, sharp focus, high-end photography",
+            "Lucas": "A hyper-realistic cinematic photograph of Lucas, a popular high school boy with a charming smile and trendy casual clothes, soft natural lighting, photorealistic, portrait photography style",
+            "Ethan": "A hyper-realistic cinematic photograph of Ethan, a fierce alpha wolf man with wild hair and intense piercing eyes, mysterious aura, dark cinematic moonlight, photorealistic, highly detailed",
+            "Léo": "A hyper-realistic cinematic photograph of Leo, a stylish streamer boy with headphones around his neck, energetic look, colorful RGB studio lighting, photorealistic portrait, sharp details",
+            "Liam": "A hyper-realistic cinematic photograph of Liam, an older brother figure with a calm and protective expression, warm natural indoor lighting, photorealistic, professional portrait",
+            "Noah": "A hyper-realistic cinematic photograph of Noah, a handsome quarterback athlete wearing a sports jacket, athletic photoshoot style, natural sunlight, photorealistic"
         }
 
         # Récupération de l'identité réaliste du personnage
         char_identity = character_identities.get(
             current_char_name, 
-            f"A hyper-realistic cinematic portrait of {current_char_name or 'the character'}"
+            f"A hyper-realistic cinematic photograph of {current_char_name or 'the character'}"
         )
 
-        # Construction du prompt final orienté réalisme photographique
+        # Construction du prompt final ultra-orienté photo réelle (exclusion totale de style dessin/anime/illustration)
         prompt_final = (
-            f"{char_identity}. In the scene: {prompt_image}. "
-            f"Photorealistic, highly detailed skin pores, shot on 35mm lens, professional color grading, masterpiece, 8k."
+            f"{char_identity}. Scene details: {prompt_image}. "
+            f"RAW photo, highly detailed skin pores, realistic human anatomy, shot on 35mm film, professional photography, cinematic lighting, masterpiece, 8k, photorealistic."
         )
 
         image = client_hf.text_to_image(prompt_final)
@@ -198,8 +198,8 @@ def get_all_characters():
         " Reste strictement dans ton rôle, adopte un ton immersif de roleplay"
         " romancé. IMPORTANT : À la fin de CHAQUE message, tu dois obligatoirement"
         " intégrer une balise visuelle au format exact suivant pour illustrer"
-        " l'action en cours : [IMAGE: description détaillée en anglais de"
-        " l'ambiance, du personnage ou du décor]."
+        " l'action en cours sous forme de photographie réelle : [IMAGE: description détaillée en anglais de"
+        " l'ambiance, du personnage ou du décor, photorealistic shot]."
     )
 
     chars = {
@@ -698,7 +698,7 @@ elif str_lit.session_state.page == "chat":
             "role": "system",
             "content": (
                 f"{char_prompt} Commence l'histoire en envoyant un premier message"
-                f" d'accroche immersif incluant une [IMAGE: ...]."
+                f" d'accroche immersif incluant une balise [IMAGE: ...]."
             ),
         }]
         try:
@@ -755,31 +755,31 @@ elif str_lit.session_state.page == "chat":
                     str_lit.write(texte_propre)
 
                     if match_image and prompt_image:
-                        with str_lit.expander("🖼️ Voir l'illustration de la scène"):
+                        with str_lit.expander("🖼️ Voir la photo de la scène"):
                             with str_lit.spinner(
-                                f"🎨 {current_char} génère l'illustration..."
+                                f"📸 {current_char} développe la photo..."
                             ):
                                 image_bytes, err_msg = generer_image_huggingface(prompt_image, current_char_name=current_char)
                                 if image_bytes:
                                     str_lit.image(
                                         image_bytes,
-                                        caption=f"Scène - {current_char}",
+                                        caption=f"Photo réelle - {current_char}",
                                         use_container_width=True,
                                     )
                                 else:
                                     str_lit.warning(
-                                        f"Impossible de charger l'illustration ({err_msg})."
+                                        f"Impossible de charger la photo ({err_msg})."
                                     )
 
     st_container = str_lit.container()
     with st_container:
         user_input = str_lit.chat_input("Écris ton message...")
         
-        if str_lit.button("🎨 Générer l'image de la dernière scène", key="btn_gen_img_direct"):
+        if str_lit.button("📸 Générer la photo de la dernière scène", key="btn_gen_img_direct"):
             if client:
                 dernier_prompt_image = (
-                    f"Cinematic portrait of {current_char} in a fantasy setting, "
-                    f"photorealistic, dramatic lighting, high quality"
+                    f"Cinematic realistic portrait of {current_char} in a realistic setting, "
+                    f"RAW photo, studio lighting, high quality"
                 )
                 for m in reversed(messages):
                     if m["role"] == "assistant":
@@ -789,13 +789,13 @@ elif str_lit.session_state.page == "chat":
                         break
 
                 with str_lit.spinner(
-                    f"🎨 {current_char} génère l'illustration à la volée..."
+                    f"📸 {current_char} développe la photo à la volée..."
                 ):
                     image_bytes, err_msg = generer_image_huggingface(dernier_prompt_image, current_char_name=current_char)
                     if image_bytes:
                         str_lit.image(
                             image_bytes,
-                            caption=f"Scène - {current_char}",
+                            caption=f"Photo réelle - {current_char}",
                             use_container_width=True,
                         )
                     else:
@@ -809,11 +809,12 @@ elif str_lit.session_state.page == "chat":
             formatted_history.append({"role": m["role"], "content": m["content"]})
 
         try:
-            response = client.chat.completions.create(
-                model="llama-3.3-70b-versatile", messages=formatted_history
-            )
-            bot_reply = response.choices[0].message.content
-            save_msg(str_lit.session_state.pseudo, current_char, "assistant", bot_reply)
-            str_lit.rerun()
+            with str_lit.spinner(f"{current_char} est en train d'écrire..."):
+                response = client.chat.completions.create(
+                    model="llama-3.3-70b-versatile", messages=formatted_history
+                )
+                bot_reply = response.choices[0].message.content
+                save_msg(str_lit.session_state.pseudo, current_char, "assistant", bot_reply)
+                str_lit.rerun()
         except Exception as e:
-            str_lit.error(f"Erreur de communication avec Groq : {e}")
+            str_lit.error(f"Erreur Groq : {e}")
