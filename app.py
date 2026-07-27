@@ -599,7 +599,7 @@ elif st.session_state.page == "chat":
                                                 "role": m["role"],
                                                 "content": m["content"]
                                             }).execute()
-                                            
+                                        
                                         st.session_state[edit_key] = False
                                         
                                         if idx == len(messages) - 1 and client:
@@ -607,7 +607,7 @@ elif st.session_state.page == "chat":
                                             res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=full_messages)
                                             assistant_reply = res.choices[0].message.content
                                             save_msg(st.session_state.pseudo, current_char, "assistant", assistant_reply)
-                                            
+                                        
                                         st.rerun()
                                     except Exception as e:
                                         st.error(f"Erreur lors de la modification : {e}")
