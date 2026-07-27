@@ -264,6 +264,11 @@ def get_all_characters():
             if res.data:
                 for item in res.data:
                     if item.get("is_public", True) or item.get("creator") == str_lit.session_state.pseudo:
+                        desc_val = item.get("description", "")
+                        sec_val = item.get("secondary_chars", "")
+                        sex_val = item.get("sex", "")
+                        quote_val = item.get("quote", f"Bonjour, je suis {item['name']}.")
+                        
                         chars[item["name"]] = {
                             "img": (
                                 item["img_url"]
@@ -275,15 +280,11 @@ def get_all_characters():
                                 else "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
                             ),
                             "prompt": (
-                                f"Tu es {item['name']}, un personnage {item.get('sex', '')}. Description :"
-                                f" {item.get('description', '')}. Personnages secondaires :"
-                                f" {item.get('secondary_chars', '')}." + base_instruction
+                                f"Tu es {item['name']}, un personnage {sex_val}. Description :"
+                                f" {desc_val}. Personnages secondaires :"
+                                f" {sec_val}." + base_instruction
                             ),
-                            "quote": (
-                                item.get("quote")
-                                if item.get("quote")
-                                else f"Bonjour, je suis {item['name']}."
-                            ),
+                            "quote": quote_val,
                         }
         except Exception:
             pass
@@ -805,7 +806,8 @@ elif str_lit.session_state.page == "chat":
     if cache_key not in str_lit.session_state.messages_cache:
         loaded = load_msgs(str_lit.session_state.pseudo, current_char)
         if not loaded:
-            intro_msg = f"*{char_data.get('quote', 'Bonjour...')*}"
+            quote_text = char_data.get('quote', 'Bonjour...')
+            intro_msg = f"*{quote_text}*"
             loaded = [{"role": "assistant", "content": intro_msg}]
         str_lit.session_state.messages_cache[cache_key] = loaded
 
