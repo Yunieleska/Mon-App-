@@ -82,13 +82,19 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- SESSION INITIALIZATION & STABILIZATION (ANTI-DÉCONNEXION RADICALE) ---
-if "logged_in" not in st.session_state: 
-    st.session_state.logged_in = False
-if "pseudo" not in st.session_state: 
-    st.session_state.pseudo = "Invité"
-if "user_id" not in st.session_state: 
-    st.session_state.user_id = None
+# --- PERSISTANCE PAR URL (ANTI-RESET STREAMLIT) ---
+query_params = st.query_params
+
+# Synchronisation URL <-> Session State
+if "user" in query_params and query_params["user"]:
+    st.session_state.logged_in = True
+    st.session_state.pseudo = query_params["user"]
+else:
+    if "logged_in" not in st.session_state:
+        st.session_state.logged_in = False
+    if "pseudo" not in st.session_state:
+        st.session_state.pseudo = "Invité"
+
 if "page" not in st.session_state: 
     st.session_state.page = "home"
 if "char_select" not in st.session_state: 
@@ -214,13 +220,13 @@ if not st.session_state.logged_in:
                     try:
                         res = supabase.auth.sign_in_with_password({"email": email_log, "password": password})
                         if res and res.user:
-                            st.session_state.logged_in = True
-                            st.session_state.user_id = res.user.id
                             user_data = supabase.table("users").select("pseudo").eq("id", res.user.id).single().execute()
-                            if user_data.data:
-                                st.session_state.pseudo = user_data.data["pseudo"]
-                            else:
-                                st.session_state.pseudo = email_log.split("@")[0]
+                            pseudo_val = user_data.data["pseudo"] if user_data.data else email_log.split("@")[0]
+                            
+                            # On ancre l'utilisateur DIRECTEMENT dans l'URL du navigateur
+                            st.session_state.logged_in = True
+                            st.session_state.pseudo = pseudo_val
+                            st.query_params["user"] = pseudo_val
                             st.rerun()
                     except Exception as e:
                         st.error(f"Erreur de connexion : {e}")
@@ -279,7 +285,8 @@ if st.sidebar.button("🚪 Logout"):
             pass
     st.session_state.logged_in = False
     st.session_state.pseudo = "Invité"
-    st.session_state.user_id = None
+    if "user" in st.query_params:
+        del st.query_params["user"]
     st.rerun()
 
 # --- NAVIGATION ENTRE PAGES ---
@@ -316,7 +323,7 @@ if st.session_state.page == "home":
                 </div>
             </div>
             <div style="padding: 0px 10px 10px 10px;">
-                <a href="?chat_target={name}" target="_self" style="display: block; text-align: center; background-color: #21262d; color: #ffffff; padding: 6px 10px; border-radius: 6px; text-decoration: none; border: 1px solid rgba(255, 255, 255, 0.15); font-size: 12px; font-weight: 600;">💬 Discuter</a>
+                <a href="?user={st.session_state.pseudo}&chat_target={name}" target="_self" style="display: block; text-align: center; background-color: #21262d; color: #ffffff; padding: 6px 10px; border-radius: 6px; text-decoration: none; border: 1px solid rgba(255, 255, 255, 0.15); font-size: 12px; font-weight: 600;">💬 Discuter</a>
             </div>
         </div>
         """
@@ -324,13 +331,14 @@ if st.session_state.page == "home":
     
     st.html(grid_html)
 
-    query_params = st.query_params
     if "chat_target" in query_params:
         target_char = query_params["chat_target"]
         if target_char in CHARACTERS:
             st.session_state.char_select = target_char
             st.session_state.page = "chat"
-            st.query_params.clear()
+            # On nettoie juste chat_target de l'URL pour garder ?user=... propre
+            if "chat_target" in st.query_params:
+                del st.query_params["chat_target"]
             st.rerun()
 
     if total_pages > 1:
