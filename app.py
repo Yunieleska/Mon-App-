@@ -106,7 +106,7 @@ str_lit.markdown(
     }
     </style>
 """,
-    unsafe_allow_html=True,
+  unsafe_allow_html=True,
 )
 
 # --- PERSISTANCE PAR URL ---
