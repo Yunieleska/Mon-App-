@@ -128,7 +128,7 @@ else:
     if "logged_in" not in str_lit.session_state:
         str_lit.session_state.logged_in = False
     if "pseudo" not in str_lit.session_state:
-        str_lit.session_state.pseudo = "Invité"
+        str_lit.session_state.pseudo = "Yuna"
 
 if "page" not in str_lit.session_state:
     str_lit.session_state.page = "home"
@@ -193,9 +193,10 @@ def save_to_gallery(pseudo, char_name, img_bytes, prompt):
 def get_all_characters():
     base_instruction = (
         " Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. "
-        "RÈGLE ABSOLUE : N'invente JAMAIS et ne décris JAMAIS l'apparence physique, les vêtements, les cheveux ou le corps de l'utilisateur. "
-        "Laisse toujours l'utilisateur libre de décrire son propre physique. "
-        "IMPORTANT : Évite toute allusion maladroite ou non sollicitée concernant le physique ou les traits de l'utilisateur. "
+        "RÈGLE ABSOLUE : L'utilisateur à qui tu parles s'appelle Yuna. Tu t'adresses TOUJOURS à Yuna en utilisant les accords féminins et son prénom. "
+        "N'invente JAMAIS et ne décris JAMAIS l'apparence physique, les vêtements, les cheveux ou le corps de Yuna. "
+        "Laisse toujours Yuna libre de décrire son propre physique. "
+        "IMPORTANT : Évite toute allusion maladroite ou non sollicitée concernant le physique ou les traits de Yuna. "
         "À la fin de CHAQUE message, tu dois obligatoirement intégrer une balise visuelle au format exact suivant pour illustrer "
         "l'action en cours sous forme de photographie réelle : [IMAGE: description détaillée en anglais de l'ambiance, du personnage ou du décor, photorealistic shot]."
     )
@@ -213,7 +214,7 @@ def get_all_characters():
         },
         "Killian": {
             "img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg",
-            "prompt": "Tu es Killian, le motard. C'est toi qui as sauvé Lord Valerian lors de son grave accident de voiture par le passé." + base_instruction,
+            "prompt": "Tu es Killian, un homme, le motard. C'est toi qui as sauvé Yuna lors de son grave accident de voiture par le passé." + base_instruction,
             "quote": "Respire, c'est fini... Je t'ai sorti de cette voiture à temps, t'inquiète pas.",
         },
         "Lucas": {
@@ -396,7 +397,7 @@ if str_lit.sidebar.button("🚪 Logout"):
         except:
             pass
     str_lit.session_state.logged_in = False
-    str_lit.session_state.pseudo = "Invité"
+    str_lit.session_state.pseudo = "Yuna"
     if "user" in str_lit.query_params:
         del str_lit.query_params["user"]
     str_lit.rerun()
@@ -493,9 +494,10 @@ elif str_lit.session_state.page == "chat":
     if not messages:
         if client:
             try:
+                user_pseudo = str_lit.session_state.pseudo
                 init_prompt = [
                     {"role": "system", "content": char_data["prompt"]},
-                    {"role": "user", "content": f"Écris un long premier message d'introduction immersif, descriptif et détaillé pour débuter notre roleplay. Ta phrase d'accroche de référence est : \"{char_data['quote']}\". Mets-moi tout de suite dans l'ambiance, décris la scène, tes actions (sachant que c'est toi qui as sauvé Lord Valerian de son accident de voiture), sans JAMAIS décrire son physique ou ses vêtements, et termine obligatoirement par une balise [IMAGE: description précise en anglais]."}
+                    {"role": "user", "content": f"L'utilisateur qui te parle s'appelle {user_pseudo}. Écris un long premier message d'introduction immersif, descriptif et détaillé pour débuter notre roleplay avec {user_pseudo}. Ta phrase d'accroche de référence est : \"{char_data['quote']}\". Mets {user_pseudo} tout de suite dans l'ambiance, décris la scène, tes actions (sachant que c'est toi qui as sauvé {user_pseudo} de son accident de voiture si tu es Killian), sans JAMAIS décrire son physique ou ses vêtements, et termine obligatoirement par une balise [IMAGE: description précise en anglais]."}
                 ]
                 resp_init = client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
@@ -538,8 +540,10 @@ elif str_lit.session_state.page == "chat":
 
         if client:
             try:
+                user_pseudo = str_lit.session_state.pseudo
+                context_reminder = {"role": "system", "content": f"Rappel important : Ton interlocuteur actuel s'appelle {user_pseudo}. Adresse-toi directement à elle au féminin."}
                 system_prompt = char_data["prompt"]
-                api_messages = [{"role": "system", "content": system_prompt}] + messages[-1000:]
+                api_messages = [{"role": "system", "content": system_prompt}, context_reminder] + messages[-1000:]
 
                 response = client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
@@ -756,108 +760,5 @@ elif str_lit.session_state.page == "profile":
                             c_img = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
 
                         col_c1, col_c2, col_c3 = str_lit.columns([1, 4, 1])
-                        with col_c1:
-                            str_lit.image(c_img, width=70)
-                        with col_c2:
-                            str_lit.markdown(f"**{c_name}**")
-                            str_lit.caption(c_quote)
-                        with col_c3:
-                            if str_lit.button("Supprimer", key=f"del_char_{c_name}"):
-                                try:
-                                    supabase.table("custom_characters").delete().eq("name", c_name).eq("creator", str_lit.session_state.pseudo).execute()
-                                    str_lit.success(f"Personnage '{c_name}' supprimé.")
-                                    str_lit.rerun()
-                                except Exception as e:
-                                    str_lit.error(f"Erreur : {e}")
-                        str_lit.markdown("---")
-
-            with tab_prof2:
-                str_lit.subheader("Découvrir les utilisateurs")
-                users_res = supabase.table("users").select("pseudo, email").neq("pseudo", str_lit.session_state.pseudo).execute()
-                other_users = users_res.data if users_res.data else []
-
-                if not other_users:
-                    str_lit.info("Aucun autre utilisateur trouvé.")
-                else:
-                    for u in other_users:
-                        u_pseudo = u.get("pseudo")
-                        is_following = False
-                        try:
-                            check_f = supabase.table("follows").select("id").eq("follower_pseudo", str_lit.session_state.pseudo).eq("following_pseudo", u_pseudo).execute()
-                            if check_f.data:
-                                is_following = True
-                        except Exception:
-                            pass
-
-                        col_u1, col_u2 = str_lit.columns([3, 1])
-                        with col_u1:
-                            str_lit.markdown(f"**{u_pseudo}**")
-                        with col_u2:
-                            if is_following:
-                                if str_lit.button("Se désabonner", key=f"unfollow_{u_pseudo}"):
-                                    try:
-                                        supabase.table("follows").delete().eq("follower_pseudo", str_lit.session_state.pseudo).eq("following_pseudo", u_pseudo).execute()
-                                        str_lit.rerun()
-                                    except Exception as e:
-                                        str_lit.error(f"Erreur : {e}")
-                            else:
-                                if str_lit.button("S'abonner", key=f"follow_{u_pseudo}"):
-                                    try:
-                                        supabase.table("follows").insert({
-                                            "follower_pseudo": str_lit.session_state.pseudo,
-                                            "following_pseudo": u_pseudo
-                                        }).execute()
-                                        str_lit.rerun()
-                                    except Exception as e:
-                                        str_lit.error(f"Erreur : {e}")
-                        str_lit.markdown("---")
-
-            with tab_prof3:
-                str_lit.subheader("Statistiques d'activité")
-                msg_count_res = supabase.table("messages").select("id", count="exact").eq("user_pseudo", str_lit.session_state.pseudo).execute()
-                total_msgs = msg_count_res.count if msg_count_res.count is not None else 0
-                
-                gallery_res = supabase.table("user_gallery").select("id", count="exact").eq("user_pseudo", str_lit.session_state.pseudo).execute()
-                total_imgs = gallery_res.count if gallery_res.count is not None else 0
-
-                col_s1, col_s2 = str_lit.columns(2)
-                with col_s1:
-                    str_lit.metric("Messages échangés", total_msgs)
-                with col_s2:
-                    str_lit.metric("Images générées", total_imgs)
-
-            with tab_prof4:
-                str_lit.subheader("Galerie Souvenirs")
-                gal_data = supabase.table("user_gallery").select("*").eq("user_pseudo", str_lit.session_state.pseudo).execute()
-                images_list = gal_data.data if gal_data.data else []
-
-                if not images_list:
-                    str_lit.info("Aucune image enregistrée dans votre galerie pour le moment.")
-                else:
-                    import base64
-                    cols = str_lit.columns(3)
-                    for idx, img_row in enumerate(images_list):
-                        b64_str = img_row.get("image_base64")
-                        prompt_desc = img_row.get("image_prompt", "")
-                        char_tag = img_row.get("char_name", "")
-                        if b64_str:
-                            try:
-                                img_bytes = base64.b64decode(b64_str)
-                                with cols[idx % 3]:
-                                    str_lit.image(img_bytes, caption=f"{char_tag} - {prompt_desc}", use_container_width=True)
-                            except Exception:
-                                pass
-
-            with tab_prof5:
-                str_lit.subheader("Paramètres du compte")
-                new_avatar = str_lit.text_input("URL de l'avatar", value=avatar_path, key="input_new_avatar")
-                if str_lit.button("Mettre à jour l'avatar"):
-                    try:
-                        supabase.table("users").update({"avatar_url": new_avatar}).eq("pseudo", str_lit.session_state.pseudo).execute()
-                        str_lit.success("Avatar mis à jour avec succès !")
-                        str_lit.rerun()
-                    except Exception as e:
-                        str_lit.error(f"Erreur : {e}")
-
         except Exception as e:
             str_lit.error(f"Erreur lors du chargement du profil : {e}")
