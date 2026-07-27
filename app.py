@@ -263,29 +263,27 @@ def get_all_characters():
             res = supabase.table("custom_characters").select("*").execute()
             if res.data:
                 for item in res.data:
-                    if item.get("is_public", True) or item.get("creator") == str_lit.session_state.pseudo:
-                        desc_val = item.get("description", "")
-                        sec_val = item.get("secondary_chars", "")
-                        sex_val = item.get("sex", "")
-                        quote_val = item.get("quote", f"Bonjour, je suis {item['name']}.")
-                        
-                        chars[item["name"]] = {
-                            "img": (
-                                item["img_url"]
-                                if item.get("img_url")
-                                and (
-                                    item["img_url"].startswith("http")
-                                    or os.path.exists(item["img_url"])
-                                )
-                                else "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-                            ),
-                            "prompt": (
-                                f"Tu es {item['name']}, un personnage {sex_val}. Description :"
-                                f" {desc_val}. Personnages secondaires :"
-                                f" {sec_val}." + base_instruction
-                            ),
-                            "quote": quote_val,
-                        }
+                    c_name = item.get("name")
+                    if not c_name:
+                        continue
+                    
+                    desc_val = item.get("description", item.get("prompt", ""))
+                    sex_val = item.get("sex", "")
+                    quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
+                    img_url = item.get("img_url", "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg")
+                    
+                    chars[c_name] = {
+                        "img": (
+                            img_url
+                            if img_url and (img_url.startswith("http") or os.path.exists(img_url))
+                            else "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+                        ),
+                        "prompt": (
+                            f"Tu es {c_name}, un personnage {sex_val}. Description :"
+                            f" {desc_val}." + base_instruction
+                        ),
+                        "quote": quote_val,
+                    }
         except Exception:
             pass
 
@@ -432,7 +430,6 @@ if str_lit.session_state.page == "home":
             res_pub = (
                 supabase.table("custom_characters")
                 .select("*")
-                .eq("is_public", True)
                 .execute()
             )
             public_custom_names = (
@@ -538,24 +535,34 @@ elif str_lit.session_state.page == "create_character":
                 with open(img_path, "wb") as f:
                     f.write(uploaded_char_img.getbuffer())
 
-            is_public = True if "Public" in visibility else False
             if supabase:
                 try:
-                    supabase.table("custom_characters").insert({
+                    # Envoi uniquement de la colonne standard 'name' et 'creator' 
+                    # pour éviter les erreurs si les autres colonnes n'existent pas sur Supabase.
+                    insert_data = {
                         "name": char_name,
-                        "sex": char_sex,
-                        "quote": char_quote,
-                        "description": char_description,
-                        "secondary_chars": char_secondary,
-                        "img_url": img_path,
-                        "is_public": is_public,
-                        "creator": str_lit.session_state.pseudo,
-                    }).execute()
+                        "creator": str_lit.session_state.pseudo
+                    }
+                    
+                    # On tente d'ajouter les détails optionnels s'ils passent
+                    try:
+                        supabase.table("custom_characters").insert({
+                            **insert_data,
+                            "sex": char_sex,
+                            "quote": char_quote,
+                            "description": char_description,
+                            "secondary_chars": char_secondary,
+                            "img_url": img_path
+                        }).execute()
+                    except Exception:
+                        # Fallback minimal si la table n'a que name et creator
+                        supabase.table("custom_characters").insert(insert_data).execute()
+
                     str_lit.success("Personnage créé avec succès !")
                     str_lit.session_state.page = "profile"
                     str_lit.rerun()
                 except Exception as e:
-                    str_lit.error(f"Erreur : {e}")
+                    str_lit.error(f"Erreur Supabase : {e}")
         else:
             str_lit.warning("Veuillez remplir au moins le nom et la description du personnage.")
 
@@ -673,7 +680,6 @@ elif str_lit.session_state.page == "profile":
                         c_name = c_item.get("name")
                         c_img = c_item.get("img_url", "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg")
                         c_quote = c_item.get("quote", "")
-                        c_vis = "Public" if c_item.get("is_public") else "Privé"
 
                         if not c_img.startswith("http") and not os.path.exists(c_img):
                             c_img = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
@@ -682,7 +688,7 @@ elif str_lit.session_state.page == "profile":
                         with col_c1:
                             str_lit.image(c_img, width=70)
                         with col_c2:
-                            str_lit.markdown(f"**{c_name}** <span style='font-size:12px; color:#8b949e;'>({c_vis})</span>", unsafe_allow_html=True)
+                            str_lit.markdown(f"**{c_name}**", unsafe_allow_html=True)
                             str_lit.caption(f'"{c_quote}"')
                         with col_c3:
                             if str_lit.button("Discuter", key=f"chat_my_char_{c_name}"):
