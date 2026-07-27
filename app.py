@@ -56,6 +56,14 @@ st.markdown("""
     .stButton>button p {
         color: #ffffff !important;
     }
+    /* Correctif responsive pour forcer un affichage en grille propre sur mobile */
+    @media(max-width: 768px) {
+        [data-testid="column"] {
+            width: 48% !important;
+            flex: 1 1 48% !important;
+            min-width: 48% !important;
+        }
+    }
     </style>
 """, unsafe_allow_html=True)
 
