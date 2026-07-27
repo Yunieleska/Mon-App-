@@ -331,7 +331,7 @@ if st.session_state.page == "home":
         """
     grid_html += '</div>'
     
-    st.html(grid_html)
+    st.markdown(grid_html, unsafe_allow_html=True)
 
     if "chat_target" in query_params:
         target_char = query_params["chat_target"]
@@ -384,7 +384,6 @@ elif st.session_state.page == "create_character":
                     file_name = f"char_{st.session_state.pseudo}_{char_name}.png"
                     if supabase:
                         try:
-                            # Utilisation de la clé de service pour contourner les règles RLS de Storage lors de l'upload
                             admin_key = st.secrets.get("SUPABASE_SERVICE_KEY", st.secrets["SUPABASE_KEY"])
                             admin_supabase = create_client(st.secrets["SUPABASE_URL"], admin_key)
                             
@@ -486,7 +485,6 @@ elif st.session_state.page == "profile":
                 file_name = f"avatar_{user_id}.{file_extension}"
                 
                 try:
-                    # Utilisation de la clé de service pour contourner les règles RLS de Storage lors de l'upload
                     admin_key = st.secrets.get("SUPABASE_SERVICE_KEY", st.secrets["SUPABASE_KEY"])
                     admin_supabase = create_client(st.secrets["SUPABASE_URL"], admin_key)
                     
@@ -554,7 +552,6 @@ elif st.session_state.page == "chat":
         except Exception as e:
             st.error(f"Erreur d'authentification Groq : {e}")
 
-    # --- RÉCUPÉRATION DE L'AVATAR UTILISATEUR POUR LE CHAT ---
     default_avatar = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
     user_avatar_path = default_avatar
     if supabase:
@@ -569,7 +566,6 @@ elif st.session_state.page == "chat":
 
     char_avatar_path = bg_image
 
-    # --- AFFICHAGE DES MESSAGES AVEC AVATARS RONDS ---
     for idx, msg in enumerate(messages):
         is_user = (msg["role"] == "user")
         avatar_to_use = user_avatar_path if is_user else char_avatar_path
@@ -622,7 +618,7 @@ elif st.session_state.page == "chat":
                                             res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=full_messages)
                                             assistant_reply = res.choices[0].message.content
                                             save_msg(st.session_state.pseudo, current_char, "assistant", assistant_reply)
-                                            
+                                        
                                         st.rerun()
                                     except Exception as e:
                                         st.error(f"Erreur lors de la modification : {e}")
@@ -635,7 +631,6 @@ elif st.session_state.page == "chat":
             
             st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
 
-    # --- FORMULAIRE DE SAISIE STABLE (100% CLIQUABLE) ---
     st.markdown("<div style='margin-top: 40px;'></div>", unsafe_allow_html=True)
     with st.form(key="chat_form", clear_on_submit=True):
         col_input, col_btn = st.columns([5, 1])
