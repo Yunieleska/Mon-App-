@@ -24,42 +24,40 @@ SIDEBAR_HEADER_IMG = "couple.png"
 
 def generer_image_huggingface(prompt_image, current_char_name=None):
     """
-    Génère une image en mode Text-to-Image pur avec SDXL en ancrant l'identité 
-    du personnage pour que ses traits ne bougent pas d'une scène à l'autre.
+    Génère une image en mode Text-to-Image pur avec un style photoréaliste 
+    et cinématographique cohérent pour chaque personnage.
     """
     if not hf_api_key:
         return None, "Clé API Hugging Face manquante."
     try:
-        # Client unique basé sur le modèle SDXL que vous souhaitez conserver
         client_hf = InferenceClient(
             model="stabilityai/stable-diffusion-xl-base-1.0", token=hf_api_key
         )
         
-        # Base d'ancrage visuel par personnage (similaire à une Character Sheet / Emochi)
+        # Identités visuelles basées sur un rendu PHOTORÉALISTE et cinématique
         character_identities = {
-            "Caelum": "A detailed anime illustration of Caelum, a handsome young man with dark piercing eyes, dark hair, prince of darkness style, fantasy outfit",
-            "Alexei": "A detailed anime illustration of Alexei, a dangerous mafia leader with sharp intense eyes, slick dark hair, elegant dark suit",
-            "Killian": "A detailed anime illustration of Killian, a cool biker with messy hair, leather jacket, intense gaze",
-            "Lucas": "A detailed anime illustration of Lucas, a popular high school boy with charming smile, trendy casual clothes",
-            "Ethan": "A detailed anime illustration of Ethan, a fierce alpha wolf man with wild hair, piercing eyes, mysterious aura",
-            "Léo": "A detailed anime illustration of Leo, a stylish streamer boy with headphones around his neck, energetic look",
-            "Liam": "A detailed anime illustration of Liam, an older brother figure with calm and protective expression",
-            "Noah": "A detailed anime illustration of Noah, a handsome quarterback athlete in sports jacket"
+            "Caelum": "A hyper-realistic cinematic portrait of Caelum, a handsome young man with dark piercing eyes, dark hair, prince of darkness style, fantasy outfit, photorealistic, 8k resolution, cinematic lighting, sharp focus",
+            "Alexei": "A hyper-realistic cinematic portrait of Alexei, a dangerous mafia leader with sharp intense eyes, slick dark hair, elegant dark suit, photorealistic, dramatic studio lighting, detailed skin texture",
+            "Killian": "A hyper-realistic cinematic portrait of Killian, a cool biker with messy hair, leather jacket, intense gaze, photorealistic, dramatic lighting, detailed texture",
+            "Lucas": "A hyper-realistic cinematic portrait of Lucas, a popular high school boy with charming smile, trendy casual clothes, photorealistic, soft natural lighting",
+            "Ethan": "A hyper-realistic cinematic portrait of Ethan, a fierce alpha wolf man with wild hair, piercing eyes, mysterious aura, photorealistic, cinematic moonlight",
+            "Léo": "A hyper-realistic cinematic portrait of Leo, a stylish streamer boy with headphones around his neck, energetic look, photorealistic, colorful rgb studio lighting",
+            "Liam": "A hyper-realistic cinematic portrait of Liam, an older brother figure with calm and protective expression, photorealistic, warm natural lighting",
+            "Noah": "A hyper-realistic cinematic portrait of Noah, a handsome quarterback athlete in sports jacket, photorealistic, athletic photoshoot style"
         }
 
-        # Récupération de l'identité fixe ou description générique par défaut
+        # Récupération de l'identité réaliste du personnage
         char_identity = character_identities.get(
             current_char_name, 
-            f"A detailed anime illustration of {current_char_name or 'the character'}"
+            f"A hyper-realistic cinematic portrait of {current_char_name or 'the character'}"
         )
 
-        # Construction du prompt final combinant l'identité fixe et la scène en cours
+        # Construction du prompt final orienté réalisme photographique
         prompt_final = (
             f"{char_identity}. In the scene: {prompt_image}. "
-            f"Masterwork, high quality, detailed background, cinematic lighting, 8k resolution."
+            f"Photorealistic, highly detailed skin pores, shot on 35mm lens, professional color grading, masterpiece, 8k."
         )
 
-        # Appel strict en mode Text-to-Image
         image = client_hf.text_to_image(prompt_final)
 
         buf = io.BytesIO()
@@ -761,7 +759,6 @@ elif str_lit.session_state.page == "chat":
                             with str_lit.spinner(
                                 f"🎨 {current_char} génère l'illustration..."
                             ):
-                                # Utilisation de Text-to-Image avec ancrage du personnage actif
                                 image_bytes, err_msg = generer_image_huggingface(prompt_image, current_char_name=current_char)
                                 if image_bytes:
                                     str_lit.image(
@@ -781,8 +778,8 @@ elif str_lit.session_state.page == "chat":
         if str_lit.button("🎨 Générer l'image de la dernière scène", key="btn_gen_img_direct"):
             if client:
                 dernier_prompt_image = (
-                    f"Cinematic illustration of {current_char} in a fantasy magic school"
-                    f" setting, dramatic lighting, high quality"
+                    f"Cinematic portrait of {current_char} in a fantasy setting, "
+                    f"photorealistic, dramatic lighting, high quality"
                 )
                 for m in reversed(messages):
                     if m["role"] == "assistant":
