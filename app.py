@@ -28,7 +28,14 @@ def generer_image_huggingface(prompt_image):
         client_hf = InferenceClient(
             model="black-forest-labs/FLUX.1-schnell", token=hf_api_key
         )
-        image = client_hf.text_to_image(prompt_image)
+        
+        # 💡 Ajout de mots-clés stricts pour forcer le photoréalisme et un style cinématographique
+        prompt_realiste = (
+            f"Photorealistic, highly detailed raw photo, cinematic lighting, "
+            f"depth of field, professional photography, 8k resolution, {prompt_image}"
+        )
+        
+        image = client_hf.text_to_image(prompt_realiste)
 
         buf = io.BytesIO()
         image.save(buf, format="JPEG")
@@ -159,7 +166,7 @@ def load_msgs(pseudo, char):
         if res.data:
             return [{"role": r["role"], "content": r["content"]} for r in res.data]
         return []
-    except Exception as e:
+    except Exception:
         return []
 
 
