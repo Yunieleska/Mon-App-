@@ -288,7 +288,6 @@ def get_user_conversations(pseudo):
         return []
     try:
         clean_pseudo = str(pseudo).strip().lower()
-        # Requête tolérante : essaie d'abord avec le filtre exact, puis récupère large si besoin
         res = (
             supabase.table("messages")
             .select("user_pseudo, char_name")
