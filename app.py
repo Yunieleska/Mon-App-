@@ -490,7 +490,24 @@ elif str_lit.session_state.page == "chat":
 
     messages = load_msgs(str_lit.session_state.pseudo, current_char)
     if not messages:
-        intro_msg = f"*{char_data['quote']}*"
+        # Génération automatique d'un premier message long et immersif via l'IA
+        if client:
+            try:
+                init_prompt = [
+                    {"role": "system", "content": char_data["prompt"]},
+                    {"role": "user", "content": f"Écris un long premier message d'introduction immersif pour débuter notre roleplay. Ta phrase d'accroche de référence est : \"{char_data['quote']}\". Mets-moi tout de suite dans l'ambiance et termine obligatoirement par une balise [IMAGE: ...]."}
+                ]
+                resp_init = client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=init_prompt,
+                    temperature=0.8,
+                )
+                intro_msg = resp_init.choices[0].message.content
+            except Exception:
+                intro_msg = f"{char_data['quote']} [IMAGE: cinematic portrait of {current_char}, dramatic lighting]"
+        else:
+            intro_msg = f"{char_data['quote']} [IMAGE: cinematic portrait of {current_char}, dramatic lighting]"
+
         messages.append({"role": "assistant", "content": intro_msg})
         save_msg(str_lit.session_state.pseudo, current_char, "assistant", intro_msg)
 
