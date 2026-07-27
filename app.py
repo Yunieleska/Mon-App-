@@ -498,31 +498,26 @@ if str_lit.session_state.page == "home":
 
 elif str_lit.session_state.page == "create_character":
     str_lit.title("✨ Créer un nouveau personnage")
-    with str_lit.form("create_char_form"):
-        char_name = str_lit.text_input("Nom du personnage")
-        char_sex = str_lit.selectbox(
-            "Sexe / Genre", ["Homme", "Femme", "Non-binaire", "Autre"]
-        )
-        char_quote = str_lit.text_input("Phrase d'accroche")
-        
-        # Correction ergonomique : Ajout d'un aperçu en direct de l'image sélectionnée
-        char_description = str_lit.text_area(
-            "Description et Personnalité (Histoire, ton, etc.)"
-        )
-        char_secondary = str_lit.text_area("Personnages secondaires (Optionnel)")
-        
-        uploaded_char_img = str_lit.file_uploader(
-            "Image du personnage (Avatar / Illustration)", type=["png", "jpg", "jpeg"]
-        )
-        
-        visibility = str_lit.radio(
-            "Visibilité", ["Public (toute la communauté)", "Privé"]
-        )
-        submitted = str_lit.form_submit_button(
-            "🚀 Créer", use_container_width=True
-        )
-
-        if submitted and char_name and char_description:
+    
+    # Saisie hors formulaire strict pour permettre le retour à la ligne et la tabulation fluides dans les text_area
+    char_name = str_lit.text_input("Nom du personnage")
+    char_sex = str_lit.selectbox(
+        "Sexe / Genre", ["Homme", "Femme", "Non-binaire", "Autre"]
+    )
+    char_quote = str_lit.text_input("Phrase d'accroche")
+    char_description = str_lit.text_area(
+        "Description et Personnalité (Histoire, ton, etc.)", height=150
+    )
+    char_secondary = str_lit.text_area("Personnages secondaires (Optionnel)", height=100)
+    uploaded_char_img = str_lit.file_uploader(
+        "Image du personnage", type=["png", "jpg", "jpeg"]
+    )
+    visibility = str_lit.radio(
+        "Visibilité", ["Public (toute la communauté)", "Privé"]
+    )
+    
+    if str_lit.button("🚀 Créer", use_container_width=True):
+        if char_name and char_description:
             img_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
             if uploaded_char_img is not None:
                 img_path = f"char_{str_lit.session_state.pseudo}_{char_name}.png"
@@ -547,6 +542,8 @@ elif str_lit.session_state.page == "create_character":
                     str_lit.rerun()
                 except Exception as e:
                     str_lit.error(f"Erreur : {e}")
+        else:
+            str_lit.warning("Veuillez remplir au moins le nom et la description du personnage.")
 
 elif str_lit.session_state.page == "messages":
     str_lit.title("Mes Discussions")
@@ -592,6 +589,7 @@ elif str_lit.session_state.page == "profile":
                 .execute()
             )
             user_info = user_db.data if user_db.data else {}
+            user_id = user_info.get("id")
             avatar_path = user_info.get(
                 "avatar_url",
                 "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
@@ -706,7 +704,6 @@ elif str_lit.session_state.page == "profile":
                             with col_u1:
                                 str_lit.markdown(f"**{u_pseudo}**")
                             with col_u2:
-                                # CORRECTION COMPLÈTE DE LA FONCTION FOLLOW/UNFOLLOW ICI
                                 if is_following:
                                     if str_lit.button("Ne plus suivre", key=f"unfollow_{u_pseudo}"):
                                         supabase.table("follows").delete().eq("follower_pseudo", str_lit.session_state.pseudo).eq("following_pseudo", u_pseudo).execute()
@@ -718,9 +715,39 @@ elif str_lit.session_state.page == "profile":
                                             "follower_pseudo": str_lit.session_state.pseudo,
                                             "following_pseudo": u_pseudo
                                         }).execute()
-                                        str_lit.success(f"Vous suivez désormais {u_pseudo} !")
+                                        str_lit.success(f"Vous suivez désormais {u_pseudo}.")
                                         str_lit.rerun()
                 except Exception as e:
                     str_lit.error(f"Erreur chargement communauté : {e}")
+
+            with tab_prof3:
+                str_lit.subheader("📊 Activité & Stats")
+                str_lit.info("Statistiques de vos conversations et interactions à venir.")
+
+            with tab_prof4:
+                str_lit.subheader("🖼️ Galerie Souvenirs")
+                try:
+                    gallery_res = supabase.table("user_gallery").select("*").eq("user_pseudo", str_lit.session_state.pseudo).execute()
+                    gallery_items = gallery_res.data if gallery_res.data else []
+                    if not gallery_items:
+                        str_lit.info("Aucune image enregistrée pour l'instant dans votre galerie.")
+                    else:
+                        for g in gallery_items:
+                            import base64
+                            img_bytes = base64.b64decode(g["image_base64"])
+                            str_lit.image(img_bytes, caption=f"Personnage : {g['char_name']} | Prompt : {g['image_prompt']}")
+                except Exception as e:
+                    str_lit.error(f"Erreur chargement galerie : {e}")
+
+            with tab_prof5:
+                str_lit.subheader("⚙️ Paramètres")
+                new_avatar_url = str_lit.text_input("URL de votre avatar", value=avatar_path)
+                if str_lit.button("Mettre à jour l'avatar"):
+                    try:
+                        supabase.table("users").update({"avatar_url": new_avatar_url}).eq("pseudo", str_lit.session_state.pseudo).execute()
+                        str_lit.success("Avatar mis à jour avec succès !")
+                        str_lit.rerun()
+                    except Exception as e:
+                        str_lit.error(f"Erreur de mise à jour : {e}")
         except Exception as e:
-            str_lit.error(f"Erreur chargement profil : {e}")
+                str_lit.error(f"Erreur chargement profil : {e}")
