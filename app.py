@@ -22,22 +22,18 @@ IMAGE_API_URL = (
 
 def generer_image_huggingface(prompt_image):
   if not hf_api_key:
-    return "Erreur: HUGGINGFACE_API_KEY manquante dans les secrets !"
+    return None
   headers = {"Authorization": f"Bearer {hf_api_key}"}
   payload = {"inputs": prompt_image}
   try:
     response = requests.post(
-        IMAGE_API_URL, headers=headers, json=payload, timeout=60
+        IMAGE_API_URL, headers=headers, json=payload, timeout=15
     )
     if response.status_code == 200:
       return response.content
-    else:
-      return (
-          f"Erreur API Hugging Face ({response.status_code}):"
-          f" {response.text[:200]}"
-      )
-  except Exception as e:
-    return f"Exception réseau/timeout : {str(e)}"
+  except Exception:
+    pass
+  return None
 
 
 try:
@@ -722,7 +718,6 @@ elif str_lit.session_state.page == "chat":
             ).strip()
           else:
             texte_propre = contenu_message
-            # Forçage automatique d'un prompt visuel si le modèle n'a pas mis de balise
             prompt_image = (
                 f"Cinematic illustration of {current_char} in a fantasy magic"
                 f" school hallway, dramatic lighting, high quality"
@@ -734,15 +729,13 @@ elif str_lit.session_state.page == "chat":
             with str_lit.spinner(
                 f"🎨 {current_char} génère l'illustration..."
             ):
-              resultat_generation = generer_image_huggingface(prompt_image)
-              if isinstance(resultat_generation, bytes):
+              image_bytes = generer_image_huggingface(prompt_image)
+              if image_bytes:
                 str_lit.image(
-                    resultat_generation,
+                    image_bytes,
                     caption=f"Scène - {current_char}",
                     use_container_width=True,
                 )
-              else:
-                str_lit.warning(f"⚠️ {resultat_generation}")
 
   user_input = str_lit.chat_input("Écris ton message...")
   if user_input and client:
