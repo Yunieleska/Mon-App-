@@ -22,18 +22,22 @@ IMAGE_API_URL = (
 
 def generer_image_huggingface(prompt_image):
   if not hf_api_key:
-    return None
+    return "Erreur: HUGGINGFACE_API_KEY manquante dans les secrets !"
   headers = {"Authorization": f"Bearer {hf_api_key}"}
   payload = {"inputs": prompt_image}
   try:
     response = requests.post(
-        IMAGE_API_URL, headers=headers, json=payload, timeout=45
+        IMAGE_API_URL, headers=headers, json=payload, timeout=60
     )
     if response.status_code == 200:
       return response.content
-  except Exception:
-    pass
-  return None
+    else:
+      return (
+          f"Erreur API Hugging Face ({response.status_code}):"
+          f" {response.text[:200]}"
+      )
+  except Exception as e:
+    return f"Exception réseau/timeout : {str(e)}"
 
 
 try:
@@ -172,10 +176,10 @@ def load_msgs(pseudo, char):
 def get_all_characters():
   base_instruction = (
       " Reste strictement dans ton rôle, adopte un ton immersif de roleplay"
-      " romancé. IMPORTANT : À la fin de la plupart de tes messages, intègre"
-      " une balise visuelle au format exact suivant pour illustrer la scène :"
-      " [IMAGE: description détaillée en anglais de l'ambiance, du personnage ou"
-      " du décor]."
+      " romancé. IMPORTANT : À la fin de CHAQUE message, tu dois obligatoirement"
+      " intégrer une balise visuelle au format exact suivant pour illustrer"
+      " l'action en cours : [IMAGE: description détaillée en anglais de"
+      " l'ambiance, du personnage ou du décor]."
   )
 
   chars = {
@@ -610,7 +614,6 @@ elif str_lit.session_state.page == "chat":
   char_quote = CHARACTERS[current_char]["quote"]
   char_prompt = CHARACTERS[current_char]["prompt"]
 
-  # Récupération de l'avatar utilisateur depuis Supabase
   user_avatar_url = (
       "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
   )
@@ -719,26 +722,27 @@ elif str_lit.session_state.page == "chat":
             ).strip()
           else:
             texte_propre = contenu_message
-            prompt_image = None
+            # Forçage automatique d'un prompt visuel si le modèle n'a pas mis de balise
+            prompt_image = (
+                f"Cinematic illustration of {current_char} in a fantasy magic"
+                f" school hallway, dramatic lighting, high quality"
+            )
 
           str_lit.write(texte_propre)
 
           if prompt_image:
             with str_lit.spinner(
-                f"🎨 {current_char} partage une image..."
+                f"🎨 {current_char} génère l'illustration..."
             ):
-              image_bytes = generer_image_huggingface(prompt_image)
-              if image_bytes:
+              resultat_generation = generer_image_huggingface(prompt_image)
+              if isinstance(resultat_generation, bytes):
                 str_lit.image(
-                    image_bytes,
-                    caption=f"Instantané de {current_char}",
+                    resultat_generation,
+                    caption=f"Scène - {current_char}",
                     use_container_width=True,
                 )
               else:
-                str_lit.info(
-                    "*(L'image n'a pas pu être générée instantanément par"
-                    " l'API)*"
-                )
+                str_lit.warning(f"⚠️ {resultat_generation}")
 
   user_input = str_lit.chat_input("Écris ton message...")
   if user_input and client:
