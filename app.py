@@ -224,7 +224,6 @@ if not st.session_state.logged_in:
                             
                             st.session_state.logged_in = True
                             st.session_state.pseudo = pseudo_val
-                            # Sauvegarde du jeton de session pour autoriser les actions Storage sécurisées par RLS
                             if res.session:
                                 st.session_state.access_token = res.session.access_token
                             st.query_params["user"] = pseudo_val
@@ -385,11 +384,15 @@ elif st.session_state.page == "create_character":
                     file_name = f"char_{st.session_state.pseudo}_{char_name}.png"
                     if supabase:
                         try:
-                            # Utilisation du token de session si disponible pour respecter les RLS
+                            # Utilisation du client sécurisé par le token d'accès utilisateur pour passer les RLS Storage
                             if "access_token" in st.session_state:
-                                supabase.auth.set_session(st.session_state.access_token, "")
-                            supabase.storage.from_("storyia-images").upload(file_name, uploaded_char_img.read(), file_options={"upsert": "true"})
-                            img_path = supabase.storage.from_("storyia-images").get_public_url(file_name)
+                                auth_headers = {"Authorization": f"Bearer {st.session_state.access_token}"}
+                                user_supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"], options={"headers": auth_headers})
+                            else:
+                                user_supabase = supabase
+
+                            user_supabase.storage.from_("storyia-images").upload(file_name, uploaded_char_img.read(), file_options={"upsert": "true"})
+                            img_path = user_supabase.storage.from_("storyia-images").get_public_url(file_name)
                         except Exception:
                             pass
                 
@@ -486,12 +489,15 @@ elif st.session_state.page == "profile":
                 file_name = f"avatar_{user_id}.{file_extension}"
                 
                 try:
-                    # Injection du token de session utilisateur pour valider les RLS de Supabase Storage
+                    # Utilisation du client sécurisé par le token d'accès utilisateur pour passer les RLS Storage
                     if "access_token" in st.session_state:
-                        supabase.auth.set_session(st.session_state.access_token, "")
+                        auth_headers = {"Authorization": f"Bearer {st.session_state.access_token}"}
+                        user_supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"], options={"headers": auth_headers})
+                    else:
+                        user_supabase = supabase
                         
-                    supabase.storage.from_("storyia-images").upload(file_name, uploaded_file.read(), file_options={"upsert": "true"})
-                    public_url = supabase.storage.from_("storyia-images").get_public_url(file_name)
+                    user_supabase.storage.from_("storyia-images").upload(file_name, uploaded_file.read(), file_options={"upsert": "true"})
+                    public_url = user_supabase.storage.from_("storyia-images").get_public_url(file_name)
                     
                     supabase.table("users").update({"avatar_url": public_url}).eq("id", user_id).execute()
                     st.success("Photo de profil mise à jour avec succès !")
@@ -658,4 +664,4 @@ elif st.session_state.page == "chat":
                 except Exception as e:
                     st.error(f"Erreur lors de l'envoi du message : {e}")
             else:
-                st.error("Client Groq non initialisé.")     
+                st.error("Client Groq non initialisé.")
