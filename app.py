@@ -23,10 +23,6 @@ SIDEBAR_HEADER_IMG = "couple.png"
 
 
 def generer_image_huggingface(prompt_image, current_char_name=None):
-    """
-    Génère une image en mode Text-to-Image pur avec un style STRICTEMENT PHOTORÉALISTE 
-    et cinématographique pour chaque personnage.
-    """
     if not hf_api_key:
         return None, "Clé API Hugging Face manquante."
     try:
@@ -34,24 +30,9 @@ def generer_image_huggingface(prompt_image, current_char_name=None):
             model="stabilityai/stable-diffusion-xl-base-1.0", token=hf_api_key
         )
         
-        character_identities = {
-            "Caelum": "A hyper-realistic cinematic photograph of Caelum, a handsome young man with dark piercing eyes and dark hair, wearing a dark modern luxury coat, shot on 35mm lens, photorealistic skin texture, dramatic studio lighting, 8k resolution, raw photo style",
-            "Alexei": "A hyper-realistic cinematic photograph of Alexei, a dangerous mafia leader with sharp intense eyes and slick dark hair, wearing an elegant dark tailored suit, professional color grading, photorealistic, cinematic lighting, detailed skin pores",
-            "Killian": "A hyper-realistic cinematic photograph of Killian, a cool biker with messy hair and a leather jacket, intense gaze, outdoor natural daylight, photorealistic portrait, sharp focus, high-end photography",
-            "Lucas": "A hyper-realistic cinematic photograph of Lucas, a popular high school boy with a charming smile and trendy casual clothes, soft natural lighting, photorealistic, portrait photography style",
-            "Ethan": "A hyper-realistic cinematic photograph of Ethan, a fierce alpha wolf man with wild hair and intense piercing eyes, mysterious aura, dark cinematic moonlight, photorealistic, highly detailed",
-            "Léo": "A hyper-realistic cinematic photograph of Leo, a stylish streamer boy with headphones around his neck, energetic look, colorful RGB studio lighting, photorealistic portrait, sharp details",
-            "Liam": "A hyper-realistic cinematic photograph of Liam, an older brother figure with a calm and protective expression, warm natural indoor lighting, photorealistic, professional portrait",
-            "Noah": "A hyper-realistic cinematic photograph of Noah, a handsome quarterback athlete wearing a sports jacket, athletic photoshoot style, natural sunlight, photorealistic"
-        }
-
-        char_identity = character_identities.get(
-            current_char_name, 
-            f"A hyper-realistic cinematic photograph of {current_char_name or 'the character'}"
-        )
-
         prompt_final = (
-            f"{char_identity}. Scene details: {prompt_image}. "
+            f"A hyper-realistic cinematic photograph of {current_char_name or 'the character'}. "
+            f"Scene details: {prompt_image}. "
             f"RAW photo, highly detailed skin pores, realistic human anatomy, shot on 35mm film, professional photography, cinematic lighting, masterpiece, 8k, photorealistic."
         )
 
@@ -267,8 +248,9 @@ def get_all_characters():
                     if not c_name:
                         continue
                     
-                    desc_val = item.get("description", item.get("prompt", ""))
-                    sex_val = item.get("sex", "")
+                    # Récupération sécurisée avec correspondance de colonnes
+                    desc_val = item.get("description", "")
+                    prompt_val = item.get("prompt", f"Tu es {c_name}. {desc_val}")
                     quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
                     img_url = item.get("img_url", "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg")
                     
@@ -278,10 +260,7 @@ def get_all_characters():
                             if img_url and (img_url.startswith("http") or os.path.exists(img_url))
                             else "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
                         ),
-                        "prompt": (
-                            f"Tu es {c_name}, un personnage {sex_val}. Description :"
-                            f" {desc_val}." + base_instruction
-                        ),
+                        "prompt": prompt_val + base_instruction,
                         "quote": quote_val,
                     }
         except Exception:
@@ -537,26 +516,21 @@ elif str_lit.session_state.page == "create_character":
 
             if supabase:
                 try:
-                    # Envoi uniquement de la colonne standard 'name' et 'creator' 
-                    # pour éviter les erreurs si les autres colonnes n'existent pas sur Supabase.
+                    # Construction d'un prompt complet basé sur la description fournie
+                    built_prompt = f"Tu es {char_name}, un personnage {char_sex}. Description et contexte : {char_description}."
+
                     insert_data = {
                         "name": char_name,
-                        "creator": str_lit.session_state.pseudo
+                        "creator": str_lit.session_state.pseudo,
+                        "prompt": built_prompt,
+                        "description": char_description,
+                        "sex": char_sex,
+                        "quote": char_quote if char_quote else f"Bonjour, je suis {char_name}.",
+                        "secondary_chars": char_secondary,
+                        "img_url": img_path
                     }
                     
-                    # On tente d'ajouter les détails optionnels s'ils passent
-                    try:
-                        supabase.table("custom_characters").insert({
-                            **insert_data,
-                            "sex": char_sex,
-                            "quote": char_quote,
-                            "description": char_description,
-                            "secondary_chars": char_secondary,
-                            "img_url": img_path
-                        }).execute()
-                    except Exception:
-                        # Fallback minimal si la table n'a que name et creator
-                        supabase.table("custom_characters").insert(insert_data).execute()
+                    supabase.table("custom_characters").insert(insert_data).execute()
 
                     str_lit.success("Personnage créé avec succès !")
                     str_lit.session_state.page = "profile"
