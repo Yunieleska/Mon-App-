@@ -196,7 +196,6 @@ def get_user_conversations(pseudo):
         if res.data:
             for r in res.data:
                 c_name = r.get("char_name")
-                # Vérification stricte : le personnage doit exister dans les personnages chargés
                 if c_name and c_name in CHARACTERS:
                     chars_met.add(c_name)
         return list(chars_met)
@@ -373,7 +372,8 @@ elif st.session_state.page == "create_character":
         
         visibility = st.radio("Visibilité", ["Public (visible par toute la communauté)", "Privé (uniquement pour moi)"])
         
-        submitted = st.form_submit_button("Créer le personnage")
+        # Bouton corrigé avec style cohérent (fond sombre + bordure)
+        submitted = st.form_submit_button("🚀 Créer le personnage", use_container_width=True)
         
         if submitted:
             if not char_name or not char_description:
