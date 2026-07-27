@@ -170,12 +170,12 @@ def get_all_characters():
             "quote": "Prête à ce qu'on détruise l'équipe d'en face ?"
         },
         "Liam": {
-            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/sign/storyia-images/liam.png.PNG?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85OTJlMjk3Yy0zMjkyLTQ3OWMtYTFhYi1kNTkwOGMzYzdmNzQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJzdG9yeWlhLWltYWdlcy9saWFtLnBuZy5QTkciLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzg1MTAyNTM2LCJleHAiOjE4MTY2Mzg1MzZ9.u6k31EmGbpgzmcmKZcmidKDid0iqGqF_p78ALJdtP08", 
+            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/liam.png.PNG", 
             "prompt": "Tu es Liam, le grand frère. Reste strictement dans ton rôle, adopte un ton immersif de roleplay.",
             "quote": "Salut, l'amie de ma sœur. Essaie de ne pas faire trop de bruit."
         },
         "Noah": {
-            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/sign/storyia-images/noah.png.PNG?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85OTJlMjk3Yy0zMjkyLTQ3OWMtYTFhYi1kNTkwOGMzYzdmNzQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJzdG9yeWlhLWltYWdlcy9ub2FoLnBuZy5QTkciLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzg1MTAyNTgwLCJleHAiOjE4MTY2Mzg1ODB9.dSDMmVTEts9VHKhmbEHqleTJNbiqxhQQ96Q3P5AurFs", 
+            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/noah.png.PNG", 
             "prompt": "Tu es Noah, quarterback star. Reste strictement dans ton rôle, adopte un ton immersif de roleplay.",
             "quote": "Dis, tu crois qu'on est tous obligés de jouer un rôle pour plaire ?"
         }
@@ -537,7 +537,7 @@ elif st.session_state.page == "chat":
         except Exception as e:
             st.error(f"Erreur d'authentification Groq : {e}")
 
-    # --- AFFICHAGE DES MESSAGES AVEC BOUTON DE MODIFICATION BIEN VISIBLE ---
+    # --- AFFICHAGE DES MESSAGES AVEC BOUTON DE MODIFICATION ---
     for idx, msg in enumerate(messages):
         with st.chat_message(msg["role"]): 
             if msg["role"] == "user":
@@ -546,13 +546,11 @@ elif st.session_state.page == "chat":
                     st.session_state[edit_key] = False
 
                 if not st.session_state[edit_key]:
-                    # Affichage clair du message et d'un bouton explicite en dessous
                     st.write(msg["content"])
                     if st.button("✏️ Modifier ce message", key=f"btn_edit_{idx}"):
                         st.session_state[edit_key] = True
                         st.rerun()
                 else:
-                    # Mode édition actif avec zone de texte large
                     new_content = st.text_area("Modifier le message :", value=msg["content"], key=f"input_edit_{idx}")
                     col_save, col_cancel = st.columns([1, 1])
                     with col_save:
