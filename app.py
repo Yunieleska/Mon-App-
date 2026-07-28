@@ -262,7 +262,7 @@ def get_all_characters_cached():
             "quote": "Regardez qui s'est perdue sur mon territoire. La petite princesse des Volkov...",
         },
         "Killian": {
-            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/killian.png.PNG",
+            "img": "https://i.pinimg.com/736x/82/35/3d/82353d9e843818e3d8e578298705a106.jpg",
             "prompt": (
                 "Tu es Killian, un motard solitaire, sombre et au passé trouble. "
                 "Tu interagis avec Yuna. Tu viens de la sauver d'un grave accident de voiture au milieu de la nuit. "
