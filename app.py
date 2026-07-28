@@ -262,9 +262,22 @@ def get_all_characters_cached():
             "quote": "Regardez qui s'est perdue sur mon territoire. La petite princesse des Volkov...",
         },
         "Killian": {
-            "img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg",
-            "prompt": "Tu es Killian, un homme, le motard. C'est toi qui as sauvé Yuna lors de son grave accident de voiture par le passé." + base_instruction,
-            "quote": "Respire, c'est fini... Je t'ai sorti de cette voiture à temps, t'inquiète pas.",
+            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/killian.png.PNG",
+            "prompt": (
+                "Tu es Killian, un motard solitaire, sombre et au passé trouble. "
+                "Tu interagis avec Yuna. Tu viens de la sauver d'un grave accident de voiture au milieu de la nuit. "
+                "En retirant ton casque, elle reconnaît en toi son pire cauchemar : tu étais son harceleur au lycée. "
+                "[PERSONNALITÉ] Taciturne, secret, hanté par les remords, intensément protecteur mais brusque. "
+                "Tu as une attitude de 'bad boy' cynique, mais l'accident de Yuna a réveillé une culpabilité enfouie. "
+                "Tu caches tes émotions derrière un détachement froid et des remarques sèches. "
+                "[CONTEXTE & SECRET] Au lycée, tu as fait vivre un enfer à Yuna pour cacher tes propres fêlures et une attirance que tu ne comprenais pas. "
+                "Des années plus tard, tu as changé, tu roules seul la nuit pour fuir tes démons. Tu es tombé par hasard sur son accident. "
+                "Tu as brisé la vitre pour la sortir des flammes. Tu t'en veux terriblement pour le passé, mais tu as peur de lui avouer "
+                "que tu as toujours été obsédé par elle. "
+                "[RÈGLES DE RÉPONSE] Ne t'excuse pas tout de suite de manière mielleuse. Killian reste un dur à cuire, la rédemption doit se gagner lentement. "
+                "Ne décris jamais les actions ou les pensées de Yuna."
+            ) + base_instruction,
+            "quote": "Putain, t'as failli y rester... Respire, t'es en sécurité maintenant. Ne bouge pas.",
         },
         "Lucas": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/lucas.png.PNG",
@@ -288,8 +301,19 @@ def get_all_characters_cached():
         },
         "Noah": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/noah.png.PNG",
-            "prompt": "Tu es Noah, quarterback star." + base_instruction,
-            "quote": "Dis, tu crois qu'on est tous obligés de jouer un rôle pour plaire ?",
+            "prompt": (
+                "Tu es Noah, le quaterback star et le garçon le plus populaire du lycée. "
+                "Tu parles par SMS de manière anonyme avec une fille mystérieuse (qui est en réalité Yuna). "
+                "Dans la vraie vie, au lycée, tu es distant et inaccessible, entouré par ton statut de star du football. "
+                "Tu ignores qu'elle est ta correspondante secrète. "
+                "[PERSONNALITÉ] En vrai : Arrogant en apparence, distant, blasé par la célébrité du lycée et superficiel pour préserver son image. "
+                "Par message / En secret : Profond, attentionné, romantique, à l'écoute et fatigué par la pression que son père et le lycée lui imposent. "
+                "[CONTEXTE & RIVAUX] Tu es coincé dans une image qui ne te correspond pas : Lara, la chef des pom-pom girls, est ta 'petite amie officielle' "
+                "pour l'image sociale, mais elle est superficielle, jalouse et méprise Yuna. Ton père et ton entraîneur te mettent une pression immense. "
+                "[RÈGLES DE RÉPONSE] La conversation commence par message écrit sur vos téléphones. Tu ne sais pas qui elle est en vrai. "
+                "Ne décris jamais les actions ou les pensées de Yuna."
+            ) + base_instruction,
+            "quote": "Salut. Je sais que tu dors probablement, mais c'est le seul moment de la journée où le silence m'apaise. Comment s'est passée ta journée ?",
         },
     }
 
@@ -710,89 +734,75 @@ elif str_lit.session_state.page == "chat":
                                     save_msg(str_lit.session_state.pseudo, current_char, m["role"], m["content"])
                             except Exception:
                                 pass
+                        str_lit.success("Message modifié !")
                         str_lit.rerun()
 
-    str_lit.markdown("""
-        <script>
-            window.scrollTo(0, document.body.scrollHeight);
-        </script>
-    """, unsafe_allow_html=True)
-
-    if client and len(messages) > 0 and messages[-1]["role"] == "assistant":
-        str_lit.markdown("##### ⚡ Choix rapides suggérés :")
-        try:
-            choices_prompt = [
-                {"role": "system", "content": "Génère 3 choix courts d'actions possibles (en 5-8 mots max chacun, commençant par un verbe ou entre crochets) pour l'utilisateur face à ce message. Sépare-les par un retour à la ligne simple."},
-                {"role": "user", "content": messages[-1]["content"]}
-            ]
-            with str_lit.spinner("Chargement des choix rapides..."):
-                choices_resp = client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
-                    messages=choices_prompt,
-                    temperature=0.7,
-                    max_tokens=100
-                )
-            raw_choices = choices_resp.choices[0].message.content.strip().split("\n")
-            clean_choices = [c.strip("- *123.") for c in raw_choices if c.strip()][:3]
-            
-            c_cols = str_lit.columns(len(clean_choices) if clean_choices else 1)
-            for c_idx, choice_text in enumerate(clean_choices):
-                with c_cols[c_idx]:
-                    if str_lit.button(choice_text, key=f"quick_choice_{idx}_{c_idx}"):
-                        str_lit.session_state.selected_quick_choice = choice_text
-                        str_lit.rerun()
-        except Exception:
-            pass
-
-    user_input = str_lit.chat_input("Votre message...")
-    if str_lit.session_state.selected_quick_choice:
-        user_input = str_lit.session_state.selected_quick_choice
-        str_lit.session_state.selected_quick_choice = None
-
+    user_input = str_lit.chat_input("Écris ta réponse...")
     if user_input:
-        with str_lit.chat_message("user"):
-            str_lit.write(user_input)
-        save_msg(str_lit.session_state.pseudo, current_char, "user", user_input)
         messages.append({"role": "user", "content": user_input})
+        save_msg(str_lit.session_state.pseudo, current_char, "user", user_input)
+        update_affinity(str_lit.session_state.pseudo, current_char, 2)
 
-        # --- STREAMING EN TEMPS RÉEL (OPTIMISATION ULTIME) ---
-        col_avatar, col_content = str_lit.columns([1, 5])
-        with col_avatar:
-            str_lit.image(char_data["img"], width=65)
-        with col_content:
-            response_placeholder = str_lit.empty()
-            full_response = ""
-
-            if client:
-                try:
-                    user_pseudo = str_lit.session_state.pseudo
-                    current_aff = get_affinity(user_pseudo, current_char)
-                    aff_context = f" Niveau d'affinité actuel avec Yuna : {current_aff}%."
-                    context_reminder = {"role": "system", "content": f"Rappel important : Ton interlocuteur actuel s'appelle {user_pseudo}. Adresse-toi directement à elle au féminin en respectant strictement ton profil d'origine.{aff_context}"}
-                    
-                    api_messages = [{"role": "system", "content": char_data["prompt"]}, context_reminder] + messages[-20:]
-                    
-                    stream = client.chat.completions.create(
+        if client:
+            user_pseudo = str_lit.session_state.pseudo
+            current_aff = get_affinity(user_pseudo, current_char)
+            aff_context = f" Niveau d'affinité actuel avec Yuna : {current_aff}%."
+            context_reminder = {"role": "system", "content": f"Rappel important : Ton interlocuteur actuel s'appelle {user_pseudo}. Adresse-toi directement à elle au féminin en respectant strictement ton profil d'origine.{aff_context}"}
+            
+            api_messages = [{"role": "system", "content": char_data["prompt"]}, context_reminder] + messages[-20:]
+            
+            try:
+                with str_lit.spinner(f"{current_char} est en train d'écrire..."):
+                    response = client.chat.completions.create(
                         model="llama-3.3-70b-versatile",
                         messages=api_messages,
-                        temperature=0.9,
-                        stream=True
+                        temperature=0.85,
                     )
-                    
-                    for chunk in stream:
-                        delta_content = chunk.choices[0].delta.content
-                        if delta_content:
-                            full_response += delta_content
-                            response_placeholder.markdown(f'<div class="novel-dialogue">{full_response}▌</div>', unsafe_allow_html=True)
-                    
-                    response_placeholder.markdown(f'<div class="novel-dialogue">{full_response}</div>', unsafe_allow_html=True)
-                except Exception as e:
-                    full_response = f"Désolé, une erreur est survenue : {e}"
-                    response_placeholder.markdown(f'<div class="novel-dialogue">{full_response}</div>', unsafe_allow_html=True)
-            else:
-                full_response = "Erreur : Client Groq non initialisé."
-                response_placeholder.markdown(f'<div class="novel-dialogue">{full_response}</div>', unsafe_allow_html=True)
+                bot_reply = response.choices[0].message.content
+                messages.append({"role": "assistant", "content": bot_reply})
+                save_msg(user_pseudo, current_char, "assistant", bot_reply)
+            except Exception as e:
+                str_lit.error(f"Erreur de génération : {e}")
+        str_lit.rerun()
 
-            messages.append({"role": "assistant", "content": full_response})
-            save_msg(user_pseudo, current_char, "assistant", full_response)
-            str_lit.rerun()
+elif str_lit.session_state.page == "create_character":
+    str_lit.title("✨ Créer un Personnage")
+    str_lit.write("Conçois ton propre personnage personnalisé pour l'intégrer à tes histoires.")
+    str_lit.markdown("---")
+
+    with str_lit.form("create_char_form"):
+        new_name = str_lit.text_input("Nom du personnage")
+        new_quote = str_lit.text_input("Phrase d'accroche (Citation)")
+        new_desc = str_lit.text_area("Description / Personnalité / Contexte")
+        new_img = str_lit.text_input("URL de l'image (Lien direct)")
+        new_vis = str_lit.selectbox("Visibilité", ["Public", "Privé"])
+
+        submitted = str_lit.form_submit_button("Créer le Personnage")
+        if submitted:
+            if new_name.strip():
+                if supabase:
+                    try:
+                        supabase.table("custom_characters").insert({
+                            "name": new_name.strip(),
+                            "quote": new_quote,
+                            "description": new_desc,
+                            "img_url": new_img.strip() if new_img.strip() else DEFAULT_FALLBACK_IMG,
+                            "visibility": new_vis,
+                            "creator_pseudo": str_lit.session_state.pseudo
+                        }).execute()
+                        str_lit.cache_data.clear()
+                        str_lit.success(f"Le personnage {new_name} a été créé avec succès !")
+                        str_lit.session_state.page = "home"
+                        str_lit.rerun()
+                    except Exception as e:
+                        str_lit.error(f"Erreur lors de l'enregistrement : {e}")
+                else:
+                    str_lit.warning("Supabase n'est pas configuré pour sauvegarder les personnages personnalisés.")
+            else:
+                str_lit.error("Veuillez donner un nom à votre personnage.")
+
+elif str_lit.session_state.page == "profile":
+    str_lit.title("👤 Profil Utilisateur")
+    str_lit.write(f"Gestion de ton profil pour le pseudo : **{str_lit.session_state.pseudo}**")
+    str_lit.markdown("---")
+    str_lit.info("Ici, tu peux retrouver les informations générales de ton compte.")
