@@ -741,11 +741,23 @@ elif str_lit.session_state.page == "profile":
                             if c_desc:
                                 str_lit.write(f"**Description :** {c_desc}")
                             
-                            # Bouton direct pour discuter avec son personnage (même privé) depuis son profil
-                            if str_lit.button(f"💬 Discuter avec {c_name}", key=f"chat_my_char_{c_name}"):
-                                str_lit.session_state.char_select = c_name
-                                str_lit.session_state.page = "chat"
-                                str_lit.rerun()
+                            # Boutons de gestion (Discuter + Supprimer) directement intégrés sous chaque personnage
+                            b_col1, b_col2 = str_lit.columns(2)
+                            with b_col1:
+                                if str_lit.button(f"💬 Discuter", key=f"chat_my_char_{c_name}"):
+                                    str_lit.session_state.char_select = c_name
+                                    str_lit.session_state.page = "chat"
+                                    str_lit.rerun()
+                            with b_col2:
+                                if str_lit.button(f"🗑️ Supprimer", key=f"del_my_char_{c_name}"):
+                                    try:
+                                        supabase.table("custom_characters").delete().eq("name", c_name).eq("creator", str_lit.session_state.pseudo).execute()
+                                        supabase.table("messages").delete().eq("char_name", c_name).execute()
+                                        str_lit.success(f"Personnage {c_name} supprimé avec succès !")
+                                        str_lit.rerun()
+                                    except Exception as e:
+                                        str_lit.error(f"Erreur lors de la suppression : {e}")
+
                         str_lit.markdown("---")
             else:
                 str_lit.info("Vous n'avez créé aucun personnage pour le moment.")
