@@ -844,22 +844,63 @@ elif str_lit.session_state.page == "profile":
     str_lit.markdown("---")
 
     user_email = "Non disponible"
+    avatar_url = "https://cdn-icons-png.flaticon.com/512/847/847969.png"
+
     if supabase:
         try:
             res = supabase.table("users").select("*").eq("pseudo", str_lit.session_state.pseudo).maybe_single().execute()
             if res and res.data:
                 user_email = res.data.get("email", "Non renseigné")
+                avatar_url = res.data.get("avatar_url", avatar_url)
         except Exception:
             pass
 
-    str_lit.markdown(f"""
-    <div style="background-color: #161b22; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
-        <h3 style="margin-top: 0; color: #58a6ff;">Informations du compte</h3>
-        <p><b>Pseudo :</b> {str_lit.session_state.pseudo}</p>
-        <p><b>E-mail :</b> {user_email}</p>
-    </div>
-    """, unsafe_allow_html=True)
+    # --- SECTION 1 : AVATAR ET INFORMATIONS DU COMPTE ---
+    col_img, col_info = str_lit.columns([1, 4])
+    with col_img:
+        str_lit.image(avatar_url, use_container_width=True)
+    with col_info:
+        str_lit.markdown(f"""
+        <div style="background-color: #161b22; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px; height: 100%;">
+            <h3 style="margin-top: 0; color: #58a6ff;">Informations du compte</h3>
+            <p style="font-size: 16px;"><b>Pseudo :</b> {str_lit.session_state.pseudo}</p>
+            <p style="font-size: 16px;"><b>E-mail :</b> {user_email}</p>
+        </div>
+        """, unsafe_allow_html=True)
 
+    str_lit.markdown("<br>", unsafe_allow_html=True)
+
+    # --- SECTION 2 : PERSONNAGES CRÉÉS ---
+    str_lit.subheader("🛠️ Les personnages que j'ai créés")
+    if supabase:
+        try:
+            my_chars_res = supabase.table("custom_characters").select("*").eq("creator_pseudo", str_lit.session_state.pseudo).execute()
+            
+            if my_chars_res.data and len(my_chars_res.data) > 0:
+                cols = str_lit.columns(4)
+                for i, char in enumerate(my_chars_res.data):
+                    with cols[i % 4]:
+                        c_img = char.get("img_url", DEFAULT_FALLBACK_IMG)
+                        if not c_img.startswith("http") and not os.path.exists(c_img):
+                            c_img = DEFAULT_FALLBACK_IMG
+                            
+                        str_lit.markdown(f"""
+                        <div style="background-color: #21262d; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 10px; padding: 10px; text-align: center;">
+                            <img src="{c_img}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 10px;">
+                            <strong style="color: #ffffff; font-size: 14px;">{char.get('name')}</strong><br>
+                            <span style="font-size: 12px; color: #8b949e;">{char.get('visibility', 'Public')}</span>
+                        </div>
+                        """, unsafe_allow_html=True)
+            else:
+                str_lit.info("Tu n'as pas encore créé de personnage. Va dans l'onglet 'Créer un Personnage' pour commencer !")
+        except Exception as e:
+            str_lit.error(f"Erreur lors du chargement de tes personnages : {e}")
+    else:
+        str_lit.warning("Connexion à la base de données requise pour voir tes personnages.")
+
+    str_lit.markdown("<br>", unsafe_allow_html=True)
+
+    # --- SECTION 3 : STATISTIQUES ---
     str_lit.subheader("📊 Statistiques de tes histoires")
     if supabase:
         try:
