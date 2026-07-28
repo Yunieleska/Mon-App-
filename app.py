@@ -52,34 +52,15 @@ str_lit.markdown(
         border: 1px solid rgba(255, 255, 255, 0.15) !important;
         border-radius: 8px !important;
         height: 42px;
+        width: 100%;
     }
     .stButton>button:hover, button[kind="secondary"]:hover, button[kind="primary"]:hover, div.stFormSubmitButton > button:hover {
         background-color: #30363d !important;
         border-color: #ffffff !important;
         color: #ffffff !important;
     }
-    .storyia-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
-        margin-top: 10px;
-        margin-bottom: 20px;
-    }
-    @media (min-width: 900px) {
-        .storyia-grid {
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
-        }
-    }
-    .storyia-card {
-        background-color: #161b22;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 12px;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        height: 100%;
+    div.row-widget.stButton {
+        text-align: center;
     }
     </style>
 """,
@@ -150,10 +131,9 @@ def get_all_characters():
         "Laisse toujours Yuna libre de décrire son propre physique."
     )
 
-    # Utilisation des liens publics de ton bucket Supabase "storyia-images" ou des URLs directes de tes images originales
     chars = {
         "Caelum": {
-            "img": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80", # Remplace par ton lien Supabase du bucket si besoin
+            "img": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80",
             "prompt": "Tu es Caelum, Prince des Ténèbres." + base_instruction,
             "quote": "Ne t'approche pas de moi. Ma vie est déjà tracée, et tu n'as rien à y faire.",
         },
@@ -208,12 +188,18 @@ def get_all_characters():
                     quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
                     img_url = item.get("img_url", "")
                     
+                    resolved_img = "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80"
+                    if img_url:
+                        if img_url.startswith("http"):
+                            resolved_img = img_url
+                        else:
+                            try:
+                                resolved_img = supabase.storage.from_('storyia-images').get_public_url(img_url)
+                            except:
+                                pass
+                    
                     chars[c_name] = {
-                        "img": (
-                            img_url
-                            if img_url and img_url.startswith("http")
-                            else f"{supabase.storage.from_('storyia-images').get_public_url(img_url) if img_url else 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80'}"
-                        ),
+                        "img": resolved_img,
                         "prompt": prompt_val + base_instruction,
                         "quote": quote_val,
                     }
@@ -396,35 +382,21 @@ if str_lit.session_state.page == "home":
     end_idx = start_idx + ITEMS_PER_PAGE
     current_items = public_items[start_idx:end_idx]
 
-    grid_html = '<div class="storyia-grid">'
-    for idx, (name, data) in enumerate(current_items):
-        img_src = data["img"]
-
-        grid_html += f"""
-        <div class="storyia-card">
-            <div>
-                <img src="{img_src}" style="width: 100%; height: 140px; object-fit: cover; display: block;">
-                <div style="padding: 10px 10px 4px 10px;">
-                    <div style="font-weight: 700; font-size: 14px; color: #ffffff; margin-bottom: 2px;">{name}</div>
-                    <div style="font-size: 11px; color: #8b949e; font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 30px;">"{data['quote']}"</div>
-                </div>
-            </div>
-            <div style="padding: 0px 10px 10px 10px;">
-                <a href="?user={str_lit.session_state.pseudo}&chat_target={name}" target="_self" style="display: block; text-align: center; background-color: #21262d; color: #ffffff; padding: 6px 10px; border-radius: 6px; text-decoration: none; border: 1px solid rgba(255, 255, 255, 0.15); font-size: 12px; font-weight: 600;">💬 Discuter</a>
-            </div>
-        </div>
-        """
-    grid_html += "</div>"
-    str_lit.html(grid_html)
-
-    if "chat_target" in query_params:
-        target_char = query_params["chat_target"]
-        if target_char in CHARACTERS:
-            str_lit.session_state.char_select = target_char
-            str_lit.session_state.page = "chat"
-            if "chat_target" in str_lit.query_params:
-                del str_lit.query_params["chat_target"]
-            str_lit.rerun()
+    # Grille native Streamlit sécurisée (sans bug HTML)
+    cols_per_row = 4
+    for i in range(0, len(current_items), cols_per_row):
+        row_items = current_items[i:i + cols_per_row]
+        cols = str_lit.columns(cols_per_row)
+        for col_idx, (name, data) in enumerate(row_items):
+            with cols[col_idx]:
+                str_lit.image(data["img"], use_container_width=True)
+                str_lit.markdown(f"**{name}**")
+                str_lit.markdown(f"<span style='font-size:12px; color:#8b949e; font-style:italic;'>\"{data['quote']}\"</span>", unsafe_allow_html=True)
+                if str_lit.button("💬 Discuter", key=f"btn_grid_{name}_{i}_{col_idx}"):
+                    str_lit.session_state.char_select = name
+                    str_lit.session_state.page = "chat"
+                    str_lit.rerun()
+                str_lit.markdown("---")
 
 elif str_lit.session_state.page == "chat":
     current_char = str_lit.session_state.char_select
@@ -554,16 +526,6 @@ elif str_lit.session_state.page == "chat":
 elif str_lit.session_state.page == "create_character":
     str_lit.title("✨ Créer un nouveau personnage")
     
-    str_lit.markdown("""
-        <style>
-        textarea, input[type="text"] {
-            background-color: #21262d !important;
-            color: #ffffff !important;
-            border: 1px solid rgba(255, 255, 255, 0.2) !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-    
     char_name = str_lit.text_input("Nom du personnage", key="input_char_name")
     char_sex = str_lit.selectbox(
         "Sexe / Genre", ["Homme", "Femme", "Non-binaire", "Autre"], key="select_char_sex"
@@ -584,7 +546,7 @@ elif str_lit.session_state.page == "create_character":
         "Visibilité", ["Public (toute la communauté)", "Privé"], key="radio_char_vis"
     )
     
-    if str_lit.button("🚀 Créer", use_container_width=True, key="btn_submit_char"):
+    if str_lit.button("🚀 Créer", key="btn_submit_char"):
         if char_name and char_description:
             img_path = ""
             if uploaded_char_img is not None and supabase:
@@ -599,7 +561,6 @@ elif str_lit.session_state.page == "create_character":
             if supabase:
                 try:
                     built_prompt = f"Tu es {char_name}, un personnage {char_sex}. Description et contexte : {char_description}."
-
                     vis_val = "Privé" if "Privé" in visibility else "Public"
 
                     insert_data = {
