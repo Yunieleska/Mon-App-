@@ -876,7 +876,13 @@ elif str_lit.session_state.page == "create_character":
                 str_lit.error("Veuillez donner un nom à votre personnage.")
 
 elif str_lit.session_state.page == "profile":
-    str_lit.title("👤 Profil Utilisateur")
+    # --- PROFIL UTILISATEUR AVEC LA BANNIÈRE ---
+    banner_path = "profil utilisateur.jfif"
+    if os.path.exists(banner_path):
+        str_lit.image(banner_path, use_container_width=True)
+    else:
+        str_lit.title("Profil Utilisateur")
+        
     str_lit.write(f"Ton sanctuaire personnel, **{str_lit.session_state.pseudo}**.")
     str_lit.markdown("---")
 
@@ -891,18 +897,6 @@ elif str_lit.session_state.page == "profile":
                 avatar_url = res.data.get("avatar_url", avatar_url)
         except Exception:
             pass
-
-    # --- BANNIÈRE & PROFIL DARK ROMANCE ---
-    str_lit.markdown(f"""
-    <div style="background: linear-gradient(135deg, #1f1a24 0%, #0d1117 100%); border: 1px solid rgba(210, 153, 234, 0.2); border-radius: 16px; padding: 25px; margin-bottom: 25px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 25px;">
-        <img src="{avatar_url}" style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 2px solid #d299ea; box-shadow: 0 0 15px rgba(210,153,234,0.3);">
-        <div>
-            <h2 style="margin: 0 0 5px 0; color: #f0f6fc; font-family: 'Georgia', serif;">{str_lit.session_state.pseudo}</h2>
-            <p style="margin: 0; color: #8b949e; font-size: 14px;">Membre des ombres • E-mail : {user_email}</p>
-            <span style="display: inline-block; margin-top: 8px; background-color: rgba(210, 153, 234, 0.1); color: #d299ea; padding: 2px 10px; border-radius: 12px; font-size: 11px; border: 1px solid rgba(210, 153, 234, 0.3);">Lecteur / Rôle-playeur</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
 
     # --- SECTION 2 : PERSONNAGES CRÉÉS & ACTIONS ---
     str_lit.subheader("🖤 Mes Créations ténébreuses")
