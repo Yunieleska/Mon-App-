@@ -160,8 +160,9 @@ def save_msg(pseudo, char, role, content):
     cache_key = f"{pseudo}_{char}"
     
     if not supabase:
-        if cache_key in str_lit.session_state.messages_cache:
-            str_lit.session_state.messages_cache[cache_key].append({"id": None, "role": role, "content": content})
+        if cache_key not in str_lit.session_state.messages_cache:
+            str_lit.session_state.messages_cache[cache_key] = []
+        str_lit.session_state.messages_cache[cache_key].append({"id": None, "role": role, "content": content})
         return
     try:
         clean_pseudo = str(pseudo).strip()
@@ -174,19 +175,20 @@ def save_msg(pseudo, char, role, content):
         
         msg_id = res.data[0]["id"] if res.data and "id" in res.data[0] else None
         
-        if cache_key in str_lit.session_state.messages_cache:
-            str_lit.session_state.messages_cache[cache_key].append({"id": msg_id, "role": role, "content": content})
+        if cache_key not in str_lit.session_state.messages_cache:
+            str_lit.session_state.messages_cache[cache_key] = []
+        str_lit.session_state.messages_cache[cache_key].append({"id": msg_id, "role": role, "content": content})
     except Exception:
         pass
 
 
 def load_msgs(pseudo, char, limit=100):
     cache_key = f"{pseudo}_{char}"
-    if cache_key in str_lit.session_state.messages_cache:
+    if cache_key in str_lit.session_state.messages_cache and str_lit.session_state.messages_cache[cache_key]:
         return str_lit.session_state.messages_cache[cache_key]
 
     if not supabase:
-        return []
+        return str_lit.session_state.messages_cache.get(cache_key, [])
     try:
         clean_pseudo = str(pseudo).strip()
         res = (
@@ -259,8 +261,8 @@ def update_affinity(pseudo, char, delta):
 @str_lit.cache_data(show_spinner=False)
 def get_all_characters_cached():
     base_instruction = (
-        " Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. "
-        "RÈGLE ABSOLUE : L'utilisateur à qui tu parles s'appelle Yuna. Tu t'adresses TOUJOURS à Yuna en utilisant les accords féminins et son prénom (sauf indication contraire pour le tout premier message). "
+        " Reste strictly dans ton rôle, adopte un ton immersif de roleplay romancé. "
+        "RÈGLE ABSOLUE : L'utilisateur à qui tu parles s'appelle Yuna. Tu t'adresses à elle au féminin. "
         "N'invente JAMAIS et ne décris JAMAIS l'apparence physique, les vêtements, les cheveux ou le corps de l'utilisateur sans qu'il en ait parlé explicitement. "
         "Laisse toujours l'utilisateur libre de décrire son propre physique."
     )
@@ -300,14 +302,11 @@ def get_all_characters_cached():
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/noah.png.PNG",
             "prompt": (
                 "Tu es Noah, le quaterback star et le garçon le plus populaire du lycée. "
-                "Tu parles par SMS de manière anonyme avec une fille mystérieuse (qui est en réalité Yuna). "
-                "Dans la vraie vie, au lycée, tu es distant et inaccessible, entouré par ton statut de star du football. "
+                "Tu parles par SMS de manière anonyme avec une fille mystérieuse. "
+                "Dans la vraie vie, au lycée, tu es distant et inaccessible. "
                 "Tu ignores qu'elle est ta correspondante secrète. "
-                "[PERSONNALITÉ] En vrai : Arrogant en apparence, distant, blasé par la célébrité du lycée et superficiel pour préserver son image. "
-                "Par message / En secret : Profond, attentionné, romantique, à l'écoute et fatigué par la pression que son père et le lycée lui imposent. "
-                "[CONTEXTE & RIVAUX] Tu es coincé dans une image qui ne correspond pas : Lara, la chef des pom-pom girls, est ta 'petite amie officielle' "
-                "pour l'image sociale, mais elle est superficielle, jalouse et méprise Yuna. Ton père et ton entraîneur te mettent une pression immense. "
-                "[RÈGLES DE RÉPONSE] La conversation commence par message écrit sur vos téléphones. Tu ne sais pas qui elle est en vrai. "
+                "[PERSONNALITÉ] En vrai : Arrogant en apparence, distant. "
+                "Par message : Profond, attentionné, romantique. "
                 "Ne décris jamais les actions ou les pensées de Yuna."
             ) + base_instruction,
             "quote": "Salut. Je sais que tu dors probablement, mais c'est le seul moment de la journée où le silence m'apaise. Comment s'est passée ta journée ?",
@@ -620,7 +619,22 @@ elif str_lit.session_state.page == "chat":
 
     str_lit.markdown("---")
 
+    # Chargement de l'historique
     messages = load_msgs(str_lit.session_state.pseudo, current_char, limit=50)
+    
+    # Sécurité anti-doublon : Vérification directe dans Supabase avant de générer
+    if not messages and supabase:
+        try:
+            clean_pseudo = str(str_lit.session_state.pseudo).strip()
+            db_check = supabase.table("messages").select("id, role, content").eq("user_pseudo", clean_pseudo).eq("char_name", current_char).order("id", desc=False).execute()
+            if db_check.data:
+                messages = [{"id": r["id"], "role": r["role"], "content": r["content"]} for r in db_check.data]
+                cache_key = f"{clean_pseudo}_{current_char}"
+                str_lit.session_state.messages_cache[cache_key] = messages
+        except Exception:
+            pass
+
+    # Génération du premier message unique si la conversation est vide
     if not messages:
         if current_char == "Caelum":
             user_pseudo = str_lit.session_state.pseudo
@@ -637,7 +651,7 @@ elif str_lit.session_state.page == "chat":
                 try:
                     init_prompt = [
                         {"role": "system", "content": char_data["prompt"]},
-                        {"role": "user", "content": f"Écris un long premier message d'introduction immersif, descriptif et détaillé pour débuter notre roleplay. RÈGLE CRUCIALE POUR CE PREMIER MESSAGE : Tu ne connais PAS encore son prénom. Ne prononce JAMAIS le nom 'Yuna' dans ce premier message. Fais comme si tu ne la connaissais pas du tout. Ta phrase d'accroche de référence est : \"{char_data['quote']}\". Mets l'utilisatrice dans l'ambiance, décris la scène et tes actions en restant strictement fidèle à ton profil, sans JAMAIS décrire son physique ou ses vêtements."}
+                        {"role": "user", "content": f"Écris un premier message d'introduction immersif et détaillé pour débuter le roleplay. CONSIGNE D'ACCROCHE : Intègre naturellement la phrase \"{char_data['quote']}\". Décris le décor et la situation. Ne réitère pas plusieurs fois le prénom de l'interlocutrice."}
                     ]
                     with str_lit.spinner(f"Génération de l'introduction avec {current_char}..."):
                         resp_init = client.chat.completions.create(
@@ -654,6 +668,7 @@ elif str_lit.session_state.page == "chat":
         save_msg(str_lit.session_state.pseudo, current_char, "assistant", intro_msg)
         messages = load_msgs(str_lit.session_state.pseudo, current_char, limit=50)
 
+    # Affichage des messages
     for idx, msg in enumerate(messages):
         msg_id = msg.get("id")
         
@@ -687,6 +702,7 @@ elif str_lit.session_state.page == "chat":
                         str_lit.success("Modifié !")
                         str_lit.rerun()
             with col_actions:
+                # 1. Bouton Supprimer
                 if str_lit.button("❌", key=f"del_msg_{idx}", help="Supprimer ce message"):
                     messages.pop(idx)
                     cache_key = f"{str_lit.session_state.pseudo}_{current_char}"
@@ -698,10 +714,12 @@ elif str_lit.session_state.page == "chat":
                             pass
                     str_lit.rerun()
 
+                # 2. Bouton Editer
                 if str_lit.button("✏️", key=f"btn_edit_ast_{idx}", help="Modifier"):
                     str_lit.session_state[edit_key] = not str_lit.session_state[edit_key]
                     str_lit.rerun()
                     
+                # 3. Bouton Régénérer (Affiché sur le dernier message)
                 if idx == len(messages) - 1 and client:
                     if str_lit.button("🔄", key=f"regen_{idx}", help="Régénérer la réponse"):
                         messages.pop()
@@ -717,7 +735,7 @@ elif str_lit.session_state.page == "chat":
                         user_pseudo = str_lit.session_state.pseudo
                         current_aff = get_affinity(user_pseudo, current_char)
                         aff_context = f" Niveau d'affinité actuel avec Yuna : {current_aff}%."
-                        context_reminder = {"role": "system", "content": f"Rappel important : Ton interlocuteur actuel s'appelle {user_pseudo}. Adresse-toi directement à elle au féminin en respectant strictement ton profil d'origine.{aff_context}"}
+                        context_reminder = {"role": "system", "content": f"Rappel important : Ton interlocuteur actuel s'appelle {user_pseudo}. Adresse-toi directement à elle au féminin.{aff_context}"}
                         
                         api_messages = [{"role": "system", "content": char_data["prompt"]}, context_reminder] + messages[-20:]
                         
@@ -730,7 +748,6 @@ elif str_lit.session_state.page == "chat":
                                 )
                             bot_reply = response.choices[0].message.content
                             save_msg(user_pseudo, current_char, "assistant", bot_reply)
-                            # Actualise le cache local avec le nouveau message chargé depuis Supabase
                             if cache_key in str_lit.session_state.messages_cache:
                                 del str_lit.session_state.messages_cache[cache_key]
                         except Exception:
@@ -781,7 +798,6 @@ elif str_lit.session_state.page == "chat":
         save_msg(str_lit.session_state.pseudo, current_char, "user", user_input)
         update_affinity(str_lit.session_state.pseudo, current_char, 2)
         
-        # Nettoie le cache pour recharger proprement avec les nouveaux identifiants
         cache_key = f"{str_lit.session_state.pseudo}_{current_char}"
         if cache_key in str_lit.session_state.messages_cache:
             del str_lit.session_state.messages_cache[cache_key]
@@ -790,7 +806,7 @@ elif str_lit.session_state.page == "chat":
             user_pseudo = str_lit.session_state.pseudo
             current_aff = get_affinity(user_pseudo, current_char)
             aff_context = f" Niveau d'affinité actuel avec Yuna : {current_aff}%."
-            context_reminder = {"role": "system", "content": f"Rappel important : Ton interlocuteur actuel s'appelle {user_pseudo}. Adresse-toi directement à elle au féminin en respectant strictement ton profil d'origine.{aff_context}"}
+            context_reminder = {"role": "system", "content": f"Rappel important : Ton interlocuteur actuel s'appelle {user_pseudo}. Adresse-toi directement à elle au féminin.{aff_context}"}
             
             messages_actuels = load_msgs(user_pseudo, current_char, limit=50)
             api_messages = [{"role": "system", "content": char_data["prompt"]}, context_reminder] + messages_actuels[-20:]
