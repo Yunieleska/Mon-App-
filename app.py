@@ -382,7 +382,7 @@ if str_lit.session_state.page == "home":
     end_idx = start_idx + ITEMS_PER_PAGE
     current_items = public_items[start_idx:end_idx]
 
-    # Correction définitive des blocs gris via fond de couleur et display block
+    # Correction radicale par fond d'écran CSS pour éliminer définitivement les blocs gris
     cols_per_row = 4
     for i in range(0, len(current_items), cols_per_row):
         row_items = current_items[i:i + cols_per_row]
@@ -397,9 +397,7 @@ if str_lit.session_state.page == "home":
                     img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
                 
                 str_lit.markdown(
-                    f'<div style="width:100%; height:180px; overflow:hidden; border-radius:8px; margin-bottom:8px; background-color: #21262d;">'
-                    f'<img src="{img_src}" style="width:100%; height:100%; object-fit:cover; display:block;">'
-                    f'</div>',
+                    f'<div style="width:100%; height:180px; border-radius:8px; margin-bottom:8px; background-color:#21262d; background-image:url(\'{img_src}\'); background-size:cover; background-position:center;"></div>',
                     unsafe_allow_html=True
                 )
                 
