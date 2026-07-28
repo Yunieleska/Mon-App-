@@ -276,12 +276,12 @@ if not str_lit.session_state.logged_in:
                                 supabase.table("users")
                                 .select("pseudo")
                                 .eq("id", res.user.id)
-                                .single()
+                                .maybe_single()
                                 .execute()
                             )
                             pseudo_val = (
                                 user_data.data["pseudo"]
-                                if user_data.data
+                                if user_data.data and "pseudo" in user_data.data
                                 else email_log.split("@")[0]
                             )
 
@@ -671,17 +671,38 @@ elif str_lit.session_state.page == "profile":
         except Exception as e:
             str_lit.error(f"Erreur lors du chargement du profil : {e}")
 
-    col_p1, col_p2 = str_lit.columns([1, 3])
+    # En-tête du Profil (Style Polybuzz)
+    col_p1, col_p2, col_p3 = str_lit.columns([1, 2, 2])
     with col_p1:
         if not avatar_path.startswith("http") and not os.path.exists(avatar_path):
             avatar_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-        str_lit.image(avatar_path, width=120)
+        str_lit.image(avatar_path, width=130)
     with col_p2:
         str_lit.subheader(f"Pseudo : {str_lit.session_state.pseudo}")
-        str_lit.write(f"E-mail : {user_info.get('email', 'Non renseigné')}")
+        str_lit.write(f"**E-mail** : {user_info.get('email', 'Non renseigné')}")
+    with col_p3:
+        str_lit.markdown("### Statistiques")
+        convs_count = len(get_user_conversations(str_lit.session_state.pseudo))
+        str_lit.metric("Discussions actives", convs_count)
+
+    # Modification de la photo de profil
+    with str_lit.expander("🖼️ Modifier ma photo de profil"):
+        new_avatar_file = str_lit.file_uploader("Choisir une image", type=["png", "jpg", "jpeg"], key="upload_avatar")
+        if str_lit.button("Enregistrer la photo"):
+            if new_avatar_file is not None:
+                new_avatar_path = f"avatar_{str_lit.session_state.pseudo}.png"
+                with open(new_avatar_path, "wb") as f:
+                    f.write(new_avatar_file.getbuffer())
+                if supabase:
+                    try:
+                        supabase.table("users").update({"avatar_url": new_avatar_path}).eq("pseudo", str_lit.session_state.pseudo).execute()
+                        str_lit.success("Photo de profil mise à jour !")
+                        str_lit.rerun()
+                    except Exception as e:
+                        str_lit.error(f"Erreur : {e}")
 
     str_lit.markdown("---")
-    str_lit.subheader("Mes Personnages Créés")
+    str_lit.subheader("✨ Mes Personnages Créés")
 
     if supabase:
         try:
@@ -693,7 +714,26 @@ elif str_lit.session_state.page == "profile":
             )
             if my_chars.data:
                 for mc in my_chars.data:
-                    str_lit.write(f"• **{mc.get('name')}** - {mc.get('sex', 'Non spécifié')}")
+                    c_name = mc.get('name')
+                    c_sex = mc.get('sex', 'Non spécifié')
+                    c_quote = mc.get('quote', '')
+                    c_desc = mc.get('description', '')
+                    c_img = mc.get('img_url', 'https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg')
+                    
+                    if not c_img.startswith("http") and not os.path.exists(c_img):
+                        c_img = 'https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg'
+
+                    with str_lit.container():
+                        cc1, cc2 = str_lit.columns([1, 4])
+                        with cc1:
+                            str_lit.image(c_img, width=90)
+                        with cc2:
+                            str_lit.markdown(f"#### {c_name} *({c_sex})*")
+                            if c_quote:
+                                str_lit.markdown(f"> *\"{c_quote}\"*")
+                            if c_desc:
+                                str_lit.write(f"**Description :** {c_desc}")
+                        str_lit.markdown("---")
             else:
                 str_lit.info("Vous n'avez créé aucun personnage pour le moment.")
         except Exception as e:
