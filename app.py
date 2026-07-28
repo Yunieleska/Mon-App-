@@ -601,7 +601,7 @@ elif str_lit.session_state.page == "chat":
 
         # Affichage de l'indicateur de frappe
         typing_placeholder = str_lit.empty()
-        typing_placeholder.markdown(f'<div class="typing-indicator">💬 {current_char} est en train d'écrire...</div>', unsafe_allow_html=True)
+      typing_placeholder.markdown(f'<div class="typing-indicator">💬 {current_char} est en train d&apos;écrire...</div>', unsafe_allow_html=True)
 
         if client:
             try:
