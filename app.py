@@ -164,7 +164,7 @@ def get_all_characters():
         "Killian": {
             "img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg",
             "prompt": "Tu es Killian, un homme, le motard. C'est toi qui as sauvé Yuna lors de son grave accident de voiture par le passé." + base_instruction,
-            "quote": "Respire, c'sest fini... Je t'ai sorti de cette voiture à temps, t'inquiète pas.",
+            "quote": "Respire, c'est fini... Je t'ai sorti de cette voiture à temps, t'inquiète pas.",
         },
         "Lucas": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/lucas.png.PNG",
@@ -473,7 +473,6 @@ elif str_lit.session_state.page == "chat":
         messages.append({"role": "assistant", "content": intro_msg})
         save_msg(str_lit.session_state.pseudo, current_char, "assistant", intro_msg)
 
-    # Affichage des messages avec avatar du personnage
     for idx, msg in enumerate(messages):
         if msg["role"] == "assistant":
             col_avatar, col_content = str_lit.columns([1, 6])
@@ -485,7 +484,6 @@ elif str_lit.session_state.page == "chat":
             with str_lit.chat_message("user"):
                 str_lit.write(msg["content"])
 
-    # --- BOUTON MODIFIER POUR LE DERNIER MESSAGE DE L'ASSISTANT ---
     if messages and messages[-1]["role"] == "assistant":
         last_msg = messages[-1]
         edit_key = f"edit_mode_{len(messages)}"
@@ -666,29 +664,35 @@ elif str_lit.session_state.page == "profile":
                 .execute()
             )
             user_info = user_db.data if user_db.data else {}
-            avatar_path = user_info.get("avatar_url", avatar_path)
+            avatar_path = user_info.get(
+                "avatar_url",
+                "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
+            )
         except Exception:
             pass
-
-    col_p1, col_p2 = str_lit.columns([1, 2])
+            
+    col_p1, col_p2 = str_lit.columns([1, 3])
     with col_p1:
-        str_lit.image(avatar_path, width=150)
+        str_lit.image(avatar_path, width=120)
     with col_p2:
-        str_lit.write(f"### Pseudo : {str_lit.session_state.pseudo}")
-        str_lit.write(f"**E-mail :** {user_info.get('email', 'Non renseigné')}")
-
+        str_lit.subheader(f"Pseudo : {str_lit.session_state.pseudo}")
+        str_lit.write(f"E-mail : {user_info.get('email', 'Non renseigné')}")
+    
     str_lit.markdown("---")
-    str_lit.subheader("Personnaliser mon avatar")
-    new_avatar = str_lit.file_uploader("Modifier l'image de profil", type=["png", "jpg", "jpeg"], key="profile_avatar_upload")
-    if str_lit.button("Mettre à jour l'avatar"):
-        if new_avatar and supabase:
-            try:
-                av_path = f"avatar_{str_lit.session_state.pseudo}.png"
-                with open(av_path, "wb") as f:
-                    f.write(new_avatar.getbuffer())
-                
-                supabase.table("users").update({"avatar_url": av_path}).eq("pseudo", str_lit.session_state.pseudo).execute()
-                str_lit.success("Avatar mis à jour avec succès !")
-                str_lit.rerun()
-            except Exception as e:
-                str_lit.error(f"Erreur lors de la mise à jour : {e}")
+    str_lit.subheader("Mes Personnages Créés")
+    
+    if supabase:
+        try:
+            my_chars = (
+                supabase.table("custom_characters")
+                .select("*")
+                .eq("creator", str_lit.session_state.pseudo)
+                .execute()
+            )
+            if my_chars.data:
+                for mc in my_chars.data:
+                    str_lit.write(f"• **{mc.get('name')}** - {mc.get('sex')}")
+            else:
+                str_lit.info("Vous n'avez créé aucun personnage pour le moment.")
+        except Exception as e:
+            str_lit.error(f"Erreur lors de la récupération de vos personnages : {e}")
