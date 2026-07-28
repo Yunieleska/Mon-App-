@@ -842,7 +842,7 @@ elif str_lit.session_state.page == "create_character":
 
 elif str_lit.session_state.page == "profile":
     str_lit.title("👤 Profil Utilisateur")
-    str_lit.write(f"Gestion de ton profil pour le pseudo : **{str_lit.session_state.pseudo}**")
+    str_lit.write(f"Ton sanctuaire personnel, **{str_lit.session_state.pseudo}**.")
     str_lit.markdown("---")
 
     user_email = "Non disponible"
@@ -857,23 +857,20 @@ elif str_lit.session_state.page == "profile":
         except Exception:
             pass
 
-    # --- SECTION 1 : AVATAR ET INFORMATIONS DU COMPTE ---
-    col_img, col_info = str_lit.columns([1, 4])
-    with col_img:
-        str_lit.image(avatar_url, use_container_width=True)
-    with col_info:
-        str_lit.markdown(f"""
-        <div style="background-color: #161b22; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px; height: 100%;">
-            <h3 style="margin-top: 0; color: #58a6ff;">Informations du compte</h3>
-            <p style="font-size: 16px;"><b>Pseudo :</b> {str_lit.session_state.pseudo}</p>
-            <p style="font-size: 16px;"><b>E-mail :</b> {user_email}</p>
+    # --- BANNIÈRE & PROFIL DARK ROMANCE ---
+    str_lit.markdown(f"""
+    <div style="background: linear-gradient(135deg, #1f1a24 0%, #0d1117 100%); border: 1px solid rgba(210, 153, 234, 0.2); border-radius: 16px; padding: 25px; margin-bottom: 25px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 25px;">
+        <img src="{avatar_url}" style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 2px solid #d299ea; box-shadow: 0 0 15px rgba(210,153,234,0.3);">
+        <div>
+            <h2 style="margin: 0 0 5px 0; color: #f0f6fc; font-family: 'Georgia', serif;">{str_lit.session_state.pseudo}</h2>
+            <p style="margin: 0; color: #8b949e; font-size: 14px;">Membre des ombres • E-mail : {user_email}</p>
+            <span style="display: inline-block; margin-top: 8px; background-color: rgba(210, 153, 234, 0.1); color: #d299ea; padding: 2px 10px; border-radius: 12px; font-size: 11px; border: 1px solid rgba(210, 153, 234, 0.3);">Lecteur / Rôle-playeur</span>
         </div>
-        """, unsafe_allow_html=True)
-
-    str_lit.markdown("<br>", unsafe_allow_html=True)
+    </div>
+    """, unsafe_allow_html=True)
 
     # --- SECTION 2 : PERSONNAGES CRÉÉS & ACTIONS ---
-    str_lit.subheader("🛠️ Les personnages que j'ai créés")
+    str_lit.subheader("🖤 Mes Créations ténébreuses")
     if supabase:
         try:
             my_chars_res = supabase.table("custom_characters").select("*").execute()
@@ -890,21 +887,22 @@ elif str_lit.session_state.page == "profile":
                             if not c_img or not c_img.startswith("http"):
                                 c_img = DEFAULT_FALLBACK_IMG
                             
+                        vis_status = char.get('visibility', 'Public')
+                        badge_color = "#ff7b72" if vis_status == "Privé" else "#3fb950"
+                            
                         str_lit.markdown(f"""
-                        <div style="background-color: #21262d; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 10px; padding: 10px; text-align: center; margin-bottom: 10px;">
-                            <img src="{c_img}" onerror="this.onerror=null; this.src='{DEFAULT_FALLBACK_IMG}';" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 10px;">
-                            <strong style="color: #ffffff; font-size: 14px;">{c_name_val}</strong><br>
-                            <span style="font-size: 12px; color: #8b949e;">{char.get('visibility', 'Public')}</span>
+                        <div style="background-color: #161b22; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 12px; text-align: center; margin-bottom: 10px; transition: transform 0.2s;">
+                            <img src="{c_img}" onerror="this.onerror=null; this.src='{DEFAULT_FALLBACK_IMG}';" style="width: 100%; height: 130px; object-fit: cover; border-radius: 8px; margin-bottom: 8px;">
+                            <strong style="color: #ffffff; font-size: 14px; display: block; margin-bottom: 4px;">{c_name_val}</strong>
+                            <span style="font-size: 10px; color: {badge_color}; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">● {vis_status}</span>
                         </div>
                         """, unsafe_allow_html=True)
                         
-                        # Bouton pour lancer la conversation directement depuis le profil
                         if str_lit.button(f"💬 Discuter", key=f"chat_my_char_{i}"):
                             str_lit.session_state.char_select = c_name_val
                             str_lit.session_state.page = "chat"
                             str_lit.rerun()
 
-                        # Bouton de suppression
                         if str_lit.button(f"🗑️ Supprimer", key=f"del_char_db_{i}"):
                             try:
                                 supabase.table("custom_characters").delete().eq("name", c_name_val).execute()
@@ -916,7 +914,7 @@ elif str_lit.session_state.page == "profile":
                             except Exception as e:
                                 str_lit.error(f"Erreur : {e}")
             else:
-                str_lit.info("Aucun personnage trouvé dans la base de données.")
+                str_lit.info("Aucun personnage ténébreux créé pour l'instant.")
         except Exception as e:
             str_lit.error(f"Erreur lors du chargement de tes personnages : {e}")
     else:
@@ -925,16 +923,20 @@ elif str_lit.session_state.page == "profile":
     str_lit.markdown("<br>", unsafe_allow_html=True)
 
     # --- SECTION 3 : STATISTIQUES ---
-    str_lit.subheader("📊 Statistiques de tes histoires")
+    str_lit.subheader("📊 Grimoire de statistiques")
     if supabase:
         try:
             clean_pseudo = str(str_lit.session_state.pseudo).strip()
             res_msg = supabase.table("messages").select("char_name").eq("user_pseudo", clean_pseudo).execute()
             if res_msg.data:
                 nb_convs = len(set([item["char_name"] for item in res_msg.data if item.get("char_name")]))
-                str_lit.info(f"Tu as actuellement **{nb_convs}** conversation(s) active(s) en cours.")
+                str_lit.markdown(f"""
+                <div style="background-color: #161b22; border: 1px solid rgba(210, 153, 234, 0.15); border-radius: 12px; padding: 15px; color: #c9d1d9;">
+                    ✨ Histoires passionnelles en cours : <b style="color: #d299ea;">{nb_convs}</b>
+                </div>
+                """, unsafe_allow_html=True)
             else:
-                str_lit.info("Tu n'as pas encore de conversations enregistrées.")
+                str_lit.info("Ton grimoire est encore vierge. Lance une conversation pour commencer.")
         except Exception:
             str_lit.info("Impossible de charger les statistiques pour le moment.")
     else:
