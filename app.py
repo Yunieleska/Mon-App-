@@ -200,7 +200,7 @@ def get_affinity(pseudo, char):
         return str_lit.session_state.affinities_cache[cache_key]
 
     if not supabase:
-        return 50
+        return 10
     try:
         res = (
             supabase.table("affinities")
@@ -213,17 +213,17 @@ def get_affinity(pseudo, char):
         if res and res.data:
             score = res.data["score"]
         else:
-            score = 50
+            score = 10
             supabase.table("affinities").insert({
                 "user_pseudo": str(pseudo).strip(),
                 "char_name": str(char),
-                "score": 50
+                "score": 10
             }).execute()
         
         str_lit.session_state.affinities_cache[cache_key] = score
         return score
     except Exception:
-        return 50
+        return 10
 
 
 def update_affinity(pseudo, char, delta):
@@ -246,8 +246,8 @@ def get_all_characters_cached():
     base_instruction = (
         " Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. "
         "RÈGLE ABSOLUE : L'utilisateur à qui tu parles s'appelle Yuna. Tu t'adresses TOUJOURS à Yuna en utilisant les accords féminins et son prénom. "
-        "N'invente JAMAIS et ne décris JAMAIS l'apparence physique, les vêtements, les cheveux ou le corps de Yuna. "
-        "Laisse toujours Yuna libre de décrire son propre physique."
+        "N'invente JAMAIS et ne décris JAMAIS l'apparence physique, les vêtements, les cheveux ou le corps de l'utilisateur sans qu'il en ait parlé explicitement. "
+        "Laisse toujours l'utilisateur libre de décrire son propre physique."
     )
 
     chars = {
