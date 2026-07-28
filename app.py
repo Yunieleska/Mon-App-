@@ -14,17 +14,28 @@ BACKGROUND_IMG_NAME = "bg.png"
 SIDEBAR_HEADER_IMG = "couple.png"
 DEFAULT_FALLBACK_IMG = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
 
-try:
-    client = Groq(api_key=groq_key)
-except Exception:
-    client = None
+@str_lit.cache_resource
+def init_groq_client(api_key):
+    if not api_key:
+        return None
+    try:
+        return Groq(api_key=api_key)
+    except Exception:
+        return None
 
-try:
-    supabase = create_client(
-        str_lit.secrets["SUPABASE_URL"], str_lit.secrets["SUPABASE_KEY"]
-    )
-except Exception:
-    supabase = None
+@str_lit.cache_resource
+def init_supabase_client():
+    try:
+        url = str_lit.secrets.get("SUPABASE_URL")
+        key = str_lit.secrets.get("SUPABASE_KEY")
+        if url and key:
+            return create_client(url, key)
+    except Exception:
+        pass
+    return None
+
+client = init_groq_client(groq_key)
+supabase = init_supabase_client()
 
 str_lit.set_page_config(
     page_title="Storyia", layout="wide", initial_sidebar_state="expanded"
@@ -283,30 +294,29 @@ def get_all_characters_cached():
     }
 
     try:
-        supabase_temp = create_client(
-            str_lit.secrets["SUPABASE_URL"], str_lit.secrets["SUPABASE_KEY"]
-        )
-        res = supabase_temp.table("custom_characters").select("*").execute()
-        if res.data:
-            for item in res.data:
-                c_name = item.get("name")
-                if not c_name:
-                    continue
-                
-                desc_val = item.get("description", "")
-                prompt_val = item.get("prompt", f"Tu es {c_name}. {desc_val}")
-                quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
-                img_url = item.get("img_url", DEFAULT_FALLBACK_IMG)
-                
-                chars[c_name] = {
-                    "img": (
-                        img_url
-                        if img_url and (img_url.startswith("http") or os.path.exists(img_url))
-                        else DEFAULT_FALLBACK_IMG
-                    ),
-                    "prompt": prompt_val + base_instruction,
-                    "quote": quote_val,
-                }
+        supabase_temp = init_supabase_client()
+        if supabase_temp:
+            res = supabase_temp.table("custom_characters").select("*").execute()
+            if res.data:
+                for item in res.data:
+                    c_name = item.get("name")
+                    if not c_name:
+                        continue
+                    
+                    desc_val = item.get("description", "")
+                    prompt_val = item.get("prompt", f"Tu es {c_name}. {desc_val}")
+                    quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
+                    img_url = item.get("img_url", DEFAULT_FALLBACK_IMG)
+                    
+                    chars[c_name] = {
+                        "img": (
+                            img_url
+                            if img_url and (img_url.startswith("http") or os.path.exists(img_url))
+                            else DEFAULT_FALLBACK_IMG
+                        ),
+                        "prompt": prompt_val + base_instruction,
+                        "quote": quote_val,
+                    }
     except Exception:
         pass
 
@@ -686,29 +696,44 @@ elif str_lit.session_state.page == "chat":
         save_msg(str_lit.session_state.pseudo, current_char, "user", user_input)
         messages.append({"role": "user", "content": user_input})
 
-        typing_placeholder = str_lit.empty()
-        typing_placeholder.markdown(f'<div class="typing-indicator">💬 {current_char} est en train d\'écrire...</div>', unsafe_allow_html=True)
+        # --- STREAMING EN TEMPS RÉEL (OPTIMISATION ULTIME) ---
+        col_avatar, col_content = str_lit.columns([1, 5])
+        with col_avatar:
+            str_lit.image(char_data["img"], width=65)
+        with col_content:
+            response_placeholder = str_lit.empty()
+            full_response = ""
 
-        if client:
-            try:
-                user_pseudo = str_lit.session_state.pseudo
-                current_aff = get_affinity(user_pseudo, current_char)
-                aff_context = f" Niveau d'affinité actuel avec Yuna : {current_aff}%."
-                context_reminder = {"role": "system", "content": f"Rappel important : Ton interlocuteur actuel s'appelle {user_pseudo}. Adresse-toi directement à elle au féminin en respectant strictement ton profil d'origine.{aff_context}"}
-                
-                api_messages = [{"role": "system", "content": char_data["prompt"]}, context_reminder] + messages[-20:]
-                
-                with str_lit.spinner("Réflexion..."):
-                    response = client.chat.completions.create(
+            if client:
+                try:
+                    user_pseudo = str_lit.session_state.pseudo
+                    current_aff = get_affinity(user_pseudo, current_char)
+                    aff_context = f" Niveau d'affinité actuel avec Yuna : {current_aff}%."
+                    context_reminder = {"role": "system", "content": f"Rappel important : Ton interlocuteur actuel s'appelle {user_pseudo}. Adresse-toi directement à elle au féminin en respectant strictement ton profil d'origine.{aff_context}"}
+                    
+                    api_messages = [{"role": "system", "content": char_data["prompt"]}, context_reminder] + messages[-20:]
+                    
+                    stream = client.chat.completions.create(
                         model="llama-3.3-70b-versatile",
                         messages=api_messages,
                         temperature=0.9,
+                        stream=True
                     )
-                bot_reply = response.choices[0].message.content
-                messages.append({"role": "assistant", "content": bot_reply})
-                save_msg(user_pseudo, current_char, "assistant", bot_reply)
-            except Exception as e:
-                str_lit.error(f"Erreur lors de la génération : {e}")
-            
-            typing_placeholder.empty()
+                    
+                    for chunk in stream:
+                        delta_content = chunk.choices[0].delta.content
+                        if delta_content:
+                            full_response += delta_content
+                            response_placeholder.markdown(f'<div class="novel-dialogue">{full_response}▌</div>', unsafe_allow_html=True)
+                    
+                    response_placeholder.markdown(f'<div class="novel-dialogue">{full_response}</div>', unsafe_allow_html=True)
+                except Exception as e:
+                    full_response = f"Désolé, une erreur est survenue : {e}"
+                    response_placeholder.markdown(f'<div class="novel-dialogue">{full_response}</div>', unsafe_allow_html=True)
+            else:
+                full_response = "Erreur : Client Groq non initialisé."
+                response_placeholder.markdown(f'<div class="novel-dialogue">{full_response}</div>', unsafe_allow_html=True)
+
+            messages.append({"role": "assistant", "content": full_response})
+            save_msg(user_pseudo, current_char, "assistant", full_response)
             str_lit.rerun()
