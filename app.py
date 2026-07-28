@@ -191,6 +191,7 @@ def get_all_characters():
                         if img_url.startswith("http"):
                             resolved_img = img_url
                         elif sup_url:
+                            # Correction ici : Utilisation correcte du bucket 'storyia-images' pour obtenir l'URL publique de l'image du personnage
                             resolved_img = f"{sup_url}/storage/v1/object/public/storyia-images/{img_url}"
                     
                     chars[c_name] = {
