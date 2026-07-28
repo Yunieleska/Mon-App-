@@ -136,6 +136,12 @@ str_lit.markdown(
 # --- PERSISTANCE PAR URL & SESSION ---
 query_params = str_lit.query_params
 
+# Interception de la navigation de la nouvelle sidebar HTML
+if "nav" in query_params:
+    str_lit.session_state.page = query_params["nav"]
+    del str_lit.query_params["nav"]
+    str_lit.rerun()
+
 if "user" in query_params and query_params["user"]:
     str_lit.session_state.logged_in = True
     str_lit.session_state.pseudo = query_params["user"]
@@ -409,30 +415,57 @@ if not str_lit.session_state.logged_in:
                         str_lit.error(f"Erreur : {e}")
     str_lit.stop()
 
-# --- SIDEBAR ---
+# --- SIDEBAR (MENU HTML PROPRE DARK ROMANCE) ---
 if os.path.exists(SIDEBAR_HEADER_IMG):
     str_lit.sidebar.image(SIDEBAR_HEADER_IMG, use_container_width=True)
 
 str_lit.sidebar.info(f"Connecté : **{str_lit.session_state.pseudo}**")
 str_lit.sidebar.markdown("<br>", unsafe_allow_html=True)
 
-if str_lit.sidebar.button("🕯️ Sanctuaire (Home)"):
-    str_lit.session_state.page = "home"
-    str_lit.rerun()
+menu_html = f"""
+<style>
+.sidebar-nav-link {{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    color: #c9d1d9 !important;
+    text-decoration: none !important;
+    background-color: #161b22;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}}
+.sidebar-nav-link:hover {{
+    background-color: #21262d;
+    border-color: rgba(210, 153, 234, 0.4);
+    color: #f0f6fc !important;
+    transform: translateX(3px);
+}}
+</style>
 
-if str_lit.sidebar.button("🖋️ Invoquer (Créer)"):
-    str_lit.session_state.page = "create_character"
-    str_lit.rerun()
-
-if str_lit.sidebar.button("📜 Correspondances"):
-    str_lit.session_state.page = "messages"
-    str_lit.rerun()
-
-if str_lit.sidebar.button("🪞 Mon Ombre (Profil)"):
-    str_lit.session_state.page = "profile"
-    str_lit.rerun()
+<div style="display: flex; flex-direction: column;">
+    <a href="?user={str_lit.session_state.pseudo}&nav=home" target="_self" class="sidebar-nav-link">
+        <span>🕯️</span> Sanctuaire
+    </a>
+    <a href="?user={str_lit.session_state.pseudo}&nav=create_character" target="_self" class="sidebar-nav-link">
+        <span>🖋️</span> Invoquer
+    </a>
+    <a href="?user={str_lit.session_state.pseudo}&nav=messages" target="_self" class="sidebar-nav-link">
+        <span>📜</span> Correspondances
+    </a>
+    <a href="?user={str_lit.session_state.pseudo}&nav=profile" target="_self" class="sidebar-nav-link">
+        <span>🖤</span> Mon Ombre
+    </a>
+</div>
+"""
+str_lit.sidebar.markdown(menu_html, unsafe_allow_html=True)
 
 str_lit.sidebar.markdown("---")
+
 if str_lit.sidebar.button("🚪 S'échapper (Logout)"):
     if supabase:
         try:
