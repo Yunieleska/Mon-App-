@@ -70,20 +70,17 @@ str_lit.markdown(
         border-color: #ffffff !important;
         color: #ffffff !important;
     }
-    /* Correction pour enlever le rectangle blanc au clic / focus sur les boutons */
     .stButton>button:focus, .stButton>button:active, button[kind="secondary"]:focus, button[kind="secondary"]:active {
         background-color: #21262d !important;
         color: #ffffff !important;
         box-shadow: none !important;
         border-color: rgba(255, 255, 255, 0.3) !important;
     }
-    /* Correction pour la couleur du texte dans les zones de texte et inputs */
     textarea, input[type="text"], [data-baseweb="input"] input, [data-baseweb="textarea"] textarea {
         color: #ffffff !important;
         -webkit-text-fill-color: #ffffff !important;
         background-color: #161b22 !important;
     }
-    /* Correction pour les infobulles (tooltips / help) en mode sombre */
     [data-baseweb="tooltip"], [role="tooltip"], div[data-testid="stTooltipContent"] {
         background-color: #161b22 !important;
         color: #ffffff !important;
@@ -131,12 +128,6 @@ str_lit.markdown(
         border-color: rgba(255, 255, 255, 0.3);
         transform: translateY(-2px);
     }
-    .typing-indicator {
-        font-style: italic;
-        color: #8b949e !important;
-        font-size: 13px;
-        margin-bottom: 10px;
-    }
     </style>
 """,
     unsafe_allow_html=True,
@@ -160,8 +151,6 @@ if "char_select" not in str_lit.session_state:
     str_lit.session_state.char_select = "Caelum"
 if "affinities_cache" not in str_lit.session_state:
     str_lit.session_state.affinities_cache = {}
-if "selected_quick_choice" not in str_lit.session_state:
-    str_lit.session_state.selected_quick_choice = None
 if "messages_cache" not in str_lit.session_state:
     str_lit.session_state.messages_cache = {}
 
@@ -312,7 +301,7 @@ def get_all_characters_cached():
                 "Tu ignores qu'elle est ta correspondante secrète. "
                 "[PERSONNALITÉ] En vrai : Arrogant en apparence, distant, blasé par la célébrité du lycée et superficiel pour préserver son image. "
                 "Par message / En secret : Profond, attentionné, romantique, à l'écoute et fatigué par la pression que son père et le lycée lui imposent. "
-                "[CONTEXTE & RIVAUX] Tu es coincé dans une image qui ne te correspond pas : Lara, la chef des pom-pom girls, est ta 'petite amie officielle' "
+                "[CONTEXTE & RIVAUX] Tu es coincé dans une image qui ne correspond pas : Lara, la chef des pom-pom girls, est ta 'petite amie officielle' "
                 "pour l'image sociale, mais elle est superficielle, jalouse et méprise Yuna. Ton père et ton entraîneur te mettent une pression immense. "
                 "[RÈGLES DE RÉPONSE] La conversation commence par message écrit sur vos téléphones. Tu ne sais pas qui elle est en vrai. "
                 "Ne décris jamais les actions ou les pensées de Yuna."
@@ -595,9 +584,9 @@ elif str_lit.session_state.page == "chat":
     current_char = str_lit.session_state.char_select
     char_data = CHARACTERS.get(current_char, CHARACTERS["Caelum"])
 
-    col_h1, col_h2, col_h3 = str_lit.columns([1, 4, 2])
+    col_h1, col_h2, col_h3, col_h4 = str_lit.columns([1, 3, 2, 1.5])
     with col_h1:
-        str_lit.image(char_data["img"], width=80)
+        str_lit.image(char_data["img"], width=70)
     with col_h2:
         str_lit.title(current_char)
         str_lit.caption(char_data["quote"])
@@ -605,6 +594,25 @@ elif str_lit.session_state.page == "chat":
         affinity_score = get_affinity(str_lit.session_state.pseudo, current_char)
         str_lit.markdown("### 💖 Affinité")
         str_lit.progress(affinity_score / 100.0, text=f"{affinity_score}%")
+    with col_h4:
+        str_lit.write("")
+        if str_lit.button("🗑️ Tout effacer", key="btn_delete_chat_page", help="Effacer toute la discussion"):
+            clean_pseudo = str(str_lit.session_state.pseudo).strip()
+            if supabase:
+                try:
+                    supabase.table("messages").delete().eq("user_pseudo", clean_pseudo).eq("char_name", current_char).execute()
+                    supabase.table("affinities").delete().eq("user_pseudo", clean_pseudo).eq("char_name", current_char).execute()
+                except Exception:
+                    pass
+            
+            cache_key = f"{clean_pseudo}_{current_char}"
+            if cache_key in str_lit.session_state.messages_cache:
+                del str_lit.session_state.messages_cache[cache_key]
+            if cache_key in str_lit.session_state.affinities_cache:
+                del str_lit.session_state.affinities_cache[cache_key]
+                
+            str_lit.success("Conversation réinitialisée !")
+            str_lit.rerun()
 
     str_lit.markdown("---")
 
@@ -644,7 +652,7 @@ elif str_lit.session_state.page == "chat":
 
     for idx, msg in enumerate(messages):
         if msg["role"] == "assistant":
-            col_avatar, col_content, col_actions = str_lit.columns([1, 5, 1])
+            col_avatar, col_content, col_actions = str_lit.columns([1, 5, 1.2])
             with col_avatar:
                 str_lit.image(char_data["img"], width=65)
             with col_content:
@@ -675,16 +683,34 @@ elif str_lit.session_state.page == "chat":
                         str_lit.success("Modifié !")
                         str_lit.rerun()
             with col_actions:
+                # Bouton de suppression individuelle d'un message
+                if str_lit.button("❌", key=f"del_msg_{idx}", help="Supprimer ce message"):
+                    messages.pop(idx)
+                    cache_key = f"{str_lit.session_state.pseudo}_{current_char}"
+                    str_lit.session_state.messages_cache[cache_key] = messages
+                    if supabase:
+                        try:
+                            supabase.table("messages").delete().eq("user_pseudo", str_lit.session_state.pseudo).eq("char_name", current_char).execute()
+                            for m in messages:
+                                save_msg(str_lit.session_state.pseudo, current_char, m["role"], m["content"])
+                        except Exception:
+                            pass
+                    str_lit.rerun()
+
                 if str_lit.button("✏️", key=f"btn_edit_ast_{idx}", help="Modifier"):
                     str_lit.session_state[edit_key] = not str_lit.session_state[edit_key]
                     str_lit.rerun()
+                    
+                # Bouton de régénération propre (remplace la dernière réponse au lieu d'en ajouter une autre)
                 if idx == len(messages) - 1 and client:
                     if str_lit.button("🔄", key=f"regen_{idx}", help="Régénérer la réponse"):
-                        messages.pop()
+                        messages.pop() # Supprime l'ancienne dernière réponse de la liste active
                         cache_key = f"{str_lit.session_state.pseudo}_{current_char}"
                         str_lit.session_state.messages_cache[cache_key] = messages
+                        
                         if supabase:
                             try:
+                                # Supprime la dernière ligne en base de données
                                 supabase.table("messages").delete().eq("user_pseudo", str_lit.session_state.pseudo).eq("char_name", current_char).order("id", desc=True).limit(1).execute()
                             except Exception:
                                 pass
@@ -717,8 +743,21 @@ elif str_lit.session_state.page == "chat":
                 if edit_u_key not in str_lit.session_state:
                     str_lit.session_state[edit_u_key] = False
 
-                col_u1, col_u2 = str_lit.columns([1, 5])
+                col_u1, col_u2, col_u3 = str_lit.columns([1, 1, 4])
                 with col_u1:
+                    if str_lit.button("❌", key=f"del_usr_msg_{idx}", help="Supprimer ce message"):
+                        messages.pop(idx)
+                        cache_key = f"{str_lit.session_state.pseudo}_{current_char}"
+                        str_lit.session_state.messages_cache[cache_key] = messages
+                        if supabase:
+                            try:
+                                supabase.table("messages").delete().eq("user_pseudo", str_lit.session_state.pseudo).eq("char_name", current_char).execute()
+                                for m in messages:
+                                    save_msg(str_lit.session_state.pseudo, current_char, m["role"], m["content"])
+                            except Exception:
+                                pass
+                        str_lit.rerun()
+                with col_u2:
                     if str_lit.button("✏️", key=f"btn_edit_usr_{idx}", help="Modifier message"):
                         str_lit.session_state[edit_u_key] = not str_lit.session_state[edit_u_key]
                         str_lit.rerun()
