@@ -191,7 +191,6 @@ def get_all_characters():
                         if img_url.startswith("http"):
                             resolved_img = img_url
                         elif sup_url:
-                            # Construction directe et sécurisée de l'URL publique Supabase Storage
                             resolved_img = f"{sup_url}/storage/v1/object/public/storyia-images/{img_url}"
                     
                     chars[c_name] = {
@@ -723,18 +722,5 @@ elif str_lit.session_state.page == "profile":
                                     str_lit.session_state.char_select = c_name
                                     str_lit.session_state.page = "chat"
                                     str_lit.rerun()
-                            with b_col2:
-                                if str_lit.button(f"🗑️ Supprimer", key=f"del_my_char_{c_name}"):
-                                    try:
-                                        supabase.table("custom_characters").delete().eq("name", c_name).eq("creator", str_lit.session_state.pseudo).execute()
-                                        supabase.table("messages").delete().eq("char_name", c_name).execute()
-                                        str_lit.success(f"Personnage {c_name} supprimé avec succès !")
-                                        str_lit.rerun()
-                                    except Exception as e:
-                                        str_lit.error(f"Erreur lors de la suppression : {e}")
-
-                        str_lit.markdown("---")
-            else:
-                str_lit.info("Vous n'avez créé aucun personnage pour le moment.")
         except Exception as e:
-            str_lit.error(f"Erreur lors de la récupération de vos personnages : {e}")
+            str_lit.error(f"Erreur lors du chargement de vos personnages : {e}")
