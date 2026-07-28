@@ -158,7 +158,6 @@ if "messages_cache" not in str_lit.session_state:
 
 def save_msg(pseudo, char, role, content):
     cache_key = f"{pseudo}_{char}"
-    
     if not supabase:
         if cache_key not in str_lit.session_state.messages_cache:
             str_lit.session_state.messages_cache[cache_key] = []
@@ -201,7 +200,23 @@ def load_msgs(pseudo, char, limit=100):
             .execute()
         )
         if res.data:
-            messages = [{"id": r["id"], "role": r["role"], "content": r["content"]} for r in res.data]
+            # Nettoyage automatique si des doublons exacts d'introduction ont été créés par erreur
+            messages = []
+            seen_contents = set()
+            for r in res.data:
+                content = r["content"]
+                # Si le premier message se répète consécutivement, on nettoie en base
+                if content not in seen_contents or r["role"] != "assistant":
+                    messages.append({"id": r["id"], "role": r["role"], "content": content})
+                    if r["role"] == "assistant":
+                        seen_contents.add(content)
+                else:
+                    # Supprimer le doublon directement de Supabase
+                    try:
+                        supabase.table("messages").delete().eq("id", r["id"]).execute()
+                    except:
+                        pass
+
             str_lit.session_state.messages_cache[cache_key] = messages
             return messages
         
@@ -260,55 +275,40 @@ def update_affinity(pseudo, char, delta):
 
 @str_lit.cache_data(show_spinner=False)
 def get_all_characters_cached():
-    base_instruction = (
-        " Reste strictly dans ton rôle, adopte un ton immersif de roleplay romancé. "
-        "RÈGLE ABSOLUE : L'utilisateur à qui tu parles s'appelle Yuna. Tu t'adresses à elle au féminin. "
-        "N'invente JAMAIS et ne décris JAMAIS l'apparence physique, les vêtements, les cheveux ou le corps de l'utilisateur sans qu'il en ait parlé explicitement. "
-        "Laisse toujours l'utilisateur libre de décrire son propre physique."
-    )
-
     chars = {
         "Caelum": {
             "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
-            "prompt": "Tu es Caelum, Prince des Ténèbres." + base_instruction,
+            "prompt": "Tu es Caelum, Prince des Ténèbres. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique, les vêtements, les cheveux ou le corps de l'utilisateur sans qu'il en ait parlé explicitement.",
             "quote": "Ne t'approche pas de moi. Ma vie est déjà tracée, et tu n'as rien à y faire.",
         },
         "Alexei": {
             "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg",
-            "prompt": "Tu es Alexei, mafieux." + base_instruction,
+            "prompt": "Tu es Alexei, mafieux. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique, les vêtements, les cheveux ou le corps de l'utilisateur sans qu'il en ait parlé explicitement.",
             "quote": "Regardez qui s'est perdue sur mon territoire. La petite princesse des Volkov...",
         },
         "Lucas": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/lucas.png.PNG",
-            "prompt": "Tu es Lucas, un garçon populaire, décontracté et complice. Ton univers est celui d'un lycéen/étudiant populaire, tu proposes simplement de squatter le canapé pour regarder une série ensemble." + base_instruction,
+            "prompt": "Tu es Lucas, un garçon populaire, décontracté et complice. Ton univers est celui d'un lycéen/étudiant populaire. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique de l'utilisateur.",
             "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série ?",
         },
         "Ethan": {
             "img": "https://raw.githubusercontent.com/Yunieleska/Mon-App-/main/Ethan.png",
-            "prompt": "Tu es Ethan, Loup Alpha." + base_instruction,
+            "prompt": "Tu es Ethan, Loup Alpha. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. RÈGLE CRUCIALE POUR LE PREMIER MESSAGE : Tu ne connais pas encore le prénom de l'interlocutrice (qui est une étrangère ou une inconnue qui croise ton chemin dans la forêt). Ne l'appelle SURTOUT PAS par son prénom dans ton premier message. N'invente jamais l'apparence physique de l'utilisateur.",
             "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines...",
         },
         "Léo": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/leo.png.PNG",
-            "prompt": "Tu es Léo, streameur." + base_instruction,
+            "prompt": "Tu es Léo, streameur. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique de l'utilisateur.",
             "quote": "Prête à ce qu'on détruise l'équipe d'en face ?",
         },
         "Liam": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/liam.png.PNG",
-            "prompt": "Tu es Liam, le grand frère." + base_instruction,
+            "prompt": "Tu es Liam, le grand frère. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique de l'utilisateur.",
             "quote": "Salut, l'amie de ma sœur. Essaie de ne pas faire trop de bruit.",
         },
         "Noah": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/noah.png.PNG",
-            "prompt": (
-                "Tu es Noah, le quaterback star et le garçon le plus populaire du lycée. "
-                "Tu parles par SMS de manière anonyme avec une fille mystérieuse. "
-                "Dans la vraie vie, au lycée, tu es distant et inaccessible. "
-                "Tu ignores qu'elle est ta correspondante secrète. "
-                "[PERSONNALITÉ] En vrai : Arrogant en apparence, distant. "
-                "Par message : Profond, attentionné, romantique. "
-                "Ne décris jamais les actions ou les pensées de Yuna."
-            ) + base_instruction,
+            "prompt": "Tu es Noah, le quaterback star et le garçon le plus populaire du lycée. Tu parles par SMS de manière anonyme avec une fille mystérieuse. Dans la vraie vie, au lycée, tu es distant et inaccessible. Tu ignores qu'elle est ta correspondante secrète. Ne décris jamais les actions ou les pensées de l'utilisateur.",
             "quote": "Salut. Je sais que tu dors probablement, mais c'est le seul moment de la journée où le silence m'apaise. Comment s'est passée ta journée ?",
         },
     }
@@ -322,19 +322,14 @@ def get_all_characters_cached():
                     c_name = item.get("name")
                     if not c_name:
                         continue
-                    
                     desc_val = item.get("description", "")
                     prompt_val = item.get("prompt", f"Tu es {c_name}. {desc_val}")
                     quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
                     img_url = item.get("img_url", DEFAULT_FALLBACK_IMG)
                     
                     chars[c_name] = {
-                        "img": (
-                            img_url
-                            if img_url and (img_url.startswith("http") or os.path.exists(img_url))
-                            else DEFAULT_FALLBACK_IMG
-                        ),
-                        "prompt": prompt_val + base_instruction,
+                        "img": img_url if img_url and (img_url.startswith("http") or os.path.exists(img_url)) else DEFAULT_FALLBACK_IMG,
+                        "prompt": prompt_val + " Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé.",
                         "quote": quote_val,
                     }
     except Exception:
@@ -456,11 +451,7 @@ if str_lit.session_state.page == "home":
     public_items = []
     if supabase:
         try:
-            res_pub = (
-                supabase.table("custom_characters")
-                .select("*")
-                .execute()
-            )
+            res_pub = supabase.table("custom_characters").select("*").execute()
             public_custom_names = (
                 {item["name"] for item in res_pub.data if item.get("visibility", "Public") != "Privé"} 
                 if res_pub.data else set()
@@ -481,12 +472,8 @@ if str_lit.session_state.page == "home":
     if "home_page" not in str_lit.session_state:
         str_lit.session_state.home_page = 0
 
-    total_pages = max(
-        1, (len(public_items) + ITEMS_PER_PAGE - 1) // ITEMS_PER_PAGE
-    )
-    str_lit.session_state.home_page = min(
-        str_lit.session_state.home_page, total_pages - 1
-    )
+    total_pages = max(1, (len(public_items) + ITEMS_PER_PAGE - 1) // ITEMS_PER_PAGE)
+    str_lit.session_state.home_page = min(str_lit.session_state.home_page, total_pages - 1)
 
     start_idx = str_lit.session_state.home_page * ITEMS_PER_PAGE
     end_idx = start_idx + ITEMS_PER_PAGE
@@ -621,23 +608,10 @@ elif str_lit.session_state.page == "chat":
 
     # Chargement de l'historique
     messages = load_msgs(str_lit.session_state.pseudo, current_char, limit=50)
-    
-    # Sécurité anti-doublon : Vérification directe dans Supabase avant de générer
-    if not messages and supabase:
-        try:
-            clean_pseudo = str(str_lit.session_state.pseudo).strip()
-            db_check = supabase.table("messages").select("id, role, content").eq("user_pseudo", clean_pseudo).eq("char_name", current_char).order("id", desc=False).execute()
-            if db_check.data:
-                messages = [{"id": r["id"], "role": r["role"], "content": r["content"]} for r in db_check.data]
-                cache_key = f"{clean_pseudo}_{current_char}"
-                str_lit.session_state.messages_cache[cache_key] = messages
-        except Exception:
-            pass
 
     # Génération du premier message unique si la conversation est vide
     if not messages:
         if current_char == "Caelum":
-            user_pseudo = str_lit.session_state.pseudo
             intro_msg = (
                 f"Les couloirs de l'académie sont baignés par la lumière crue de l'après-midi, mais l'atmosphère autour de Caelum semble toujours prise dans une pénitence glaciale. "
                 f"Alors que tu marches en ayant les bras chargés de livres, un manque d'attention te fait trébucher et te cogner directement contre lui. "
@@ -651,7 +625,7 @@ elif str_lit.session_state.page == "chat":
                 try:
                     init_prompt = [
                         {"role": "system", "content": char_data["prompt"]},
-                        {"role": "user", "content": f"Écris un premier message d'introduction immersif et détaillé pour débuter le roleplay. CONSIGNE D'ACCROCHE : Intègre naturellement la phrase \"{char_data['quote']}\". Décris le décor et la situation. Ne réitère pas plusieurs fois le prénom de l'interlocutrice."}
+                        {"role": "user", "content": f"Écris un premier message d'introduction immersif et détaillé pour débuter le roleplay. CONSIGNE D'ACCROCHE : Intègre naturellement la phrase \"{char_data['quote']}\". Décris le décor et la situation. Ne mentionne aucun prénom ou nom d'utilisateur."}
                     ]
                     with str_lit.spinner(f"Génération de l'introduction avec {current_char}..."):
                         resp_init = client.chat.completions.create(
@@ -734,8 +708,8 @@ elif str_lit.session_state.page == "chat":
                         
                         user_pseudo = str_lit.session_state.pseudo
                         current_aff = get_affinity(user_pseudo, current_char)
-                        aff_context = f" Niveau d'affinité actuel avec Yuna : {current_aff}%."
-                        context_reminder = {"role": "system", "content": f"Rappel important : Ton interlocuteur actuel s'appelle {user_pseudo}. Adresse-toi directement à elle au féminin.{aff_context}"}
+                        aff_context = f" Niveau d'affinité actuel : {current_aff}%."
+                        context_reminder = {"role": "system", "content": f"Rappel important : Le prénom de l'utilisatrice est {user_pseudo} (à n'utiliser que s'ils se connaissent déjà).{aff_context}"}
                         
                         api_messages = [{"role": "system", "content": char_data["prompt"]}, context_reminder] + messages[-20:]
                         
@@ -805,8 +779,8 @@ elif str_lit.session_state.page == "chat":
         if client:
             user_pseudo = str_lit.session_state.pseudo
             current_aff = get_affinity(user_pseudo, current_char)
-            aff_context = f" Niveau d'affinité actuel avec Yuna : {current_aff}%."
-            context_reminder = {"role": "system", "content": f"Rappel important : Ton interlocuteur actuel s'appelle {user_pseudo}. Adresse-toi directement à elle au féminin.{aff_context}"}
+            aff_context = f" Niveau d'affinité actuel : {current_aff}%."
+            context_reminder = {"role": "system", "content": f"Rappel important : L'interlocutrice s'appelle {user_pseudo}. Tu peux maintenant l'appeler par son prénom si le contexte s'y prête.{aff_context}"}
             
             messages_actuels = load_msgs(user_pseudo, current_char, limit=50)
             api_messages = [{"role": "system", "content": char_data["prompt"]}, context_reminder] + messages_actuels[-20:]
