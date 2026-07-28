@@ -30,7 +30,7 @@ str_lit.set_page_config(
     page_title="Storyia", layout="wide", initial_sidebar_state="expanded"
 )
 
-# --- STYLE GLOBAL & DESIGN ---
+# --- STYLE GLOBAL & DESIGN (EFFET ROMAN & UI) ---
 str_lit.markdown(
     """
     <style>
@@ -58,6 +58,18 @@ str_lit.markdown(
         background-color: #30363d !important;
         border-color: #ffffff !important;
         color: #ffffff !important;
+    }
+    /* Style immersif type roman pour les bulles d'IA */
+    .novel-dialogue {
+        font-family: 'Georgia', serif;
+        font-size: 15px;
+        line-height: 1.6;
+        color: #e6edf3;
+        background: #161b22;
+        padding: 15px;
+        border-radius: 10px;
+        border-left: 4px solid #58a6ff;
+        margin-bottom: 10px;
     }
     .storyia-grid {
         display: grid;
@@ -116,6 +128,8 @@ if "char_select" not in str_lit.session_state:
     str_lit.session_state.char_select = "Caelum"
 if "affinities_cache" not in str_lit.session_state:
     str_lit.session_state.affinities_cache = {}
+if "selected_quick_choice" not in str_lit.session_state:
+    str_lit.session_state.selected_quick_choice = None
 
 # --- SUPABASE FUNCTIONS ---
 
@@ -201,6 +215,25 @@ def update_affinity(pseudo, char, delta):
         return new_score
     except Exception:
         return new_score
+
+
+def generate_memory_summary(messages_history):
+    """Génère un résumé global de l'intrigue si l'historique devient trop long"""
+    if len(messages_history) < 30 or not client:
+        return ""
+    try:
+        history_text = "\n".join([f"{m['role']}: {m['content']}" for m in messages_history[-40:]])
+        summary_resp = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": "Résume en 3 ou 4 phrases les faits marquants, relations et secrets de cette discussion de roleplay."},
+                {"role": "user", "content": history_text}
+            ],
+            temperature=0.5,
+        )
+        return summary_resp.choices[0].message.content
+    except Exception:
+        return ""
 
 
 @str_lit.cache_data(show_spinner=False)
@@ -547,7 +580,8 @@ elif str_lit.session_state.page == "chat":
             with col_avatar:
                 str_lit.image(char_data["img"], width=65)
             with col_content:
-                str_lit.write(msg["content"])
+                # Affichage formaté type roman
+                str_lit.markdown(f'<div class="novel-dialogue">{msg["content"]}</div>', unsafe_allow_html=True)
                 
                 edit_key = f"edit_mode_ast_{idx}"
                 if edit_key not in str_lit.session_state:
@@ -575,7 +609,6 @@ elif str_lit.session_state.page == "chat":
                 if str_lit.button("✏️", key=f"btn_edit_ast_{idx}", help="Modifier"):
                     str_lit.session_state[edit_key] = not str_lit.session_state[edit_key]
                     str_lit.rerun()
-                # Bouton Régénérer pour le dernier message de l'assistant
                 if idx == len(messages) - 1 and client:
                     if str_lit.button("🔄", key=f"regen_{idx}", help="Régénérer la réponse"):
                         messages.pop()
@@ -638,7 +671,37 @@ elif str_lit.session_state.page == "chat":
         </script>
     """, unsafe_allow_html=True)
 
+    # --- CHOIX RAPIDES / INTERACTIFS ---
+    if client and len(messages) > 0 and messages[-1]["role"] == "assistant":
+        str_lit.markdown("##### ⚡ Choix rapides suggérés :")
+        try:
+            choices_prompt = [
+                {"role": "system", "content": "Génère 3 choix courts d'actions possibles (en 5-8 mots max chacun, commençant par un verbe ou entre crochets) pour l'utilisateur face à ce message. Sépare-les par un retour à la ligne simple."},
+                {"role": "user", "content": messages[-1]["content"]}
+            ]
+            choices_resp = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=choices_prompt,
+                temperature=0.7,
+                max_tokens=100
+            ]
+            raw_choices = choices_resp.choices[0].message.content.strip().split("\n")
+            clean_choices = [c.strip("- *123.") for c in raw_choices if c.strip()][:3]
+            
+            c_cols = str_lit.columns(len(clean_choices) if clean_choices else 1)
+            for c_idx, choice_text in enumerate(clean_choices):
+                with c_cols[c_idx]:
+                    if str_lit.button(choice_text, key=f"quick_choice_{idx}_{c_idx}"):
+                        str_lit.session_state.selected_quick_choice = choice_text
+                        str_lit.rerun()
+        except Exception:
+            pass
+
     user_input = str_lit.chat_input("Votre message...")
+    if str_lit.session_state.selected_quick_choice:
+        user_input = str_lit.session_state.selected_quick_choice
+        str_lit.session_state.selected_quick_choice = None
+
     if user_input:
         with str_lit.chat_message("user"):
             str_lit.write(user_input)
@@ -659,35 +722,49 @@ elif str_lit.session_state.page == "chat":
                 elif current_aff > 70:
                     aff_context += " Tu es très attaché, chaleureux et complice avec elle."
 
-                context_reminder = {"role": "system", "content": f"Rappel important : Ton interlocuteur actuel s'appelle {user_pseudo}. Adresse-toi directement à elle au féminin en respectant strictement ton profil d'origine.{aff_context}"}
+                memory_summary = generate_memory_summary(messages)
+                summary_prompt = f" Résumé des faits passés de l'histoire : {memory_summary}" if memory_summary else ""
+
+                context_reminder = {"role": "system", "content": f"Rappel important : Ton interlocuteur actuel s'appelle {user_pseudo}. Adresse-toi directement à elle au féminin en respectant strictement ton profil d'origine.{aff_context}{summary_prompt}"}
                 system_prompt = char_data["prompt"]
                 
                 api_messages = [{"role": "system", "content": system_prompt}, context_reminder] + messages[-20:]
 
-                response = client.chat.completions.create(
+                # --- STREAMING EN TEMPS RÉEL (Effet Machine à écrire) ---
+                response_stream = client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
                     messages=api_messages,
                     temperature=0.8,
+                    stream=True,
                 )
-                bot_reply = response.choices[0].message.content
+
+                typing_placeholder.empty()
+
+                col_avatar, col_content = str_lit.columns([1, 6])
+                with col_avatar:
+                    str_lit.image(char_data["img"], width=65)
                 
+                with col_content:
+                    message_placeholder = str_lit.empty()
+                    bot_reply = ""
+                    for chunk in response_stream:
+                        delta_content = chunk.choices[0].delta.content
+                        if delta_content:
+                            bot_reply += delta_content
+                            message_placeholder.markdown(f'<div class="novel-dialogue">{bot_reply}▌</div>', unsafe_allow_html=True)
+                    
+                    message_placeholder.markdown(f'<div class="novel-dialogue">{bot_reply}</div>', unsafe_allow_html=True)
+
                 update_affinity(user_pseudo, current_char, 1)
+                save_msg(str_lit.session_state.pseudo, current_char, "assistant", bot_reply)
+                str_lit.rerun()
 
             except Exception as e:
-                bot_reply = f"Erreur de communication avec l'IA : {str(e)}"
+                typing_placeholder.empty()
+                str_lit.error(f"Erreur de communication avec l'IA : {str(e)}")
         else:
-            bot_reply = "Client Groq non initialisé."
-
-        typing_placeholder.empty()
-
-        col_avatar, col_content = str_lit.columns([1, 6])
-        with col_avatar:
-            str_lit.image(char_data["img"], width=65)
-        with col_content:
-            str_lit.write(bot_reply)
-
-        save_msg(str_lit.session_state.pseudo, current_char, "assistant", bot_reply)
-        str_lit.rerun()
+            typing_placeholder.empty()
+            str_lit.error("Client Groq non initialisé.")
 
 elif str_lit.session_state.page == "create_character":
     str_lit.title("✨ Créer un nouveau personnage")
@@ -749,7 +826,6 @@ elif str_lit.session_state.page == "create_character":
                     }
                     
                     supabase.table("custom_characters").insert(insert_data).execute()
-                    
                     get_all_characters_cached.clear()
 
                     str_lit.success("Personnage créé avec succès !")
