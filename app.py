@@ -185,7 +185,6 @@ def update_affinity(pseudo, char, delta):
         return 50
 
 
-# Cache mis en place pour optimiser les requêtes Supabase sur les personnages
 def get_all_characters_cached():
     base_instruction = (
         " Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. "
@@ -529,7 +528,6 @@ elif str_lit.session_state.page == "chat":
             with col_content:
                 str_lit.write(msg["content"])
                 
-                # Bouton Modifier / Enregistrer pour l'Assistant
                 edit_key = f"edit_mode_ast_{idx}"
                 if edit_key not in str_lit.session_state:
                     str_lit.session_state[edit_key] = False
@@ -560,7 +558,6 @@ elif str_lit.session_state.page == "chat":
             with str_lit.chat_message("user"):
                 str_lit.write(msg["content"])
                 
-                # Option de modification / suppression pour l'Utilisateur
                 edit_u_key = f"edit_mode_usr_{idx}"
                 if edit_u_key not in str_lit.session_state:
                     str_lit.session_state[edit_u_key] = False
@@ -585,7 +582,6 @@ elif str_lit.session_state.page == "chat":
                                 pass
                         str_lit.rerun()
 
-    # Script d'auto-scroll vers le bas de la page
     str_lit.markdown("""
         <script>
             window.scrollTo(0, document.body.scrollHeight);
@@ -599,16 +595,14 @@ elif str_lit.session_state.page == "chat":
         save_msg(str_lit.session_state.pseudo, current_char, "user", user_input)
         messages.append({"role": "user", "content": user_input})
 
-        # Affichage de l'indicateur de frappe
         typing_placeholder = str_lit.empty()
-      typing_placeholder.markdown(f'<div class="typing-indicator">💬 {current_char} est en train d&apos;écrire...</div>', unsafe_allow_html=True)
+        typing_placeholder.markdown(f'<div class="typing-indicator">💬 {current_char} est en train d\'écrire...</div>', unsafe_allow_html=True)
 
         if client:
             try:
                 user_pseudo = str_lit.session_state.pseudo
                 current_aff = get_affinity(user_pseudo, current_char)
                 
-                # Adaptation du comportement selon l'affinité
                 aff_context = f" Niveau d'affinité actuel avec Yuna : {current_aff}%."
                 if current_aff < 30:
                     aff_context += " Tu es distant, froid ou méfiant envers elle."
@@ -627,7 +621,6 @@ elif str_lit.session_state.page == "chat":
                 )
                 bot_reply = response.choices[0].message.content
                 
-                # Évolution automatique de l'affinité (+1 par message constructif)
                 update_affinity(user_pseudo, current_char, 1)
 
             except Exception as e:
@@ -635,7 +628,6 @@ elif str_lit.session_state.page == "chat":
         else:
             bot_reply = "Client Groq non initialisé."
 
-        # Effacer l'indicateur de frappe
         typing_placeholder.empty()
 
         col_avatar, col_content = str_lit.columns([1, 6])
@@ -708,7 +700,6 @@ elif str_lit.session_state.page == "create_character":
                     
                     supabase.table("custom_characters").insert(insert_data).execute()
                     
-                    # Purger le cache pour prendre en compte le nouveau personnage instantanément
                     get_all_characters_cached.clear()
 
                     str_lit.success("Personnage créé avec succès !")
@@ -753,101 +744,5 @@ elif str_lit.session_state.page == "messages":
 
 elif str_lit.session_state.page == "profile":
     str_lit.title("Mon Profil")
-    user_info = {}
-    avatar_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-
-    if supabase:
-        try:
-            user_db = (
-                supabase.table("users")
-                .select("*")
-                .eq("pseudo", str_lit.session_state.pseudo.strip())
-                .maybe_single()
-                .execute()
-            )
-            if user_db and user_db.data:
-                user_info = user_db.data
-                avatar_path = user_info.get("avatar_url", avatar_path)
-        except Exception as e:
-            str_lit.error(f"Erreur lors du chargement du profil : {e}")
-
-    col_p1, col_p2, col_p3 = str_lit.columns([1, 2, 2])
-    with col_p1:
-        if not avatar_path.startswith("http") and not os.path.exists(avatar_path):
-            avatar_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-        str_lit.image(avatar_path, width=130)
-    with col_p2:
-        str_lit.subheader(f"Pseudo : {str_lit.session_state.pseudo}")
-        str_lit.write(f"**E-mail** : {user_info.get('email', 'Non renseigné')}")
-    with col_p3:
-        str_lit.markdown("### Statistiques")
-        convs_count = len(get_user_conversations(str_lit.session_state.pseudo))
-        str_lit.metric("Discussions actives", convs_count)
-
-    with str_lit.expander("🖼️ Modifier ma photo de profil"):
-        new_avatar_file = str_lit.file_uploader("Choisir une image", type=["png", "jpg", "jpeg"], key="upload_avatar")
-        if str_lit.button("Enregistrer la photo"):
-            if new_avatar_file is not None:
-                new_avatar_path = f"avatar_{str_lit.session_state.pseudo}.png"
-                with open(new_avatar_path, "wb") as f:
-                    f.write(new_avatar_file.getbuffer())
-                if supabase:
-                    try:
-                        supabase.table("users").update({"avatar_url": new_avatar_path}).eq("pseudo", str_lit.session_state.pseudo).execute()
-                        str_lit.success("Photo de profil mise à jour !")
-                        str_lit.rerun()
-                    except Exception as e:
-                        str_lit.error(f"Erreur : {e}")
-
-    str_lit.markdown("---")
-    str_lit.subheader("✨ Mes Personnages Créés (Publics & Privés)")
-
-    if supabase:
-        try:
-            my_chars = (
-                supabase.table("custom_characters")
-                .select("*")
-                .eq("creator", str_lit.session_state.pseudo.strip())
-                .execute()
-            )
-            if my_chars.data:
-                for mc in my_chars.data:
-                    c_name = mc.get('name')
-                    c_sex = mc.get('sex', 'Non spécifié')
-                    c_quote = mc.get('quote', '')
-                    c_vis = mc.get('visibility', 'Public')
-                    c_img = mc.get('img_url', 'https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg')
-                    
-                    if not c_img.startswith("http") and not os.path.exists(c_img):
-                        c_img = 'https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg'
-
-                    with str_lit.container():
-                        cc1, cc2 = str_lit.columns([1, 4])
-                        with cc1:
-                            str_lit.image(c_img, width=90)
-                        with cc2:
-                            is_priv = (c_vis == "Privé")
-                            badge = "🔒 Privé" if is_priv else "🌍 Public"
-                            str_lit.markdown(f"#### {c_name} *({c_sex})* — `{badge}`")
-                            if c_quote:
-                                str_lit.markdown(f"> *\"{c_quote}\"*")
-                            
-                            new_vis_choice = str_lit.selectbox(
-                                "Visibilité",
-                                ["Public (toute la communauté)", "Privé"],
-                                index=1 if is_priv else 0,
-                                key=f"vis_select_{c_name}"
-                            )
-                            
-                            if str_lit.button("Mettre à jour la visibilité", key=f"update_vis_{c_name}"):
-                                try:
-                                    new_vis_val = "Privé" if "Privé" in new_vis_choice else "Public"
-                                    supabase.table("custom_characters").update({"visibility": new_vis_val}).eq("name", c_name).eq("creator", str_lit.session_state.pseudo.strip()).execute()
-                                    get_all_characters_cached.clear()
-                                    str_lit.success("Visibilité mise à jour !")
-                                    str_lit.rerun()
-                                except Exception as e:
-                                    str_lit.error(f"Erreur : {e}")
-                    str_lit.markdown("---")
-        except Exception as e:
-            str_lit.error(f"Erreur chargement personnages : {e}")
+    str_lit.write(f"Pseudo actuel : **{str_lit.session_state.pseudo}**")
+    str_lit.info("Gère tes informations et retrouve tes personnages créés ici.")
