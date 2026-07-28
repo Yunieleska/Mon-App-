@@ -728,13 +728,30 @@ elif str_lit.session_state.page == "profile":
                         with cc1:
                             str_lit.image(c_img, width=90)
                         with cc2:
-                            badge = "🔒 Privé" if c_vis == "Privé" else "🌍 Public"
+                            is_priv = (c_vis == "Privé")
+                            badge = "🔒 Privé" if is_priv else "🌍 Public"
                             str_lit.markdown(f"#### {c_name} *({c_sex})* — `{badge}`")
                             if c_quote:
                                 str_lit.markdown(f"> *\"{c_quote}\"*")
                             
-                            # Le descriptif complet a été retiré ici pour garder l'affichage simple et compact.
+                            # Sélecteur rapide pour changer la visibilité directement depuis son profil
+                            new_vis_choice = str_lit.selectbox(
+                                "Visibilité",
+                                ["Public (toute la communauté)", "Privé"],
+                                index=1 if is_priv else 0,
+                                key=f"vis_select_{c_name}"
+                            )
                             
+                            if str_lit.button("Mettre à jour la visibilité", key=f"update_vis_{c_name}"):
+                                updated_vis = "Privé" if "Privé" in new_vis_choice else "Public"
+                                try:
+                                    supabase.table("custom_characters").update({"visibility": updated_vis}).eq("name", c_name).eq("creator", str_lit.session_state.pseudo).execute()
+                                    str_lit.success(f"Visibilité mise à jour pour {c_name} !")
+                                    str_lit.rerun()
+                                except Exception as e:
+                                    str_lit.error(f"Erreur : {e}")
+
+                            str_lit.write("")
                             b_col1, b_col2 = str_lit.columns(2)
                             with b_col1:
                                 if str_lit.button(f"💬 Discuter", key=f"chat_my_char_{c_name}"):
