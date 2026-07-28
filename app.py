@@ -70,6 +70,13 @@ str_lit.markdown(
         border-color: #ffffff !important;
         color: #ffffff !important;
     }
+    /* Correction pour enlever le rectangle blanc au clic / focus */
+    .stButton>button:focus, .stButton>button:active, button[kind="secondary"]:focus, button[kind="secondary"]:active {
+        background-color: #21262d !important;
+        color: #ffffff !important;
+        box-shadow: none !important;
+        border-color: rgba(255, 255, 255, 0.3) !important;
+    }
     .novel-dialogue {
         font-family: 'Georgia', serif;
         font-size: 15px;
