@@ -881,7 +881,7 @@ elif str_lit.session_state.page == "profile":
     str_lit.markdown("---")
 
     user_email = "Non disponible"
-    avatar_url = "https://cdn-icons-png.flaticon.com/512/847/847969.png"
+    avatar_url = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
 
     if supabase:
         try:
@@ -892,7 +892,7 @@ elif str_lit.session_state.page == "profile":
         except Exception:
             pass
 
-    # --- 2. CARTE PROFIL (AVEC LA PHOTO DE PROFIL) ---
+    # --- 2. CARTE PROFIL & MODIFICATION DE L'AVATAR ---
     str_lit.markdown(f"""
     <div style="background: linear-gradient(135deg, #1f1a24 0%, #0d1117 100%); border: 1px solid rgba(210, 153, 234, 0.2); border-radius: 16px; padding: 25px; margin-bottom: 25px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 25px;">
         <img src="{avatar_url}" style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 2px solid #d299ea; box-shadow: 0 0 15px rgba(210,153,234,0.3);">
@@ -903,6 +903,25 @@ elif str_lit.session_state.page == "profile":
         </div>
     </div>
     """, unsafe_allow_html=True)
+
+    # Formulaire de modification de la photo de profil
+    with str_lit.form("update_avatar_form"):
+        str_lit.subheader("✏️ Modifier ta photo de profil")
+        new_avatar_input = str_lit.text_input("Nouvelle URL de l'image de profil", value=avatar_url)
+        submitted_avatar = str_lit.form_submit_button("Mettre à jour l'avatar")
+        
+        if submitted_avatar:
+            if supabase:
+                try:
+                    supabase.table("users").update({"avatar_url": new_avatar_input.strip()}).eq("pseudo", str_lit.session_state.pseudo).execute()
+                    str_lit.success("Photo de profil mise à jour avec succès !")
+                    str_lit.rerun()
+                except Exception as e:
+                    str_lit.error(f"Erreur lors de la mise à jour : {e}")
+            else:
+                str_lit.warning("Supabase non connecté.")
+
+    str_lit.markdown("<br>", unsafe_allow_html=True)
 
     # --- 3. PERSONNAGES CRÉÉS & ACTIONS ---
     str_lit.subheader("🖤 Mes Créations ténébreuses")
