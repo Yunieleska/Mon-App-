@@ -382,7 +382,7 @@ if str_lit.session_state.page == "home":
     end_idx = start_idx + ITEMS_PER_PAGE
     current_items = public_items[start_idx:end_idx]
 
-    # Utilisation de colonnes Streamlit natives pour un affichage robuste et sans bug des images
+    # Correction de l'affichage des images dans les cartes via une balise HTML robuste
     cols_per_row = 4
     for i in range(0, len(current_items), cols_per_row):
         row_items = current_items[i:i + cols_per_row]
@@ -396,7 +396,13 @@ if str_lit.session_state.page == "home":
                 if not img_src.startswith("http") and not os.path.exists(img_src):
                     img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
                 
-                str_lit.image(img_src, use_container_width=True)
+                str_lit.markdown(
+                    f'<div style="width:100%; height:180px; overflow:hidden; border-radius:8px; margin-bottom:8px;">'
+                    f'<img src="{img_src}" style="width:100%; height:100%; object-fit:cover;">'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+                
                 str_lit.markdown(f"**{name}**")
                 str_lit.caption(f'"{data["quote"]}"')
                 
