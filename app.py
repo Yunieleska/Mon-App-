@@ -12,6 +12,7 @@ if not groq_key and "GROQ_API_KEY" in str_lit.secrets:
 # --- CONSTANTES IMAGES ---
 BACKGROUND_IMG_NAME = "bg.png"
 SIDEBAR_HEADER_IMG = "couple.png"
+DEFAULT_FALLBACK_IMG = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
 
 try:
     client = Groq(api_key=groq_key)
@@ -80,6 +81,11 @@ str_lit.markdown(
         flex-direction: column;
         justify-content: space-between;
         height: 100%;
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .storyia-card:hover {
+        border-color: rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px);
     }
     .typing-indicator {
         font-style: italic;
@@ -92,7 +98,7 @@ str_lit.markdown(
     unsafe_allow_html=True,
 )
 
-# --- PERSISTANCE PAR URL ---
+# --- PERSISTANCE PAR URL & SESSION ---
 query_params = str_lit.query_params
 
 if "user" in query_params and query_params["user"]:
@@ -108,6 +114,8 @@ if "page" not in str_lit.session_state:
     str_lit.session_state.page = "home"
 if "char_select" not in str_lit.session_state:
     str_lit.session_state.char_select = "Caelum"
+if "affinities_cache" not in str_lit.session_state:
+    str_lit.session_state.affinities_cache = {}
 
 # --- SUPABASE FUNCTIONS ---
 
@@ -126,7 +134,7 @@ def save_msg(pseudo, char, role, content):
         pass
 
 
-def load_msgs(pseudo, char):
+def load_msgs(pseudo, char, limit=100):
     if not supabase:
         return []
     try:
@@ -137,7 +145,7 @@ def load_msgs(pseudo, char):
             .eq("user_pseudo", clean_pseudo)
             .eq("char_name", str(char))
             .order("id", desc=True)
-            .limit(1000)
+            .limit(limit)
             .execute()
         )
         if res.data:
@@ -149,6 +157,10 @@ def load_msgs(pseudo, char):
 
 
 def get_affinity(pseudo, char):
+    cache_key = f"{pseudo}_{char}"
+    if cache_key in str_lit.session_state.affinities_cache:
+        return str_lit.session_state.affinities_cache[cache_key]
+
     if not supabase:
         return 50
     try:
@@ -161,30 +173,37 @@ def get_affinity(pseudo, char):
             .execute()
         )
         if res and res.data:
-            return res.data["score"]
+            score = res.data["score"]
         else:
+            score = 50
             supabase.table("affinities").insert({
                 "user_pseudo": str(pseudo).strip(),
                 "char_name": str(char),
                 "score": 50
             }).execute()
-            return 50
+        
+        str_lit.session_state.affinities_cache[cache_key] = score
+        return score
     except Exception:
         return 50
 
 
 def update_affinity(pseudo, char, delta):
+    cache_key = f"{pseudo}_{char}"
+    current = get_affinity(pseudo, char)
+    new_score = max(0, min(100, current + delta))
+    str_lit.session_state.affinities_cache[cache_key] = new_score
+
     if not supabase:
-        return 50
+        return new_score
     try:
-        current = get_affinity(pseudo, char)
-        new_score = max(0, min(100, current + delta))
         supabase.table("affinities").update({"score": new_score}).eq("user_pseudo", str(pseudo).strip()).eq("char_name", str(char)).execute()
         return new_score
     except Exception:
-        return 50
+        return new_score
 
 
+@str_lit.cache_data(show_spinner=False)
 def get_all_characters_cached():
     base_instruction = (
         " Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. "
@@ -236,31 +255,33 @@ def get_all_characters_cached():
         },
     }
 
-    if supabase:
-        try:
-            res = supabase.table("custom_characters").select("*").execute()
-            if res.data:
-                for item in res.data:
-                    c_name = item.get("name")
-                    if not c_name:
-                        continue
-                    
-                    desc_val = item.get("description", "")
-                    prompt_val = item.get("prompt", f"Tu es {c_name}. {desc_val}")
-                    quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
-                    img_url = item.get("img_url", "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg")
-                    
-                    chars[c_name] = {
-                        "img": (
-                            img_url
-                            if img_url and (img_url.startswith("http") or os.path.exists(img_url))
-                            else "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-                        ),
-                        "prompt": prompt_val + base_instruction,
-                        "quote": quote_val,
-                    }
-        except Exception:
-            pass
+    try:
+        supabase_temp = create_client(
+            str_lit.secrets["SUPABASE_URL"], str_lit.secrets["SUPABASE_KEY"]
+        )
+        res = supabase_temp.table("custom_characters").select("*").execute()
+        if res.data:
+            for item in res.data:
+                c_name = item.get("name")
+                if not c_name:
+                    continue
+                
+                desc_val = item.get("description", "")
+                prompt_val = item.get("prompt", f"Tu es {c_name}. {desc_val}")
+                quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
+                img_url = item.get("img_url", DEFAULT_FALLBACK_IMG)
+                
+                chars[c_name] = {
+                    "img": (
+                        img_url
+                        if img_url and (img_url.startswith("http") or os.path.exists(img_url))
+                        else DEFAULT_FALLBACK_IMG
+                    ),
+                    "prompt": prompt_val + base_instruction,
+                    "quote": quote_val,
+                }
+    except Exception:
+        pass
 
     return chars
 
@@ -441,7 +462,7 @@ if str_lit.session_state.page == "home":
     for idx, (name, data) in enumerate(current_items):
         img_src = data["img"]
         if not img_src.startswith("http") and not os.path.exists(img_src):
-            img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+            img_src = DEFAULT_FALLBACK_IMG
 
         grid_html += f"""
         <div class="storyia-card">
@@ -486,7 +507,7 @@ elif str_lit.session_state.page == "chat":
 
     str_lit.markdown("---")
 
-    messages = load_msgs(str_lit.session_state.pseudo, current_char)
+    messages = load_msgs(str_lit.session_state.pseudo, current_char, limit=50)
     if not messages:
         if current_char == "Caelum":
             user_pseudo = str_lit.session_state.pseudo
@@ -522,7 +543,7 @@ elif str_lit.session_state.page == "chat":
 
     for idx, msg in enumerate(messages):
         if msg["role"] == "assistant":
-            col_avatar, col_content = str_lit.columns([1, 6])
+            col_avatar, col_content, col_actions = str_lit.columns([1, 5, 1])
             with col_avatar:
                 str_lit.image(char_data["img"], width=65)
             with col_content:
@@ -531,10 +552,6 @@ elif str_lit.session_state.page == "chat":
                 edit_key = f"edit_mode_ast_{idx}"
                 if edit_key not in str_lit.session_state:
                     str_lit.session_state[edit_key] = False
-
-                if str_lit.button("✏️ Modifier", key=f"btn_edit_ast_{idx}"):
-                    str_lit.session_state[edit_key] = not str_lit.session_state[edit_key]
-                    str_lit.rerun()
 
                 if str_lit.session_state[edit_key]:
                     new_text = str_lit.text_area(
@@ -554,6 +571,39 @@ elif str_lit.session_state.page == "chat":
                                 pass
                         str_lit.success("Modifié !")
                         str_lit.rerun()
+            with col_actions:
+                if str_lit.button("✏️", key=f"btn_edit_ast_{idx}", help="Modifier"):
+                    str_lit.session_state[edit_key] = not str_lit.session_state[edit_key]
+                    str_lit.rerun()
+                # Bouton Régénérer pour le dernier message de l'assistant
+                if idx == len(messages) - 1 and client:
+                    if str_lit.button("🔄", key=f"regen_{idx}", help="Régénérer la réponse"):
+                        messages.pop()
+                        if supabase:
+                            try:
+                                supabase.table("messages").delete().eq("user_pseudo", str_lit.session_state.pseudo).eq("char_name", current_char).order("id", desc=True).limit(1).execute()
+                            except Exception:
+                                pass
+                        
+                        user_pseudo = str_lit.session_state.pseudo
+                        current_aff = get_affinity(user_pseudo, current_char)
+                        aff_context = f" Niveau d'affinité actuel avec Yuna : {current_aff}%."
+                        context_reminder = {"role": "system", "content": f"Rappel important : Ton interlocuteur actuel s'appelle {user_pseudo}. Adresse-toi directement à elle au féminin en respectant strictement ton profil d'origine.{aff_context}"}
+                        
+                        api_messages = [{"role": "system", "content": char_data["prompt"]}, context_reminder] + messages[-20:]
+                        
+                        try:
+                            response = client.chat.completions.create(
+                                model="llama-3.3-70b-versatile",
+                                messages=api_messages,
+                                temperature=0.9,
+                            )
+                            bot_reply = response.choices[0].message.content
+                            messages.append({"role": "assistant", "content": bot_reply})
+                            save_msg(user_pseudo, current_char, "assistant", bot_reply)
+                        except Exception:
+                            pass
+                        str_lit.rerun()
         else:
             with str_lit.chat_message("user"):
                 str_lit.write(msg["content"])
@@ -564,7 +614,7 @@ elif str_lit.session_state.page == "chat":
 
                 col_u1, col_u2 = str_lit.columns([1, 5])
                 with col_u1:
-                    if str_lit.button("✏️", key=f"btn_edit_usr_{idx}"):
+                    if str_lit.button("✏️", key=f"btn_edit_usr_{idx}", help="Modifier message"):
                         str_lit.session_state[edit_u_key] = not str_lit.session_state[edit_u_key]
                         str_lit.rerun()
 
@@ -612,7 +662,7 @@ elif str_lit.session_state.page == "chat":
                 context_reminder = {"role": "system", "content": f"Rappel important : Ton interlocuteur actuel s'appelle {user_pseudo}. Adresse-toi directement à elle au féminin en respectant strictement ton profil d'origine.{aff_context}"}
                 system_prompt = char_data["prompt"]
                 
-                api_messages = [{"role": "system", "content": system_prompt}, context_reminder] + messages[-50:]
+                api_messages = [{"role": "system", "content": system_prompt}, context_reminder] + messages[-20:]
 
                 response = client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
@@ -674,7 +724,7 @@ elif str_lit.session_state.page == "create_character":
     
     if str_lit.button("🚀 Créer", use_container_width=True, key="btn_submit_char"):
         if char_name and char_description:
-            img_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+            img_path = DEFAULT_FALLBACK_IMG
             if uploaded_char_img is not None:
                 img_path = f"char_{str_lit.session_state.pseudo}_{char_name}.png"
                 with open(img_path, "wb") as f:
