@@ -872,7 +872,7 @@ elif str_lit.session_state.page == "profile":
 
     str_lit.markdown("<br>", unsafe_allow_html=True)
 
-    # --- SECTION 2 : PERSONNAGES CRÉÉS & SUPPRESSION ---
+    # --- SECTION 2 : PERSONNAGES CRÉÉS & ACTIONS ---
     str_lit.subheader("🛠️ Les personnages que j'ai créés")
     if supabase:
         try:
@@ -898,7 +898,14 @@ elif str_lit.session_state.page == "profile":
                         </div>
                         """, unsafe_allow_html=True)
                         
-                        if str_lit.button(f"🗑️ Supprimer le perso", key=f"del_char_db_{i}"):
+                        # Bouton pour lancer la conversation directement depuis le profil
+                        if str_lit.button(f"💬 Discuter", key=f"chat_my_char_{i}"):
+                            str_lit.session_state.char_select = c_name_val
+                            str_lit.session_state.page = "chat"
+                            str_lit.rerun()
+
+                        # Bouton de suppression
+                        if str_lit.button(f"🗑️ Supprimer", key=f"del_char_db_{i}"):
                             try:
                                 supabase.table("custom_characters").delete().eq("name", c_name_val).execute()
                                 supabase.table("messages").delete().eq("char_name", c_name_val).execute()
