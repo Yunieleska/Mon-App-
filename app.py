@@ -238,7 +238,7 @@ def get_all_characters():
         },
         "Noah": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/noah.png.PNG",
-            "prompt": "Tu es Noah, quarterback star." + base_instruction,
+            "prompt": "Tu es Noah, quarterback star." +base_instruction,
             "quote": "Dis, tu crois qu'on est tous obligés de jouer un rôle pour plaire ?",
         },
     }
@@ -494,11 +494,12 @@ elif str_lit.session_state.page == "chat":
         if current_char == "Caelum":
             user_pseudo = str_lit.session_state.pseudo
             intro_msg = (
-                f"{user_pseudo} vient d'arriver à l'académie. "
-                f"En marchant rapidement dans le couloir, {user_pseudo} bouscule accidentellement quelqu'un et ses affaires s'éparpillent au sol. "
-                f"{user_pseudo} lève les yeux et croise un regard bleu glacier. "
-                f"Caelum la regarde de haut, avec une indifférence totale.*\n\n"
-                f"Tu es sur mon chemin, humaine. Ramasse tes affaires et disparais."
+                f"Les couloirs de l'académie sont baignés par la lumière crue de l'après-midi, mais l'atmosphère autour de Caelum semble toujours prise dans une pénitence glaciale. "
+                f"Alors que {user_pseudo} marche en ayant les bras chargés de livres, un manque d'attention la fait trébucher et se cogner directement contre lui. "
+                f"Le choc est brutal : les livres s'éparpillent lourdement sur le sol carrelé. "
+                f"{user_pseudo} relève vivement les yeux pour s'excuser et croise aussitôt un regard d'un bleu glacier perçant, glacial et indifférent.\n\n"
+                f"Caelum la regarde de haut, sans un geste pour l'aider à ramasser ses affaires, esquissant un sourire narquois :\n\n"
+                f"— Tu devrais regarder où tu mets les pieds, humaine. Ma vie est déjà tracée, et tu n'as rien à y faire. [IMAGE: A dramatic cinematic shot of an icy-eyed gothic dark haired male vampire looking down condescendingly in a high school hallway with books scattered on the floor]"
             )
         else:
             if client:
@@ -506,7 +507,7 @@ elif str_lit.session_state.page == "chat":
                     user_pseudo = str_lit.session_state.pseudo
                     init_prompt = [
                         {"role": "system", "content": char_data["prompt"]},
-                        {"role": "user", "content": f"L'utilisateur qui te parle s'appelle {user_pseudo}. Écris un long premier message d'introduction immersif, descriptif et détaillé pour débuter notre roleplay avec {user_pseudo}. Ta phrase d'accroche de référence est : \"{char_data['quote']}\". Mets {user_pseudo} tout de suite dans l'ambiance, décris la scène, tes actions en restant strictement fidèle à ton propre profil, sans JAMAIS décrire son physique ou ses vêtements. TRÈS IMPORTANT : N'inclus PAS de balise [IMAGE: ...] pour ce tout premier message d'accueil."}
+                        {"role": "user", "content": f"L'utilisateur qui te parle s'appelle {user_pseudo}. Écris un long premier message d'introduction immersif, descriptif et détaillé pour débuter notre roleplay avec {user_pseudo}. Ta phrase d'accroche de référence est : \"{char_data['quote']}\". Mets {user_pseudo} tout de suite dans l'ambiance, décris la scène, tes actions en restant strictement fidèle à ton propre profil, sans JAMAIS décrire son physique ou ses vêtements. TRÈS IMPORTANT : À la fin de ton message, tu dois obligatoirement inclure une balise visuelle au format exact suivant : [IMAGE: description détaillée en anglais de la scène, photorealistic shot]."}
                     ]
                     resp_init = client.chat.completions.create(
                         model="llama-3.3-70b-versatile",
@@ -530,29 +531,25 @@ elif str_lit.session_state.page == "chat":
                 str_lit.image(char_data["img"], width=65)
             with col_content:
                 content = msg["content"]
-                if idx == 0:
-                    text_clean = re.sub(r"\[IMAGE:\s*(.*?)\]", "", content).strip()
+                match = re.search(r"\[IMAGE:\s*(.*?)\]", content)
+                if match:
+                    img_prompt = match.group(1)
+                    text_clean = content.replace(match.group(0), "").strip()
                     str_lit.write(text_clean)
+                    with str_lit.spinner("Génération de l'image..."):
+                        img_bytes, err = generer_image_huggingface(img_prompt, current_char)
+                        if img_bytes:
+                            str_lit.image(img_bytes, caption=img_prompt, use_container_width=True)
+                            save_to_gallery(str_lit.session_state.pseudo, current_char, img_bytes, img_prompt)
+                        else:
+                            str_lit.warning(f"Impossible de générer l'image : {err}")
                 else:
-                    match = re.search(r"\[IMAGE:\s*(.*?)\]", content)
-                    if match:
-                        img_prompt = match.group(1)
-                        text_clean = content.replace(match.group(0), "").strip()
-                        str_lit.write(text_clean)
-                        with str_lit.spinner("Génération de l'image..."):
-                            img_bytes, err = generer_image_huggingface(img_prompt, current_char)
-                            if img_bytes:
-                                str_lit.image(img_bytes, caption=img_prompt, use_container_width=True)
-                                save_to_gallery(str_lit.session_state.pseudo, current_char, img_bytes, img_prompt)
-                            else:
-                                str_lit.warning(f"Impossible de générer l'image : {err}")
-                    else:
-                        str_lit.write(content)
+                    str_lit.write(content)
         else:
             with str_lit.chat_message("user"):
                 str_lit.write(msg["content"])
 
-    # --- INTÉGRATION DU BOUTON MODIFIER POUR LE DERNIER MESSAGE DE L'ASSISTANT ---
+    # --- BOUTON MODIFIER POUR LE DERNIER MESSAGE DE L'ASSISTANT ---
     if messages and messages[-1]["role"] == "assistant":
         last_msg = messages[-1]
         edit_key = f"edit_mode_{len(messages)}"
