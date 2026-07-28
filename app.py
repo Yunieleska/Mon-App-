@@ -323,7 +323,6 @@ def get_all_characters_cached():
                     prompt_val = item.get("prompt", f"Tu es {c_name}. {desc_val}")
                     quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
                     
-                    # Attribution forcée de ton image personnalisée pour Lord Valerian Vance
                     if c_name == "Lord Valerian Vance":
                         img_url = "https://i.ibb.co/Cstfcz6S/image.png"
                     else:
@@ -574,7 +573,7 @@ elif str_lit.session_state.page == "messages":
 
 elif str_lit.session_state.page == "chat":
     current_char = str_lit.session_state.char_select
-    char_data = CHARACTERS.get(current_char, CHARACTERS["Caelum"])
+    char_data = CHARACTERS.get(current_char, {"img": DEFAULT_FALLBACK_IMG, "quote": "", "prompt": f"Tu es {current_char}."})
 
     col_h1, col_h2, col_h3, col_h4 = str_lit.columns([1, 3, 2, 1.5])
     with col_h1:
@@ -637,8 +636,6 @@ elif str_lit.session_state.page == "chat":
                             temperature=0.7,
                         )
                     intro_msg = resp_init.choices[0].message.content
-                    
-                    # Sécurité stricte pour nettoyer le pseudo si le modèle l'affiche malgré tout
                     intro_msg = intro_msg.replace(user_current_pseudo, "tu").replace(user_current_pseudo.lower(), "tu")
                 except Exception:
                     intro_msg = char_data["quote"]
@@ -770,7 +767,7 @@ elif str_lit.session_state.page == "chat":
                         str_lit.success("Message modifié !")
                         str_lit.rerun()
 
-    # --- ZONE DE SAISIE MULTILIGNE (AVEC ENTRÉE / RETOUR À LA LIGNE) ---
+    # --- ZONE DE SAISIE MULTILIGNE ---
     with str_lit.form(key="chat_input_form", clear_on_submit=True):
         user_input = str_lit.text_area("Écris ta réponse (appuie sur Entrée pour aller à la ligne)...", key="user_message_input", height=90)
         submitted_user = str_lit.form_submit_button("Envoyer 🚀")
@@ -875,7 +872,7 @@ elif str_lit.session_state.page == "profile":
 
     str_lit.markdown("<br>", unsafe_allow_html=True)
 
-    # --- SECTION 2 : PERSONNAGES CRÉÉS ---
+    # --- SECTION 2 : PERSONNAGES CRÉÉS & SUPPRESSION ---
     str_lit.subheader("🛠️ Les personnages que j'ai créés")
     if supabase:
         try:
@@ -896,10 +893,21 @@ elif str_lit.session_state.page == "profile":
                         str_lit.markdown(f"""
                         <div style="background-color: #21262d; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 10px; padding: 10px; text-align: center; margin-bottom: 10px;">
                             <img src="{c_img}" onerror="this.onerror=null; this.src='{DEFAULT_FALLBACK_IMG}';" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 10px;">
-                            <strong style="color: #ffffff; font-size: 14px;">{char.get('name')}</strong><br>
+                            <strong style="color: #ffffff; font-size: 14px;">{c_name_val}</strong><br>
                             <span style="font-size: 12px; color: #8b949e;">{char.get('visibility', 'Public')}</span>
                         </div>
                         """, unsafe_allow_html=True)
+                        
+                        if str_lit.button(f"🗑️ Supprimer le perso", key=f"del_char_db_{i}"):
+                            try:
+                                supabase.table("custom_characters").delete().eq("name", c_name_val).execute()
+                                supabase.table("messages").delete().eq("char_name", c_name_val).execute()
+                                supabase.table("affinities").delete().eq("char_name", c_name_val).execute()
+                                str_lit.cache_data.clear()
+                                str_lit.success(f"Personnage {c_name_val} supprimé !")
+                                str_lit.rerun()
+                            except Exception as e:
+                                str_lit.error(f"Erreur : {e}")
             else:
                 str_lit.info("Aucun personnage trouvé dans la base de données.")
         except Exception as e:
