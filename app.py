@@ -172,7 +172,7 @@ def get_all_characters():
             "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série ?",
         },
         "Ethan": {
-            "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
+            "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg",
             "prompt": "Tu es Ethan, Loup Alpha." + base_instruction,
             "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines...",
         },
@@ -230,7 +230,6 @@ def get_user_conversations(pseudo):
         return []
     try:
         clean_pseudo = str(pseudo).strip()
-        # On récupère uniquement les noms des personnages avec lesquels l'utilisateur a des messages enregistrés
         res = (
             supabase.table("messages")
             .select("char_name")
@@ -773,4 +772,3 @@ elif str_lit.session_state.page == "profile":
                 str_lit.info("Vous n'avez créé aucun personnage pour le moment.")
         except Exception as e:
             str_lit.error(f"Erreur lors de la récupération de vos personnages : {e}")
-    
