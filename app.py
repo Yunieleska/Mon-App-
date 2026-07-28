@@ -765,38 +765,42 @@ elif str_lit.session_state.page == "chat":
                         str_lit.success("Message modifié !")
                         str_lit.rerun()
 
-    user_input = str_lit.chat_input("Écris ta réponse...")
-    if user_input:
-        save_msg(str_lit.session_state.pseudo, current_char, "user", user_input)
-        update_affinity(str_lit.session_state.pseudo, current_char, 2)
-        
-        cache_key = f"{str_lit.session_state.pseudo}_{current_char}"
-        if cache_key in str_lit.session_state.messages_cache:
-            del str_lit.session_state.messages_cache[cache_key]
+    # --- ZONE DE SAISIE MULTILIGNE (AVEC ENTRÉE / RETOUR À LA LIGNE) ---
+    with str_lit.form(key="chat_input_form", clear_on_submit=True):
+        user_input = str_lit.text_area("Écris ta réponse (appuie sur Entrée pour aller à la ligne)...", key="user_message_input", height=90)
+        submitted_user = str_lit.form_submit_button("Envoyer 🚀")
 
-        if client:
-            user_pseudo = str_lit.session_state.pseudo
-            current_aff = get_affinity(user_pseudo, current_char)
-            aff_context = f" Niveau d'affinité actuel : {current_aff}%."
-            context_reminder = {"role": "system", "content": f"Rappel important : L'interlocutrice s'appelle {user_pseudo}. Tu peux maintenant l'appeler par son prénom si le contexte s'y prête.{aff_context}"}
+        if submitted_user and user_input.strip():
+            save_msg(str_lit.session_state.pseudo, current_char, "user", user_input.strip())
+            update_affinity(str_lit.session_state.pseudo, current_char, 2)
             
-            messages_actuels = load_msgs(user_pseudo, current_char, limit=50)
-            api_messages = [{"role": "system", "content": char_data["prompt"]}, context_reminder] + messages_actuels[-20:]
-            
-            try:
-                with str_lit.spinner(f"{current_char} est en train d'écrire..."):
-                    response = client.chat.completions.create(
-                        model="llama-3.3-70b-versatile",
-                        messages=api_messages,
-                        temperature=0.85,
-                    )
-                bot_reply = response.choices[0].message.content
-                save_msg(user_pseudo, current_char, "assistant", bot_reply)
-                if cache_key in str_lit.session_state.messages_cache:
-                    del str_lit.session_state.messages_cache[cache_key]
-            except Exception as e:
-                str_lit.error(f"Erreur de génération : {e}")
-        str_lit.rerun()
+            cache_key = f"{str_lit.session_state.pseudo}_{current_char}"
+            if cache_key in str_lit.session_state.messages_cache:
+                del str_lit.session_state.messages_cache[cache_key]
+
+            if client:
+                user_pseudo = str_lit.session_state.pseudo
+                current_aff = get_affinity(user_pseudo, current_char)
+                aff_context = f" Niveau d'affinité actuel : {current_aff}%."
+                context_reminder = {"role": "system", "content": f"Rappel important : L'interlocutrice s'appelle {user_pseudo}. Tu peux maintenant l'appeler par son prénom si le contexte s'y prête.{aff_context}"}
+                
+                messages_actuels = load_msgs(user_pseudo, current_char, limit=50)
+                api_messages = [{"role": "system", "content": char_data["prompt"]}, context_reminder] + messages_actuels[-20:]
+                
+                try:
+                    with str_lit.spinner(f"{current_char} est en train d'écrire..."):
+                        response = client.chat.completions.create(
+                            model="llama-3.3-70b-versatile",
+                            messages=api_messages,
+                            temperature=0.85,
+                        )
+                    bot_reply = response.choices[0].message.content
+                    save_msg(user_pseudo, current_char, "assistant", bot_reply)
+                    if cache_key in str_lit.session_state.messages_cache:
+                        del str_lit.session_state.messages_cache[cache_key]
+                except Exception as e:
+                    str_lit.error(f"Erreur de génération : {e}")
+            str_lit.rerun()
 
 elif str_lit.session_state.page == "create_character":
     str_lit.title("✨ Créer un Personnage")
