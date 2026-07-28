@@ -1,49 +1,17 @@
-import io
 import os
 import re
-import requests
-from PIL import Image
 import streamlit as str_lit
 from supabase import create_client
 from groq import Groq
-from huggingface_hub import InferenceClient
 
 # --- CONFIGURATION ---
 groq_key = os.getenv("GROQ_API_KEY")
 if not groq_key and "GROQ_API_KEY" in str_lit.secrets:
     groq_key = str_lit.secrets["GROQ_API_KEY"]
 
-hf_api_key = os.getenv("HUGGINGFACE_API_KEY")
-if not hf_api_key and "HUGGINGFACE_API_KEY" in str_lit.secrets:
-    hf_api_key = str_lit.secrets["HUGGINGFACE_API_KEY"]
-
 # --- CONSTANTES IMAGES ---
 BACKGROUND_IMG_NAME = "bg.png"
 SIDEBAR_HEADER_IMG = "couple.png"
-
-
-def generer_image_huggingface(prompt_image, current_char_name=None):
-    if not hf_api_key:
-        return None, "Clé API Hugging Face manquante."
-    try:
-        client_hf = InferenceClient(
-            model="stabilityai/stable-diffusion-xl-base-1.0", token=hf_api_key
-        )
-        
-        prompt_final = (
-            f"A hyper-realistic cinematic photograph of {current_char_name or 'the character'}. "
-            f"Scene details: {prompt_image}. "
-            f"RAW photo, highly detailed skin pores, realistic human anatomy, shot on 35mm film, professional photography, cinematic lighting, masterpiece, 8k, photorealistic."
-        )
-
-        image = client_hf.text_to_image(prompt_final)
-
-        buf = io.BytesIO()
-        image.save(buf, format="JPEG")
-        return buf.getvalue(), None
-    except Exception as e:
-        return None, f"Erreur Hugging Face : {str(e)}"
-
 
 try:
     client = Groq(api_key=groq_key)
@@ -174,30 +142,12 @@ def load_msgs(pseudo, char):
         return []
 
 
-def save_to_gallery(pseudo, char_name, img_bytes, prompt):
-    if not supabase:
-        return
-    import base64
-    try:
-        encoded_img = base64.b64encode(img_bytes).decode('utf-8')
-        supabase.table("user_gallery").insert({
-            "user_pseudo": str(pseudo).strip(),
-            "char_name": str(char_name),
-            "image_base64": encoded_img,
-            "image_prompt": str(prompt)
-        }).execute()
-    except Exception:
-        pass
-
-
 def get_all_characters():
     base_instruction = (
         " Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. "
         "RÈGLE ABSOLUE : L'utilisateur à qui tu parles s'appelle Yuna. Tu t'adresses TOUJOURS à Yuna en utilisant les accords féminins et son prénom. "
         "N'invente JAMAIS et ne décris JAMAIS l'apparence physique, les vêtements, les cheveux ou le corps de Yuna. "
-        "Laisse toujours Yuna libre de décrire son propre physique. "
-        "À la fin de CHAQUE message, tu dois obligatoirement intégrer une balise visuelle au format exact suivant pour illustrer "
-        "l'action en cours sous forme de photographie réelle : [IMAGE: description détaillée en anglais de l'ambiance, du personnage ou du décor, photorealistic shot]."
+        "Laisse toujours Yuna libre de décrire son propre physique."
     )
 
     chars = {
@@ -238,7 +188,7 @@ def get_all_characters():
         },
         "Noah": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/noah.png.PNG",
-            "prompt": "Tu es Noah, quarterback star." +base_instruction,
+            "prompt": "Tu es Noah, quarterback star." + base_instruction,
             "quote": "Dis, tu crois qu'on est tous obligés de jouer un rôle pour plaire ?",
         },
     }
@@ -499,7 +449,7 @@ elif str_lit.session_state.page == "chat":
                 f"Le choc est brutal : les livres s'éparpillent lourdement sur le sol carrelé. "
                 f"{user_pseudo} relève vivement les yeux pour s'excuser et croise aussitôt un regard d'un bleu glacier perçant, glacial et indifférent.\n\n"
                 f"Caelum la regarde de haut, sans un geste pour l'aider à ramasser ses affaires, esquissant un sourire narquois :\n\n"
-                f"— Tu devrais regarder où tu mets les pieds, humaine. Ma vie est déjà tracée, et tu n'as rien à y faire. [IMAGE: A dramatic cinematic shot of an icy-eyed gothic dark haired male vampire looking down condescendingly in a high school hallway with books scattered on the floor]"
+                f"— Tu devrais regarder où tu mets les pieds, humaine. Ma vie est déjà tracée, et tu n'as rien à y faire."
             )
         else:
             if client:
@@ -507,7 +457,7 @@ elif str_lit.session_state.page == "chat":
                     user_pseudo = str_lit.session_state.pseudo
                     init_prompt = [
                         {"role": "system", "content": char_data["prompt"]},
-                        {"role": "user", "content": f"L'utilisateur qui te parle s'appelle {user_pseudo}. Écris un long premier message d'introduction immersif, descriptif et détaillé pour débuter notre roleplay avec {user_pseudo}. Ta phrase d'accroche de référence est : \"{char_data['quote']}\". Mets {user_pseudo} tout de suite dans l'ambiance, décris la scène, tes actions en restant strictement fidèle à ton propre profil, sans JAMAIS décrire son physique ou ses vêtements. TRÈS IMPORTANT : À la fin de ton message, tu dois obligatoirement inclure une balise visuelle au format exact suivant : [IMAGE: description détaillée en anglais de la scène, photorealistic shot]."}
+                        {"role": "user", "content": f"L'utilisateur qui te parle s'appelle {user_pseudo}. Écris un long premier message d'introduction immersif, descriptif et détaillé pour débuter notre roleplay avec {user_pseudo}. Ta phrase d'accroche de référence est : \"{char_data['quote']}\". Mets {user_pseudo} tout de suite dans l'ambiance, décris la scène, tes actions en restant strictement fidèle à ton propre profil, sans JAMAIS décrire son physique ou ses vêtements."}
                     ]
                     resp_init = client.chat.completions.create(
                         model="llama-3.3-70b-versatile",
@@ -523,28 +473,14 @@ elif str_lit.session_state.page == "chat":
         messages.append({"role": "assistant", "content": intro_msg})
         save_msg(str_lit.session_state.pseudo, current_char, "assistant", intro_msg)
 
-    # Affichage des messages avec image du personnage sur le côté pour l'assistant
+    # Affichage des messages avec avatar du personnage
     for idx, msg in enumerate(messages):
         if msg["role"] == "assistant":
             col_avatar, col_content = str_lit.columns([1, 6])
             with col_avatar:
                 str_lit.image(char_data["img"], width=65)
             with col_content:
-                content = msg["content"]
-                match = re.search(r"\[IMAGE:\s*(.*?)\]", content)
-                if match:
-                    img_prompt = match.group(1)
-                    text_clean = content.replace(match.group(0), "").strip()
-                    str_lit.write(text_clean)
-                    with str_lit.spinner("Génération de l'image..."):
-                        img_bytes, err = generer_image_huggingface(img_prompt, current_char)
-                        if img_bytes:
-                            str_lit.image(img_bytes, caption=img_prompt, use_container_width=True)
-                            save_to_gallery(str_lit.session_state.pseudo, current_char, img_bytes, img_prompt)
-                        else:
-                            str_lit.warning(f"Impossible de générer l'image : {err}")
-                else:
-                    str_lit.write(content)
+                str_lit.write(msg["content"])
         else:
             with str_lit.chat_message("user"):
                 str_lit.write(msg["content"])
@@ -612,20 +548,7 @@ elif str_lit.session_state.page == "chat":
         with col_avatar:
             str_lit.image(char_data["img"], width=65)
         with col_content:
-            match = re.search(r"\[IMAGE:\s*(.*?)\]", bot_reply)
-            if match:
-                img_prompt = match.group(1)
-                text_clean = bot_reply.replace(match.group(0), "").strip()
-                str_lit.write(text_clean)
-                with str_lit.spinner("Génération de l'image..."):
-                    img_bytes, err = generer_image_huggingface(img_prompt, current_char)
-                    if img_bytes:
-                        str_lit.image(img_bytes, caption=img_prompt, use_container_width=True)
-                        save_to_gallery(str_lit.session_state.pseudo, current_char, img_bytes, img_prompt)
-                    else:
-                        str_lit.warning(f"Impossible de générer l'image : {err}")
-            else:
-                str_lit.write(bot_reply)
+            str_lit.write(bot_reply)
 
         save_msg(str_lit.session_state.pseudo, current_char, "assistant", bot_reply)
         str_lit.rerun()
@@ -744,19 +667,5 @@ elif str_lit.session_state.page == "profile":
                 "avatar_url",
                 "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
             )
-
-            following_count = 0
-            followers_count = 0
-            try:
-                following_res = supabase.table("follows").select("id", count="exact").eq("follower_pseudo", str_lit.session_state.pseudo).execute()
-                following_count = following_res.count if following_res.count is not None else 0
-            except Exception:
-                pass
-
-            try:
-                followers_res = supabase.table("follows").select("id", count="exact").eq("following_pseudo", str_lit.session_state.pseudo).execute()
-                followers_count = followers_res.count if followers_res.count is not None else 0
-            except Exception:
-                pass
         except Exception:
             pass
