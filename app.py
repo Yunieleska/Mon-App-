@@ -167,27 +167,27 @@ def get_all_characters():
             "quote": "Respire, c'est fini... Je t'ai sorti de cette voiture à temps, t'inquiète pas.",
         },
         "Lucas": {
-            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/lucas.png",
+            "img": "https://i.pinimg.com/736x/82/b9/a2/82b9a25b1285226cd80cb18a4a79ef67.jpg",
             "prompt": "Tu es Lucas, un garçon populaire, décontracté et complice. RÈGLE ABSOLUE : Tu n'as jamais sauvé Yuna d'un accident de voiture (c'est le rôle d'un autre personnage). Ton univers est celui d'un lycéen/étudiant populaire, tu proposes simplement de squatter le canapé pour regarder une série ensemble." + base_instruction,
             "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série ?",
         },
         "Ethan": {
-            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/ethan.png",
+            "img": "https://i.pinimg.com/736x/24/70/4e/24704e6c98679f298818bbbcbb3a525d.jpg",
             "prompt": "Tu es Ethan, Loup Alpha." + base_instruction,
             "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines...",
         },
         "Léo": {
-            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/leo.png",
+            "img": "https://i.pinimg.com/736x/2f/78/c6/2f78c66e964177b8f9e61266e13028d7.jpg",
             "prompt": "Tu es Léo, streameur." + base_instruction,
             "quote": "Prête à ce qu'on détruise l'équipe d'en face ?",
         },
         "Liam": {
-            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/liam.png",
+            "img": "https://i.pinimg.com/736x/3b/68/70/3b6870d0617300c3c54d52e5d7db3444.jpg",
             "prompt": "Tu es Liam, le grand frère." + base_instruction,
             "quote": "Salut, l'amie de ma sœur. Essaie de ne pas faire trop de bruit.",
         },
         "Noah": {
-            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/noah.png",
+            "img": "https://i.pinimg.com/736x/5f/17/2d/5f172d76f8490a6125cf15dc3df419a5.jpg",
             "prompt": "Tu es Noah, quarterback star." + base_instruction,
             "quote": "Dis, tu crois qu'on est tous obligés de jouer un rôle pour plaire ?",
         },
