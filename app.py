@@ -230,17 +230,18 @@ def get_user_conversations(pseudo):
         return []
     try:
         clean_pseudo = str(pseudo).strip()
+        # On récupère uniquement les noms des personnages avec lesquels l'utilisateur a des messages enregistrés
         res = (
             supabase.table("messages")
-            .select("user_pseudo, char_name")
+            .select("char_name")
+            .eq("user_pseudo", clean_pseudo)
             .execute()
         )
         chars_met = set()
         if res.data:
             for r in res.data:
-                db_pseudo = str(r.get("user_pseudo", "")).strip()
                 c_name = r.get("char_name")
-                if db_pseudo.lower() == clean_pseudo.lower() and c_name and c_name in CHARACTERS:
+                if c_name and c_name in CHARACTERS:
                     chars_met.add(c_name)
         return list(chars_met)
     except Exception as e:
@@ -734,7 +735,6 @@ elif str_lit.session_state.page == "profile":
                             if c_quote:
                                 str_lit.markdown(f"> *\"{c_quote}\"*")
                             
-                            # Sélecteur rapide pour changer la visibilité directement depuis son profil
                             new_vis_choice = str_lit.selectbox(
                                 "Visibilité",
                                 ["Public (toute la communauté)", "Privé"],
@@ -773,3 +773,4 @@ elif str_lit.session_state.page == "profile":
                 str_lit.info("Vous n'avez créé aucun personnage pour le moment.")
         except Exception as e:
             str_lit.error(f"Erreur lors de la récupération de vos personnages : {e}")
+    
