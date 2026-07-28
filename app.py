@@ -364,7 +364,6 @@ if str_lit.session_state.page == "home":
                 .select("*")
                 .execute()
             )
-            # RÈGLE TYPSY : Les personnages privés n'apparaissent JAMAIS sur le feed public de l'accueil
             public_custom_names = (
                 {item["name"] for item in res_pub.data if item.get("visibility", "Public") != "Privé"} 
                 if res_pub.data else set()
@@ -459,7 +458,7 @@ elif str_lit.session_state.page == "chat":
                     user_pseudo = str_lit.session_state.pseudo
                     init_prompt = [
                         {"role": "system", "content": char_data["prompt"]},
-                        {"role": "user", "content": f"L'utilisateur qui te parle s'appelle {user_pseudo}. Écris un long premier message d'introduction immersif, descriptif et détaillé pour débuter notre roleplay avec {user_pseudo}. Ta phrase d'accroche de référence est : \"{char_data['quote']}\". Mets {user_pseudo} tout de suite dans l'ambiance, décris la scène, tes actions en restant strictement fidèle à ton propre profil, sans JAMAIS décrire son physique ou ses vêtements."}
+                        {"role": "user", "content": f"L'utilisateur qui te parle s'appelle {user_pseudo}. Écris un long premier message d'introduction immersif, descriptif et détaillé pour débuter notre roleplay avec {user_pseudo}. Ta phrase d'accroche de référence est : \"{char_data['quote']}\". Mets {user_pseudo} tout de suite dans l'ambiance, décris la scène, tes actions en restant strictement fidèle à ton profil, sans JAMAIS décrire son physique ou ses vêtements."}
                     ]
                     resp_init = client.chat.completions.create(
                         model="llama-3.3-70b-versatile",
@@ -475,7 +474,6 @@ elif str_lit.session_state.page == "chat":
         messages.append({"role": "assistant", "content": intro_msg})
         save_msg(str_lit.session_state.pseudo, current_char, "assistant", intro_msg)
 
-    # Affichage des messages avec avatar du personnage
     for idx, msg in enumerate(messages):
         if msg["role"] == "assistant":
             col_avatar, col_content = str_lit.columns([1, 6])
@@ -487,7 +485,6 @@ elif str_lit.session_state.page == "chat":
             with str_lit.chat_message("user"):
                 str_lit.write(msg["content"])
 
-    # --- BOUTON MODIFIER POUR LE DERNIER MESSAGE DE L'ASSISTANT ---
     if messages and messages[-1]["role"] == "assistant":
         last_msg = messages[-1]
         edit_key = f"edit_mode_{len(messages)}"
@@ -676,7 +673,6 @@ elif str_lit.session_state.page == "profile":
         except Exception as e:
             str_lit.error(f"Erreur lors du chargement du profil : {e}")
 
-    # En-tête du Profil
     col_p1, col_p2, col_p3 = str_lit.columns([1, 2, 2])
     with col_p1:
         if not avatar_path.startswith("http") and not os.path.exists(avatar_path):
@@ -690,7 +686,6 @@ elif str_lit.session_state.page == "profile":
         convs_count = len(get_user_conversations(str_lit.session_state.pseudo))
         str_lit.metric("Discussions actives", convs_count)
 
-    # Modification de la photo de profil
     with str_lit.expander("🖼️ Modifier ma photo de profil"):
         new_avatar_file = str_lit.file_uploader("Choisir une image", type=["png", "jpg", "jpeg"], key="upload_avatar")
         if str_lit.button("Enregistrer la photo"):
@@ -722,7 +717,6 @@ elif str_lit.session_state.page == "profile":
                     c_name = mc.get('name')
                     c_sex = mc.get('sex', 'Non spécifié')
                     c_quote = mc.get('quote', '')
-                    c_desc = mc.get('description', '')
                     c_vis = mc.get('visibility', 'Public')
                     c_img = mc.get('img_url', 'https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg')
                     
@@ -738,10 +732,9 @@ elif str_lit.session_state.page == "profile":
                             str_lit.markdown(f"#### {c_name} *({c_sex})* — `{badge}`")
                             if c_quote:
                                 str_lit.markdown(f"> *\"{c_quote}\"*")
-                            if c_desc:
-                                str_lit.write(f"**Description :** {c_desc}")
                             
-                            # Boutons de gestion (Discuter + Supprimer) directement intégrés sous chaque personnage
+                            # Le descriptif complet a été retiré ici pour garder l'affichage simple et compact.
+                            
                             b_col1, b_col2 = str_lit.columns(2)
                             with b_col1:
                                 if str_lit.button(f"💬 Discuter", key=f"chat_my_char_{c_name}"):
