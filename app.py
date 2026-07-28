@@ -267,7 +267,7 @@ def update_affinity(pseudo, char, delta):
 def get_all_characters_cached():
     base_instruction = (
         " Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. "
-        "RÈGLE ABSOLUE : L'utilisateur à qui tu parles s'appelle Yuna. Tu t'adresses TOUJOURS à Yuna en utilisant les accords féminins et son prénom. "
+        "RÈGLE ABSOLUE : L'utilisateur à qui tu parles s'appelle Yuna. Tu t'adresses TOUJOURS à Yuna en utilisant les accords féminins et son prénom (sauf indication contraire pour le tout premier message). "
         "N'invente JAMAIS et ne décris JAMAIS l'apparence physique, les vêtements, les cheveux ou le corps de l'utilisateur sans qu'il en ait parlé explicitement. "
         "Laisse toujours l'utilisateur libre de décrire son propre physique."
     )
@@ -548,42 +548,42 @@ elif str_lit.session_state.page == "messages":
                 active_chars = list(set([item["char_name"] for item in res.data if item.get("char_name")]))
                 
                 if active_chars:
-                    cols = str_lit.columns(2)
                     for i, c_name in enumerate(active_chars):
                         c_data = CHARACTERS.get(c_name, {"img": DEFAULT_FALLBACK_IMG, "quote": "Discussion en cours..."})
-                        with cols[i % 2]:
-                            str_lit.markdown(f"""
-                            <div style="background-color: #161b22; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 15px;">
-                                <img src="{c_data['img']}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">
-                                <div style="flex-grow: 1;">
-                                    <div style="font-weight: 700; font-size: 16px; color: #ffffff;">{c_name}</div>
-                                    <div style="font-size: 12px; color: #8b949e; font-style: italic; margin-bottom: 8px;">Affinité : {get_affinity(clean_pseudo, c_name)}%</div>
-                                </div>
+                        
+                        str_lit.markdown(f"""
+                        <div style="background-color: #161b22; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 15px;">
+                            <img src="{c_data['img']}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">
+                            <div style="flex-grow: 1;">
+                                <div style="font-weight: 700; font-size: 16px; color: #ffffff;">{c_name}</div>
+                                <div style="font-size: 12px; color: #8b949e; font-style: italic; margin-bottom: 2px;">Affinité : {get_affinity(clean_pseudo, c_name)}%</div>
                             </div>
-                            """, unsafe_allow_html=True)
-                            
-                            b_col1, b_col2 = str_lit.columns(2)
-                            with b_col1:
-                                if str_lit.button(f"Reprendre", key=f"resume_{c_name}"):
-                                    str_lit.session_state.char_select = c_name
-                                    str_lit.session_state.page = "chat"
-                                    str_lit.rerun()
-                            with b_col2:
-                                if str_lit.button(f"🗑️ Supprimer", key=f"del_{c_name}"):
-                                    try:
-                                        supabase.table("messages").delete().eq("user_pseudo", clean_pseudo).eq("char_name", c_name).execute()
-                                        supabase.table("affinities").delete().eq("user_pseudo", clean_pseudo).eq("char_name", c_name).execute()
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        b_col1, b_col2 = str_lit.columns(2)
+                        with b_col1:
+                            if str_lit.button(f"Reprendre", key=f"resume_{c_name}_{i}"):
+                                str_lit.session_state.char_select = c_name
+                                str_lit.session_state.page = "chat"
+                                str_lit.rerun()
+                        with b_col2:
+                            if str_lit.button(f"🗑️ Supprimer", key=f"del_{c_name}_{i}"):
+                                try:
+                                    supabase.table("messages").delete().eq("user_pseudo", clean_pseudo).eq("char_name", c_name).execute()
+                                    supabase.table("affinities").delete().eq("user_pseudo", clean_pseudo).eq("char_name", c_name).execute()
+                                    
+                                    cache_key = f"{clean_pseudo}_{c_name}"
+                                    if cache_key in str_lit.session_state.messages_cache:
+                                        del str_lit.session_state.messages_cache[cache_key]
+                                    if cache_key in str_lit.session_state.affinities_cache:
+                                        del str_lit.session_state.affinities_cache[cache_key]
                                         
-                                        cache_key = f"{clean_pseudo}_{c_name}"
-                                        if cache_key in str_lit.session_state.messages_cache:
-                                            del str_lit.session_state.messages_cache[cache_key]
-                                        if cache_key in str_lit.session_state.affinities_cache:
-                                            del str_lit.session_state.affinities_cache[cache_key]
-                                            
-                                        str_lit.success(f"Conversation avec {c_name} supprimée.")
-                                        str_lit.rerun()
-                                    except Exception as e:
-                                        str_lit.error(f"Erreur lors de la suppression : {e}")
+                                    str_lit.success(f"Conversation avec {c_name} supprimée.")
+                                    str_lit.rerun()
+                                except Exception as e:
+                                    str_lit.error(f"Erreur lors de la suppression : {e}")
+                        str_lit.markdown("---")
                 else:
                     str_lit.info("Vous n'avez pas encore de conversations en cours. Allez dans l'Accueil pour commencer une histoire !")
             else:
