@@ -614,19 +614,18 @@ elif str_lit.session_state.page == "chat":
             user_pseudo = str_lit.session_state.pseudo
             intro_msg = (
                 f"Les couloirs de l'académie sont baignés par la lumière crue de l'après-midi, mais l'atmosphère autour de Caelum semble toujours prise dans une pénitence glaciale. "
-                f"Alors que {user_pseudo} marche en ayant les bras chargés de livres, un manque d'attention la fait trébucher et se cogner directement contre lui. "
+                f"Alors que tu marches en ayant les bras chargés de livres, un manque d'attention te fait trébucher et te cogner directement contre lui. "
                 f"Le choc est brutal : les livres s'éparpillent lourdement sur le sol carrelé. "
-                f"{user_pseudo} relève vivement les yeux pour s'excuser et croise aussitôt un regard d'un bleu glacier perçant, glacial et indifférent.\n\n"
-                f"Caelum la regarde de haut, sans un geste pour l'aider à ramasser ses affaires, esquissant un sourire narquois :\n\n"
+                f"Tu relèves vivement les yeux pour t'excuser et croises aussitôt un regard d'un bleu glacier perçant, glacial et indifférent.\n\n"
+                f"Caelum te regarde de haut, sans un geste pour t'aider à ramasser ses affaires, esquissant un sourire narquois :\n\n"
                 f"— Tu devrais regarder où tu mets les pieds, humaine. Ma vie est déjà tracée, et tu n'as rien à y faire."
             )
         else:
             if client:
                 try:
-                    user_pseudo = str_lit.session_state.pseudo
                     init_prompt = [
                         {"role": "system", "content": char_data["prompt"]},
-                        {"role": "user", "content": f"L'utilisateur qui te parle s'appelle {user_pseudo}. Écris un long premier message d'introduction immersif, descriptif et détaillé pour débuter notre roleplay avec {user_pseudo}. Ta phrase d'accroche de référence est : \"{char_data['quote']}\". Mets {user_pseudo} tout de suite dans l'ambiance, décris la scène, tes actions en restant strictement fidèle à ton profil, sans JAMAIS décrire son physique ou ses vêtements."}
+                        {"role": "user", "content": f"Écris un long premier message d'introduction immersif, descriptif et détaillé pour débuter notre roleplay. RÈGLE CRUCIALE POUR CE PREMIER MESSAGE : Tu ne connais PAS encore son prénom. Ne prononce JAMAIS le nom 'Yuna' dans ce premier message. Fais comme si tu ne la connaissais pas du tout. Ta phrase d'accroche de référence est : \"{char_data['quote']}\". Mets l'utilisatrice dans l'ambiance, décris la scène et tes actions en restant strictement fidèle à ton profil, sans JAMAIS décrire son physique ou ses vêtements."}
                     ]
                     with str_lit.spinner(f"Génération de l'introduction avec {current_char}..."):
                         resp_init = client.chat.completions.create(
