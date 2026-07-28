@@ -158,19 +158,24 @@ if "messages_cache" not in str_lit.session_state:
 
 def save_msg(pseudo, char, role, content):
     cache_key = f"{pseudo}_{char}"
-    if cache_key in str_lit.session_state.messages_cache:
-        str_lit.session_state.messages_cache[cache_key].append({"role": role, "content": content})
-        
+    
     if not supabase:
+        if cache_key in str_lit.session_state.messages_cache:
+            str_lit.session_state.messages_cache[cache_key].append({"id": None, "role": role, "content": content})
         return
     try:
         clean_pseudo = str(pseudo).strip()
-        supabase.table("messages").insert({
+        res = supabase.table("messages").insert({
             "user_pseudo": clean_pseudo,
             "char_name": str(char),
             "role": str(role),
             "content": str(content),
         }).execute()
+        
+        msg_id = res.data[0]["id"] if res.data and "id" in res.data[0] else None
+        
+        if cache_key in str_lit.session_state.messages_cache:
+            str_lit.session_state.messages_cache[cache_key].append({"id": msg_id, "role": role, "content": content})
     except Exception:
         pass
 
@@ -186,18 +191,17 @@ def load_msgs(pseudo, char, limit=100):
         clean_pseudo = str(pseudo).strip()
         res = (
             supabase.table("messages")
-            .select("role, content")
+            .select("id, role, content")
             .eq("user_pseudo", clean_pseudo)
             .eq("char_name", str(char))
-            .order("id", desc=True)
+            .order("id", desc=False)
             .limit(limit)
             .execute()
         )
         if res.data:
-            messages = [{"role": r["role"], "content": r["content"]} for r in res.data]
-            formatted_msgs = messages[::-1]
-            str_lit.session_state.messages_cache[cache_key] = formatted_msgs
-            return formatted_msgs
+            messages = [{"id": r["id"], "role": r["role"], "content": r["content"]} for r in res.data]
+            str_lit.session_state.messages_cache[cache_key] = messages
+            return messages
         
         str_lit.session_state.messages_cache[cache_key] = []
         return []
@@ -647,10 +651,12 @@ elif str_lit.session_state.page == "chat":
             else:
                 intro_msg = char_data["quote"]
 
-        messages.append({"role": "assistant", "content": intro_msg})
         save_msg(str_lit.session_state.pseudo, current_char, "assistant", intro_msg)
+        messages = load_msgs(str_lit.session_state.pseudo, current_char, limit=50)
 
     for idx, msg in enumerate(messages):
+        msg_id = msg.get("id")
+        
         if msg["role"] == "assistant":
             col_avatar, col_content, col_actions = str_lit.columns([1, 5, 1.2])
             with col_avatar:
@@ -673,26 +679,21 @@ elif str_lit.session_state.page == "chat":
                         str_lit.session_state[edit_key] = False
                         cache_key = f"{str_lit.session_state.pseudo}_{current_char}"
                         str_lit.session_state.messages_cache[cache_key] = messages
-                        if supabase:
+                        if supabase and msg_id:
                             try:
-                                supabase.table("messages").delete().eq("user_pseudo", str_lit.session_state.pseudo).eq("char_name", current_char).execute()
-                                for m in messages:
-                                    save_msg(str_lit.session_state.pseudo, current_char, m["role"], m["content"])
+                                supabase.table("messages").update({"content": new_text}).eq("id", msg_id).execute()
                             except Exception:
                                 pass
                         str_lit.success("Modifié !")
                         str_lit.rerun()
             with col_actions:
-                # Bouton de suppression individuelle d'un message
                 if str_lit.button("❌", key=f"del_msg_{idx}", help="Supprimer ce message"):
                     messages.pop(idx)
                     cache_key = f"{str_lit.session_state.pseudo}_{current_char}"
                     str_lit.session_state.messages_cache[cache_key] = messages
-                    if supabase:
+                    if supabase and msg_id:
                         try:
-                            supabase.table("messages").delete().eq("user_pseudo", str_lit.session_state.pseudo).eq("char_name", current_char).execute()
-                            for m in messages:
-                                save_msg(str_lit.session_state.pseudo, current_char, m["role"], m["content"])
+                            supabase.table("messages").delete().eq("id", msg_id).execute()
                         except Exception:
                             pass
                     str_lit.rerun()
@@ -701,17 +702,15 @@ elif str_lit.session_state.page == "chat":
                     str_lit.session_state[edit_key] = not str_lit.session_state[edit_key]
                     str_lit.rerun()
                     
-                # Bouton de régénération propre (remplace la dernière réponse au lieu d'en ajouter une autre)
                 if idx == len(messages) - 1 and client:
                     if str_lit.button("🔄", key=f"regen_{idx}", help="Régénérer la réponse"):
-                        messages.pop() # Supprime l'ancienne dernière réponse de la liste active
+                        messages.pop()
                         cache_key = f"{str_lit.session_state.pseudo}_{current_char}"
                         str_lit.session_state.messages_cache[cache_key] = messages
                         
-                        if supabase:
+                        if supabase and msg_id:
                             try:
-                                # Supprime la dernière ligne en base de données
-                                supabase.table("messages").delete().eq("user_pseudo", str_lit.session_state.pseudo).eq("char_name", current_char).order("id", desc=True).limit(1).execute()
+                                supabase.table("messages").delete().eq("id", msg_id).execute()
                             except Exception:
                                 pass
                         
@@ -730,8 +729,10 @@ elif str_lit.session_state.page == "chat":
                                     temperature=0.9,
                                 )
                             bot_reply = response.choices[0].message.content
-                            messages.append({"role": "assistant", "content": bot_reply})
                             save_msg(user_pseudo, current_char, "assistant", bot_reply)
+                            # Actualise le cache local avec le nouveau message chargé depuis Supabase
+                            if cache_key in str_lit.session_state.messages_cache:
+                                del str_lit.session_state.messages_cache[cache_key]
                         except Exception:
                             pass
                         str_lit.rerun()
@@ -749,11 +750,9 @@ elif str_lit.session_state.page == "chat":
                         messages.pop(idx)
                         cache_key = f"{str_lit.session_state.pseudo}_{current_char}"
                         str_lit.session_state.messages_cache[cache_key] = messages
-                        if supabase:
+                        if supabase and msg_id:
                             try:
-                                supabase.table("messages").delete().eq("user_pseudo", str_lit.session_state.pseudo).eq("char_name", current_char).execute()
-                                for m in messages:
-                                    save_msg(str_lit.session_state.pseudo, current_char, m["role"], m["content"])
+                                supabase.table("messages").delete().eq("id", msg_id).execute()
                             except Exception:
                                 pass
                         str_lit.rerun()
@@ -769,11 +768,9 @@ elif str_lit.session_state.page == "chat":
                         str_lit.session_state[edit_u_key] = False
                         cache_key = f"{str_lit.session_state.pseudo}_{current_char}"
                         str_lit.session_state.messages_cache[cache_key] = messages
-                        if supabase:
+                        if supabase and msg_id:
                             try:
-                                supabase.table("messages").delete().eq("user_pseudo", str_lit.session_state.pseudo).eq("char_name", current_char).execute()
-                                for m in messages:
-                                    save_msg(str_lit.session_state.pseudo, current_char, m["role"], m["content"])
+                                supabase.table("messages").update({"content": new_u_text}).eq("id", msg_id).execute()
                             except Exception:
                                 pass
                         str_lit.success("Message modifié !")
@@ -781,9 +778,13 @@ elif str_lit.session_state.page == "chat":
 
     user_input = str_lit.chat_input("Écris ta réponse...")
     if user_input:
-        messages.append({"role": "user", "content": user_input})
         save_msg(str_lit.session_state.pseudo, current_char, "user", user_input)
         update_affinity(str_lit.session_state.pseudo, current_char, 2)
+        
+        # Nettoie le cache pour recharger proprement avec les nouveaux identifiants
+        cache_key = f"{str_lit.session_state.pseudo}_{current_char}"
+        if cache_key in str_lit.session_state.messages_cache:
+            del str_lit.session_state.messages_cache[cache_key]
 
         if client:
             user_pseudo = str_lit.session_state.pseudo
@@ -791,7 +792,8 @@ elif str_lit.session_state.page == "chat":
             aff_context = f" Niveau d'affinité actuel avec Yuna : {current_aff}%."
             context_reminder = {"role": "system", "content": f"Rappel important : Ton interlocuteur actuel s'appelle {user_pseudo}. Adresse-toi directement à elle au féminin en respectant strictement ton profil d'origine.{aff_context}"}
             
-            api_messages = [{"role": "system", "content": char_data["prompt"]}, context_reminder] + messages[-20:]
+            messages_actuels = load_msgs(user_pseudo, current_char, limit=50)
+            api_messages = [{"role": "system", "content": char_data["prompt"]}, context_reminder] + messages_actuels[-20:]
             
             try:
                 with str_lit.spinner(f"{current_char} est en train d'écrire..."):
@@ -801,8 +803,9 @@ elif str_lit.session_state.page == "chat":
                         temperature=0.85,
                     )
                 bot_reply = response.choices[0].message.content
-                messages.append({"role": "assistant", "content": bot_reply})
                 save_msg(user_pseudo, current_char, "assistant", bot_reply)
+                if cache_key in str_lit.session_state.messages_cache:
+                    del str_lit.session_state.messages_cache[cache_key]
             except Exception as e:
                 str_lit.error(f"Erreur de génération : {e}")
         str_lit.rerun()
