@@ -58,16 +58,28 @@ str_lit.markdown(
         border-color: #ffffff !important;
         color: #ffffff !important;
     }
+    .storyia-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-top: 10px;
+        margin-bottom: 20px;
+    }
+    @media (min-width: 900px) {
+        .storyia-grid {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+    }
     .storyia-card {
         background-color: #161b22;
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 12px;
-        padding: 10px;
-        margin-bottom: 15px;
-        height: 340px;
+        overflow: hidden;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
+        height: 100%;
     }
     </style>
 """,
@@ -160,7 +172,7 @@ def get_all_characters():
             "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série ?",
         },
         "Ethan": {
-            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/Ethan.png",
+            "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
             "prompt": "Tu es Ethan, Loup Alpha." + base_instruction,
             "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines...",
         },
@@ -382,34 +394,28 @@ if str_lit.session_state.page == "home":
     end_idx = start_idx + ITEMS_PER_PAGE
     current_items = public_items[start_idx:end_idx]
 
-    # Correction radicale par fond d'écran CSS pour éliminer définitivement les blocs gris
-    cols_per_row = 4
-    for i in range(0, len(current_items), cols_per_row):
-        row_items = current_items[i:i + cols_per_row]
-        cols = str_lit.columns(cols_per_row)
-        
-        for col_idx, (name, data) in enumerate(row_items):
-            with cols[col_idx]:
-                str_lit.markdown('<div class="storyia-card">', unsafe_allow_html=True)
-                
-                img_src = data["img"]
-                if not img_src.startswith("http") and not os.path.exists(img_src):
-                    img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-                
-                str_lit.markdown(
-                    f'<div style="width:100%; height:180px; border-radius:8px; margin-bottom:8px; background-color:#21262d; background-image:url(\'{img_src}\'); background-size:cover; background-position:center;"></div>',
-                    unsafe_allow_html=True
-                )
-                
-                str_lit.markdown(f"**{name}**")
-                str_lit.caption(f'"{data["quote"]}"')
-                
-                if str_lit.button("💬 Discuter", key=f"btn_home_chat_{name}_{i+col_idx}", use_container_width=True):
-                    str_lit.session_state.char_select = name
-                    str_lit.session_state.page = "chat"
-                    str_lit.rerun()
-                    
-                str_lit.markdown('</div>', unsafe_allow_html=True)
+    grid_html = '<div class="storyia-grid">'
+    for idx, (name, data) in enumerate(current_items):
+        img_src = data["img"]
+        if not img_src.startswith("http") and not os.path.exists(img_src):
+            img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+
+        grid_html += f"""
+        <div class="storyia-card">
+            <div>
+                <img src="{img_src}" style="width: 100%; height: 140px; object-fit: cover; display: block;">
+                <div style="padding: 10px 10px 4px 10px;">
+                    <div style="font-weight: 700; font-size: 14px; color: #ffffff; margin-bottom: 2px;">{name}</div>
+                    <div style="font-size: 11px; color: #8b949e; font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 30px;">"{data['quote']}"</div>
+                </div>
+            </div>
+            <div style="padding: 0px 10px 10px 10px;">
+                <a href="?user={str_lit.session_state.pseudo}&chat_target={name}" target="_self" style="display: block; text-align: center; background-color: #21262d; color: #ffffff; padding: 6px 10px; border-radius: 6px; text-decoration: none; border: 1px solid rgba(255, 255, 255, 0.15); font-size: 12px; font-weight: 600;">💬 Discuter</a>
+            </div>
+        </div>
+        """
+    grid_html += "</div>"
+    str_lit.html(grid_html)
 
     if "chat_target" in query_params:
         target_char = query_params["chat_target"]
@@ -467,6 +473,7 @@ elif str_lit.session_state.page == "chat":
         messages.append({"role": "assistant", "content": intro_msg})
         save_msg(str_lit.session_state.pseudo, current_char, "assistant", intro_msg)
 
+    # Affichage des messages avec avatar du personnage
     for idx, msg in enumerate(messages):
         if msg["role"] == "assistant":
             col_avatar, col_content = str_lit.columns([1, 6])
@@ -478,6 +485,7 @@ elif str_lit.session_state.page == "chat":
             with str_lit.chat_message("user"):
                 str_lit.write(msg["content"])
 
+    # --- BOUTON MODIFIER POUR LE DERNIER MESSAGE DE L'ASSISTANT ---
     if messages and messages[-1]["role"] == "assistant":
         last_msg = messages[-1]
         edit_key = f"edit_mode_{len(messages)}"
@@ -645,9 +653,6 @@ elif str_lit.session_state.page == "messages":
 
 elif str_lit.session_state.page == "profile":
     str_lit.title("Mon Profil")
-    user_info = {}
-    avatar_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-    
     if supabase:
         try:
             user_db = (
@@ -664,29 +669,3 @@ elif str_lit.session_state.page == "profile":
             )
         except Exception:
             pass
-            
-    col_p1, col_p2 = str_lit.columns([1, 3])
-    with col_p1:
-        str_lit.image(avatar_path, width=120)
-    with col_p2:
-        str_lit.subheader(f"Pseudo : {str_lit.session_state.pseudo}")
-        str_lit.write(f"E-mail : {user_info.get('email', 'Non renseigné')}")
-    
-    str_lit.markdown("---")
-    str_lit.subheader("Mes Personnages Créés")
-    
-    if supabase:
-        try:
-            my_chars = (
-                supabase.table("custom_characters")
-                .select("*")
-                .eq("creator", str_lit.session_state.pseudo)
-                .execute()
-            )
-            if my_chars.data:
-                for mc in my_chars.data:
-                    str_lit.write(f"• **{mc.get('name')}** - {mc.get('sex')}")
-            else:
-                str_lit.info("Vous n'avez créé aucun personnage pour le moment.")
-        except Exception as e:
-            str_lit.error(f"Erreur lors de la récupération de vos personnages : {e}")
