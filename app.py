@@ -364,24 +364,17 @@ if str_lit.session_state.page == "home":
                 .select("*")
                 .execute()
             )
+            # RÈGLE TYPSY : Les personnages privés n'apparaissent JAMAIS sur le feed public de l'accueil
             public_custom_names = (
                 {item["name"] for item in res_pub.data if item.get("visibility", "Public") != "Privé"} 
                 if res_pub.data else set()
             )
 
-            # On ajoute aussi ses propres personnages privés sur l'accueil ou on filtre les publics
-            my_private_names = (
-                {item["name"] for item in res_pub.data if item.get("creator") == str_lit.session_state.pseudo}
-                if res_pub.data else set()
-            )
-
-            allowed_names = public_custom_names.union(my_private_names)
-
             for name, data in CHARACTERS.items():
                 if name in [
                     "Caelum", "Alexei", "Killian", "Lucas",
                     "Ethan", "Léo", "Liam", "Noah",
-                ] or name in allowed_names:
+                ] or name in public_custom_names:
                     public_items.append((name, data))
         except Exception:
             public_items = list(CHARACTERS.items())
@@ -636,7 +629,7 @@ elif str_lit.session_state.page == "messages":
     char_names_with_conv = get_user_conversations(str_lit.session_state.pseudo)
     if not char_names_with_conv:
         str_lit.info(
-            "Aucune discussion en cours. Choisissez un personnage sur l'accueil !"
+            "Aucune discussion en cours. Choisissez un personnage sur l'accueil ou depuis votre profil !"
         )
     else:
         for char_name in char_names_with_conv:
@@ -683,7 +676,7 @@ elif str_lit.session_state.page == "profile":
         except Exception as e:
             str_lit.error(f"Erreur lors du chargement du profil : {e}")
 
-    # En-tête du Profil (Style Polybuzz)
+    # En-tête du Profil
     col_p1, col_p2, col_p3 = str_lit.columns([1, 2, 2])
     with col_p1:
         if not avatar_path.startswith("http") and not os.path.exists(avatar_path):
@@ -714,7 +707,7 @@ elif str_lit.session_state.page == "profile":
                         str_lit.error(f"Erreur : {e}")
 
     str_lit.markdown("---")
-    str_lit.subheader("✨ Mes Personnages Créés")
+    str_lit.subheader("✨ Mes Personnages Créés (Publics & Privés)")
 
     if supabase:
         try:
@@ -730,6 +723,7 @@ elif str_lit.session_state.page == "profile":
                     c_sex = mc.get('sex', 'Non spécifié')
                     c_quote = mc.get('quote', '')
                     c_desc = mc.get('description', '')
+                    c_vis = mc.get('visibility', 'Public')
                     c_img = mc.get('img_url', 'https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg')
                     
                     if not c_img.startswith("http") and not os.path.exists(c_img):
@@ -740,13 +734,14 @@ elif str_lit.session_state.page == "profile":
                         with cc1:
                             str_lit.image(c_img, width=90)
                         with cc2:
-                            str_lit.markdown(f"#### {c_name} *({c_sex})*")
+                            badge = "🔒 Privé" if c_vis == "Privé" else "🌍 Public"
+                            str_lit.markdown(f"#### {c_name} *({c_sex})* — `{badge}`")
                             if c_quote:
                                 str_lit.markdown(f"> *\"{c_quote}\"*")
                             if c_desc:
                                 str_lit.write(f"**Description :** {c_desc}")
                             
-                            # Bouton direct pour discuter avec son propre personnage privé/public depuis le profil
+                            # Bouton direct pour discuter avec son personnage (même privé) depuis son profil
                             if str_lit.button(f"💬 Discuter avec {c_name}", key=f"chat_my_char_{c_name}"):
                                 str_lit.session_state.char_select = c_name
                                 str_lit.session_state.page = "chat"
