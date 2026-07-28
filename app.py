@@ -504,6 +504,47 @@ if str_lit.session_state.page == "home":
                 del str_lit.query_params["chat_target"]
             str_lit.rerun()
 
+elif str_lit.session_state.page == "messages":
+    str_lit.title("💬 Vos Conversations")
+    str_lit.write("Retrouvez ici tous les personnages avec qui vous avez une histoire en cours :")
+    str_lit.markdown("---")
+
+    if not supabase:
+        str_lit.warning("Base de données non connectée.")
+    else:
+        try:
+            clean_pseudo = str(str_lit.session_state.pseudo).strip()
+            res = supabase.table("messages").select("char_name").eq("user_pseudo", clean_pseudo).execute()
+            
+            if res.data:
+                active_chars = list(set([item["char_name"] for item in res.data if item.get("char_name")]))
+                
+                if active_chars:
+                    cols = str_lit.columns(2)
+                    for i, c_name in enumerate(active_chars):
+                        c_data = CHARACTERS.get(c_name, {"img": DEFAULT_FALLBACK_IMG, "quote": "Discussion en cours..."})
+                        with cols[i % 2]:
+                            str_lit.markdown(f"""
+                            <div style="background-color: #161b22; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 15px; margin-bottom: 15px; display: flex; align-items: center; gap: 15px;">
+                                <img src="{c_data['img']}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">
+                                <div style="flex-grow: 1;">
+                                    <div style="font-weight: 700; font-size: 16px; color: #ffffff;">{c_name}</div>
+                                    <div style="font-size: 12px; color: #8b949e; font-style: italic; margin-bottom: 8px;">Affinité : {get_affinity(clean_pseudo, c_name)}%</div>
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            
+                            if str_lit.button(f"Reprendre avec {c_name}", key=f"resume_{c_name}"):
+                                str_lit.session_state.char_select = c_name
+                                str_lit.session_state.page = "chat"
+                                str_lit.rerun()
+                else:
+                    str_lit.info("Vous n'avez pas encore de conversations en cours. Allez dans l'Accueil pour commencer une histoire !")
+            else:
+                str_lit.info("Aucun historique de message trouvé pour l'instant.")
+        except Exception as e:
+            str_lit.error(f"Erreur lors du chargement des messages : {e}")
+
 elif str_lit.session_state.page == "chat":
     current_char = str_lit.session_state.char_select
     char_data = CHARACTERS.get(current_char, CHARACTERS["Caelum"])
