@@ -203,12 +203,8 @@ def get_all_characters():
     chars = {
         "Caelum": {
             "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
-            "prompt": (
-                "Tu es Caelum, Prince des Ténèbres dans une académie. "
-                "CONTEXTE DE DÉPART STRICT : Yuna vient d'arriver à l'académie. En marchant rapidement dans le couloir, Yuna bouscule accidentellement Caelum et ses affaires s'éparpillent au sol. Caelum regarde Yuna de haut, avec une indifférence totale, et lui dit : "
-                "\"Tu es sur mon chemin, humaine. Ramasse tes affaires et disparais.\"" + base_instruction
-            ),
-            "quote": "Tu es sur mon chemin, humaine. Ramasse tes affaires et disparais.",
+            "prompt": "Tu es Caelum, Prince des Ténèbres." + base_instruction,
+            "quote": "Ne t'approche pas de moi. Ma vie est déjà tracée, et tu n'as rien à y faire.",
         },
         "Alexei": {
             "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg",
@@ -496,8 +492,14 @@ elif str_lit.session_state.page == "chat":
     messages = load_msgs(str_lit.session_state.pseudo, current_char)
     if not messages:
         if current_char == "Caelum":
-            intro_msg = f"{str_lit.session_state.pseudo} vient d'arriver à l'académie. En marchant rapidement dans le couloir, {str_lit.session_state.pseudo} bouscule accidentellement quelqu'un et ses affaires s'éparpillent au sol. {str_lit.session_state.pseudo} lève les yeux et croise un regard bleu glacier. Caelum la regarde de haut, avec une indifférence totale.\n\n" \
-                        f"« Tu es sur mon chemin, humaine. Ramasse tes affaires et disparais. »"
+            user_pseudo = str_lit.session_state.pseudo
+            intro_msg = (
+                f"{user_pseudo} vient d'arriver à l'académie. "
+                f"En marchant rapidement dans le couloir, {user_pseudo} bouscule accidentellement quelqu'un et ses affaires s'éparpillent au sol. "
+                f"{user_pseudo} lève les yeux et croise un regard bleu glacier. "
+                f"Caelum la regarde de haut, avec une indifférence totale.*\n\n"
+                f"Tu es sur mon chemin, humaine. Ramasse tes affaires et disparais."
+            )
         else:
             if client:
                 try:
@@ -759,65 +761,5 @@ elif str_lit.session_state.page == "profile":
                 followers_count = followers_res.count if followers_res.count is not None else 0
             except Exception:
                 pass
-
-            str_lit.markdown(
-                f"""
-                <div style="background-color: #161b22; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px; display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 25px; flex-wrap: wrap;">
-                    <div style="display: flex; align-items: center; gap: 20px;">
-                        <img src="{avatar_path}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,0.2);">
-                        <div>
-                            <h2 style="margin: 0; color: #ffffff;">{str_lit.session_state.pseudo}</h2>
-                            <p style="margin: 4px 0 0 0; color: #8b949e; font-size: 14px;">📧 {user_info.get('email', 'N/A')}</p>
-                        </div>
-                    </div>
-                    <div style="display: flex; gap: 25px; background-color: #0b0e14; padding: 12px 20px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
-                        <div style="text-align: center;">
-                            <div style="font-size: 18px; font-weight: 700; color: #ffffff;">{followers_count}</div>
-                            <div style="font-size: 12px; color: #8b949e;">Abonnés</div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="font-size: 18px; font-weight: 700; color: #ffffff;">{following_count}</div>
-                            <div style="font-size: 12px; color: #8b949e;">Abonnements</div>
-                        </div>
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-            tab_prof1, tab_prof2, tab_prof3, tab_prof4, tab_prof5 = str_lit.tabs([
-                "✨ Mes Personnages", 
-                "👥 Découvrir & Suivre", 
-                "📊 Activité & Stats", 
-                "🖼️ Galerie Souvenirs", 
-                "⚙️ Paramètres"
-            ])
-
-            with tab_prof1:
-                str_lit.subheader("Personnages créés")
-                chars_res = (
-                    supabase.table("custom_characters")
-                    .select("*")
-                    .eq("creator", str_lit.session_state.pseudo)
-                    .execute()
-                )
-                user_created_chars = chars_res.data if chars_res.data else []
-
-                if not user_created_chars:
-                    str_lit.info("Vous n'avez pas encore créé de personnage.")
-                else:
-                    for c in user_created_chars:
-                        c_name = c.get("name")
-                        col_c1, col_c2 = str_lit.columns([4, 1])
-                        with col_c1:
-                            str_lit.write(f"**{c_name}** - {c.get('quote', '')}")
-                        with col_c2:
-                            if str_lit.button("🗑️ Supprimer", key=f"del_char_{c_name}"):
-                                try:
-                                    supabase.table("custom_characters").delete().eq("name", c_name).eq("creator", str_lit.session_state.pseudo).execute()
-                                    str_lit.success(f"Personnage {c_name} supprimé.")
-                                    str_lit.rerun()
-                                except Exception as e:
-                                    str_lit.error(f"Erreur : {e}")
-        except Exception as e:
-            str_lit.error(f"Erreur de chargement du profil : {e}")
+        except Exception:
+            pass
