@@ -152,42 +152,42 @@ def get_all_characters():
 
     chars = {
         "Caelum": {
-            "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
+            "img": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80",
             "prompt": "Tu es Caelum, Prince des Ténèbres." + base_instruction,
             "quote": "Ne t'approche pas de moi. Ma vie est déjà tracée, et tu n'as rien à y faire.",
         },
         "Alexei": {
-            "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg",
+            "img": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=600&q=80",
             "prompt": "Tu es Alexei, mafieux." + base_instruction,
             "quote": "Regardez qui s'est perdue sur mon territoire. La petite princesse des Volkov...",
         },
         "Killian": {
-            "img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg",
+            "img": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=80",
             "prompt": "Tu es Killian, un homme, le motard. C'est toi qui as sauvé Yuna lors de son grave accident de voiture par le passé." + base_instruction,
             "quote": "Respire, c'est fini... Je t'ai sorti de cette voiture à temps, t'inquiète pas.",
         },
         "Lucas": {
-            "img": "https://i.pinimg.com/736x/82/b9/a2/82b9a25b1285226cd80cb18a4a79ef67.jpg",
+            "img": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=600&q=80",
             "prompt": "Tu es Lucas, un garçon populaire, décontracté et complice. RÈGLE ABSOLUE : Tu n'as jamais sauvé Yuna d'un accident de voiture (c'est le rôle d'un autre personnage). Ton univers est celui d'un lycéen/étudiant populaire, tu proposes simplement de squatter le canapé pour regarder une série ensemble." + base_instruction,
             "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série ?",
         },
         "Ethan": {
-            "img": "https://i.pinimg.com/736x/24/70/4e/24704e6c98679f298818bbbcbb3a525d.jpg",
+            "img": "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=600&q=80",
             "prompt": "Tu es Ethan, Loup Alpha." + base_instruction,
             "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines...",
         },
         "Léo": {
-            "img": "https://i.pinimg.com/736x/2f/78/c6/2f78c66e964177b8f9e61266e13028d7.jpg",
+            "img": "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=600&q=80",
             "prompt": "Tu es Léo, streameur." + base_instruction,
             "quote": "Prête à ce qu'on détruise l'équipe d'en face ?",
         },
         "Liam": {
-            "img": "https://i.pinimg.com/736x/3b/68/70/3b6870d0617300c3c54d52e5d7db3444.jpg",
+            "img": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80",
             "prompt": "Tu es Liam, le grand frère." + base_instruction,
             "quote": "Salut, l'amie de ma sœur. Essaie de ne pas faire trop de bruit.",
         },
         "Noah": {
-            "img": "https://i.pinimg.com/736x/5f/17/2d/5f172d76f8490a6125cf15dc3df419a5.jpg",
+            "img": "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=600&q=80",
             "prompt": "Tu es Noah, quarterback star." + base_instruction,
             "quote": "Dis, tu crois qu'on est tous obligés de jouer un rôle pour plaire ?",
         },
@@ -205,13 +205,13 @@ def get_all_characters():
                     desc_val = item.get("description", "")
                     prompt_val = item.get("prompt", f"Tu es {c_name}. {desc_val}")
                     quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
-                    img_url = item.get("img_url", "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg")
+                    img_url = item.get("img_url", "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80")
                     
                     chars[c_name] = {
                         "img": (
                             img_url
                             if img_url and (img_url.startswith("http") or os.path.exists(img_url))
-                            else "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+                            else "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80"
                         ),
                         "prompt": prompt_val + base_instruction,
                         "quote": quote_val,
@@ -399,7 +399,7 @@ if str_lit.session_state.page == "home":
     for idx, (name, data) in enumerate(current_items):
         img_src = data["img"]
         if not img_src.startswith("http") and not os.path.exists(img_src):
-            img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+            img_src = "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80"
 
         grid_html += f"""
         <div class="storyia-card">
@@ -587,7 +587,7 @@ elif str_lit.session_state.page == "create_character":
     
     if str_lit.button("🚀 Créer", use_container_width=True, key="btn_submit_char"):
         if char_name and char_description:
-            img_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+            img_path = "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80"
             if uploaded_char_img is not None:
                 img_path = f"char_{str_lit.session_state.pseudo}_{char_name}.png"
                 with open(img_path, "wb") as f:
@@ -656,7 +656,7 @@ elif str_lit.session_state.page == "messages":
 elif str_lit.session_state.page == "profile":
     str_lit.title("Mon Profil")
     user_info = {}
-    avatar_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+    avatar_path = "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80"
 
     if supabase:
         try:
@@ -676,7 +676,7 @@ elif str_lit.session_state.page == "profile":
     col_p1, col_p2, col_p3 = str_lit.columns([1, 2, 2])
     with col_p1:
         if not avatar_path.startswith("http") and not os.path.exists(avatar_path):
-            avatar_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+            avatar_path = "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80"
         str_lit.image(avatar_path, width=130)
     with col_p2:
         str_lit.subheader(f"Pseudo : {str_lit.session_state.pseudo}")
@@ -718,10 +718,10 @@ elif str_lit.session_state.page == "profile":
                     c_sex = mc.get('sex', 'Non spécifié')
                     c_quote = mc.get('quote', '')
                     c_vis = mc.get('visibility', 'Public')
-                    c_img = mc.get('img_url', 'https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg')
+                    c_img = mc.get('img_url', 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80')
                     
                     if not c_img.startswith("http") and not os.path.exists(c_img):
-                        c_img = 'https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg'
+                        c_img = 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80'
 
                     with str_lit.container():
                         cc1, cc2 = str_lit.columns([1, 4])
