@@ -59,7 +59,6 @@ str_lit.markdown(
         border-color: #ffffff !important;
         color: #ffffff !important;
     }
-    /* Style immersif type roman pour les bulles d'IA */
     .novel-dialogue {
         font-family: 'Georgia', serif;
         font-size: 15px;
@@ -218,7 +217,6 @@ def update_affinity(pseudo, char, delta):
 
 
 def generate_memory_summary(messages_history):
-    """Génère un résumé global de l'intrigue si l'historique devient trop long"""
     if len(messages_history) < 30 or not client:
         return ""
     try:
@@ -580,7 +578,6 @@ elif str_lit.session_state.page == "chat":
             with col_avatar:
                 str_lit.image(char_data["img"], width=65)
             with col_content:
-                # Affichage formaté type roman
                 str_lit.markdown(f'<div class="novel-dialogue">{msg["content"]}</div>', unsafe_allow_html=True)
                 
                 edit_key = f"edit_mode_ast_{idx}"
@@ -671,7 +668,6 @@ elif str_lit.session_state.page == "chat":
         </script>
     """, unsafe_allow_html=True)
 
-    # --- CHOIX RAPIDES / INTERACTIFS ---
     if client and len(messages) > 0 and messages[-1]["role"] == "assistant":
         str_lit.markdown("##### ⚡ Choix rapides suggérés :")
         try:
@@ -684,7 +680,7 @@ elif str_lit.session_state.page == "chat":
                 messages=choices_prompt,
                 temperature=0.7,
                 max_tokens=100
-            ]
+            )
             raw_choices = choices_resp.choices[0].message.content.strip().split("\n")
             clean_choices = [c.strip("- *123.") for c in raw_choices if c.strip()][:3]
             
@@ -730,7 +726,6 @@ elif str_lit.session_state.page == "chat":
                 
                 api_messages = [{"role": "system", "content": system_prompt}, context_reminder] + messages[-20:]
 
-                # --- STREAMING EN TEMPS RÉEL (Effet Machine à écrire) ---
                 response_stream = client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
                     messages=api_messages,
