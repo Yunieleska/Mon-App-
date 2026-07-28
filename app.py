@@ -30,7 +30,7 @@ str_lit.set_page_config(
     page_title="Storyia", layout="wide", initial_sidebar_state="expanded"
 )
 
-# --- STYLE GLOBAL & DESIGN (EFFET ROMAN & UI) ---
+# --- STYLE GLOBAL & DESIGN ---
 str_lit.markdown(
     """
     <style>
@@ -129,10 +129,17 @@ if "affinities_cache" not in str_lit.session_state:
     str_lit.session_state.affinities_cache = {}
 if "selected_quick_choice" not in str_lit.session_state:
     str_lit.session_state.selected_quick_choice = None
+if "messages_cache" not in str_lit.session_state:
+    str_lit.session_state.messages_cache = {}
 
-# --- SUPABASE FUNCTIONS ---
+# --- SUPABASE FUNCTIONS & CACHE ---
 
 def save_msg(pseudo, char, role, content):
+    # Mise à jour immédiate du cache local pour la fluidité
+    cache_key = f"{pseudo}_{char}"
+    if cache_key in str_lit.session_state.messages_cache:
+        str_lit.session_state.messages_cache[cache_key].append({"role": role, "content": content})
+        
     if not supabase:
         return
     try:
@@ -148,6 +155,11 @@ def save_msg(pseudo, char, role, content):
 
 
 def load_msgs(pseudo, char, limit=100):
+    cache_key = f"{pseudo}_{char}"
+    # Utilisation du cache de session pour éviter les requêtes réseau superflues
+    if cache_key in str_lit.session_state.messages_cache:
+        return str_lit.session_state.messages_cache[cache_key]
+
     if not supabase:
         return []
     try:
@@ -163,7 +175,11 @@ def load_msgs(pseudo, char, limit=100):
         )
         if res.data:
             messages = [{"role": r["role"], "content": r["content"]} for r in res.data]
-            return messages[::-1]
+            formatted_msgs = messages[::-1]
+            str_lit.session_state.messages_cache[cache_key] = formatted_msgs
+            return formatted_msgs
+        
+        str_lit.session_state.messages_cache[cache_key] = []
         return []
     except Exception:
         return []
@@ -221,14 +237,15 @@ def generate_memory_summary(messages_history):
         return ""
     try:
         history_text = "\n".join([f"{m['role']}: {m['content']}" for m in messages_history[-40:]])
-        summary_resp = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": "Résume en 3 ou 4 phrases les faits marquants, relations et secrets de cette discussion de roleplay."},
-                {"role": "user", "content": history_text}
-            ],
-            temperature=0.5,
-        )
+        with str_lit.spinner("Analyse des souvenirs de l'histoire..."):
+            summary_resp = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": "Résume en 3 ou 4 phrases les faits marquants, relations et secrets de cette discussion de roleplay."},
+                    {"role": "user", "content": history_text}
+                ],
+                temperature=0.5,
+            )
         return summary_resp.choices[0].message.content
     except Exception:
         return ""
@@ -337,8 +354,7 @@ def get_user_conversations(pseudo):
                 if c_name and c_name in CHARACTERS:
                     chars_met.add(c_name)
         return list(chars_met)
-    except Exception as e:
-        str_lit.error(f"Erreur chargement discussions : {e}")
+    except Exception:
         return []
 
 
@@ -441,6 +457,7 @@ if str_lit.sidebar.button("🚪 Logout"):
             pass
     str_lit.session_state.logged_in = False
     str_lit.session_state.pseudo = "Yuna"
+    str_lit.session_state.messages_cache = {}
     if "user" in str_lit.query_params:
         del str_lit.query_params["user"]
     str_lit.rerun()
@@ -558,11 +575,12 @@ elif str_lit.session_state.page == "chat":
                         {"role": "system", "content": char_data["prompt"]},
                         {"role": "user", "content": f"L'utilisateur qui te parle s'appelle {user_pseudo}. Écris un long premier message d'introduction immersif, descriptif et détaillé pour débuter notre roleplay avec {user_pseudo}. Ta phrase d'accroche de référence est : \"{char_data['quote']}\". Mets {user_pseudo} tout de suite dans l'ambiance, décris la scène, tes actions en restant strictement fidèle à ton profil, sans JAMAIS décrire son physique ou ses vêtements."}
                     ]
-                    resp_init = client.chat.completions.create(
-                        model="llama-3.3-70b-versatile",
-                        messages=init_prompt,
-                        temperature=0.8,
-                    )
+                    with str_lit.spinner(f"Génération de l'introduction avec {current_char}..."):
+                        resp_init = client.chat.completions.create(
+                            model="llama-3.3-70b-versatile",
+                            messages=init_prompt,
+                            temperature=0.8,
+                        )
                     intro_msg = resp_init.choices[0].message.content
                 except Exception:
                     intro_msg = char_data["quote"]
@@ -593,6 +611,8 @@ elif str_lit.session_state.page == "chat":
                     if str_lit.button("💾 Enregistrer", key=f"save_edit_ast_{idx}"):
                         msg["content"] = new_text
                         str_lit.session_state[edit_key] = False
+                        cache_key = f"{str_lit.session_state.pseudo}_{current_char}"
+                        str_lit.session_state.messages_cache[cache_key] = messages
                         if supabase:
                             try:
                                 supabase.table("messages").delete().eq("user_pseudo", str_lit.session_state.pseudo).eq("char_name", current_char).execute()
@@ -609,6 +629,8 @@ elif str_lit.session_state.page == "chat":
                 if idx == len(messages) - 1 and client:
                     if str_lit.button("🔄", key=f"regen_{idx}", help="Régénérer la réponse"):
                         messages.pop()
+                        cache_key = f"{str_lit.session_state.pseudo}_{current_char}"
+                        str_lit.session_state.messages_cache[cache_key] = messages
                         if supabase:
                             try:
                                 supabase.table("messages").delete().eq("user_pseudo", str_lit.session_state.pseudo).eq("char_name", current_char).order("id", desc=True).limit(1).execute()
@@ -623,11 +645,12 @@ elif str_lit.session_state.page == "chat":
                         api_messages = [{"role": "system", "content": char_data["prompt"]}, context_reminder] + messages[-20:]
                         
                         try:
-                            response = client.chat.completions.create(
-                                model="llama-3.3-70b-versatile",
-                                messages=api_messages,
-                                temperature=0.9,
-                            )
+                            with str_lit.spinner("Régénération en cours..."):
+                                response = client.chat.completions.create(
+                                    model="llama-3.3-70b-versatile",
+                                    messages=api_messages,
+                                    temperature=0.9,
+                                )
                             bot_reply = response.choices[0].message.content
                             messages.append({"role": "assistant", "content": bot_reply})
                             save_msg(user_pseudo, current_char, "assistant", bot_reply)
@@ -653,6 +676,8 @@ elif str_lit.session_state.page == "chat":
                     if str_lit.button("💾 Valider", key=f"save_usr_{idx}"):
                         msg["content"] = new_u_text
                         str_lit.session_state[edit_u_key] = False
+                        cache_key = f"{str_lit.session_state.pseudo}_{current_char}"
+                        str_lit.session_state.messages_cache[cache_key] = messages
                         if supabase:
                             try:
                                 supabase.table("messages").delete().eq("user_pseudo", str_lit.session_state.pseudo).eq("char_name", current_char).execute()
@@ -675,12 +700,13 @@ elif str_lit.session_state.page == "chat":
                 {"role": "system", "content": "Génère 3 choix courts d'actions possibles (en 5-8 mots max chacun, commençant par un verbe ou entre crochets) pour l'utilisateur face à ce message. Sépare-les par un retour à la ligne simple."},
                 {"role": "user", "content": messages[-1]["content"]}
             ]
-            choices_resp = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=choices_prompt,
-                temperature=0.7,
-                max_tokens=100
-            )
+            with str_lit.spinner("Chargement des choix rapides..."):
+                choices_resp = client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=choices_prompt,
+                    temperature=0.7,
+                    max_tokens=100
+                )
             raw_choices = choices_resp.choices[0].message.content.strip().split("\n")
             clean_choices = [c.strip("- *123.") for c in raw_choices if c.strip()][:3]
             
@@ -746,124 +772,77 @@ elif str_lit.session_state.page == "chat":
                         delta_content = chunk.choices[0].delta.content
                         if delta_content:
                             bot_reply += delta_content
-                            message_placeholder.markdown(f'<div class="novel-dialogue">{bot_reply}▌</div>', unsafe_allow_html=True)
+                            message_placeholder.markdown(f'<div class="novel-dialogue">{bot_reply}</div>', unsafe_allow_html=True)
                     
-                    message_placeholder.markdown(f'<div class="novel-dialogue">{bot_reply}</div>', unsafe_allow_html=True)
-
-                update_affinity(user_pseudo, current_char, 1)
-                save_msg(str_lit.session_state.pseudo, current_char, "assistant", bot_reply)
-                str_lit.rerun()
-
+                    messages.append({"role": "assistant", "content": bot_reply})
+                    save_msg(user_pseudo, current_char, "assistant", bot_reply)
+                    
+                    update_affinity(user_pseudo, current_char, 1)
+                    str_lit.rerun()
             except Exception as e:
                 typing_placeholder.empty()
-                str_lit.error(f"Erreur de communication avec l'IA : {str(e)}")
-        else:
-            typing_placeholder.empty()
-            str_lit.error("Client Groq non initialisé.")
+                str_lit.error(f"Erreur de génération : {e}")
 
 elif str_lit.session_state.page == "create_character":
-    str_lit.title("✨ Créer un nouveau personnage")
-    
-    str_lit.markdown("""
-        <style>
-        textarea, input[type="text"] {
-            background-color: #21262d !important;
-            color: #ffffff !important;
-            border: 1px solid rgba(255, 255, 255, 0.2) !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-    
-    char_name = str_lit.text_input("Nom du personnage", key="input_char_name")
-    char_sex = str_lit.selectbox(
-        "Sexe / Genre", ["Homme", "Femme", "Non-binaire", "Autre"], key="select_char_sex"
-    )
-    char_quote = str_lit.text_input("Phrase d'accroche", key="input_char_quote")
-    
-    char_description = str_lit.text_area(
-        "Description et Personnalité (Histoire, ton, etc.)", height=150, key="textarea_char_desc"
-    )
-    char_secondary = str_lit.text_area(
-        "Personnages secondaires (Optionnel)", height=100, key="textarea_char_sec"
-    )
-    
-    uploaded_char_img = str_lit.file_uploader(
-        "Image du personnage", type=["png", "jpg", "jpeg"], key="uploader_char_img"
-    )
-    visibility = str_lit.radio(
-        "Visibilité", ["Public (toute la communauté)", "Privé"], key="radio_char_vis"
-    )
-    
-    if str_lit.button("🚀 Créer", use_container_width=True, key="btn_submit_char"):
-        if char_name and char_description:
-            img_path = DEFAULT_FALLBACK_IMG
-            if uploaded_char_img is not None:
-                img_path = f"char_{str_lit.session_state.pseudo}_{char_name}.png"
-                with open(img_path, "wb") as f:
-                    f.write(uploaded_char_img.getbuffer())
+    str_lit.title("✨ Créer un Personnage Personnalisé")
+    str_lit.write("Donne vie à ton propre personnage et discute-ici avec lui !")
 
-            if supabase:
-                try:
-                    built_prompt = f"Tu es {char_name}, un personnage {char_sex}. Description et contexte : {char_description}."
+    with str_lit.form("create_char_form"):
+        c_name = str_lit.text_input("Nom du personnage")
+        c_quote = str_lit.text_input("Citation d'accroche (ex: Bonjour, je t'attendais...)")
+        c_desc = str_lit.text_area("Description et personnalité (ex: Tu es un mage mystérieux...)")
+        c_img = str_lit.text_input("URL de l'image (optionnel)", value=DEFAULT_FALLBACK_IMG)
+        c_visibility = str_lit.selectbox("Visibilité", ["Public", "Privé"])
 
-                    vis_val = "Privé" if "Privé" in visibility else "Public"
-
-                    insert_data = {
-                        "name": char_name,
-                        "creator": str_lit.session_state.pseudo,
-                        "prompt": built_prompt,
-                        "description": char_description,
-                        "sex": char_sex,
-                        "quote": char_quote if char_quote else f"Bonjour, je suis {char_name}.",
-                        "secondary_chars": char_secondary,
-                        "img_url": img_path,
-                        "visibility": vis_val
-                    }
-                    
-                    supabase.table("custom_characters").insert(insert_data).execute()
-                    get_all_characters_cached.clear()
-
-                    str_lit.success("Personnage créé avec succès !")
-                    str_lit.session_state.page = "profile"
-                    str_lit.rerun()
-                except Exception as e:
-                    str_lit.error(f"Erreur Supabase : {e}")
-        else:
-            str_lit.warning("Veuillez remplir au moins le nom et la description du personnage.")
+        submitted = str_lit.form_submit_button("Créer le personnage")
+        if submitted:
+            if not c_name or not c_desc:
+                str_lit.warning("Le nom et la description sont obligatoires.")
+            else:
+                if supabase:
+                    try:
+                        supabase.table("custom_characters").insert({
+                            "name": c_name,
+                            "quote": c_quote,
+                            "description": c_desc,
+                            "img_url": c_img if c_img else DEFAULT_FALLBACK_IMG,
+                            "visibility": c_visibility,
+                            "creator": str_lit.session_state.pseudo
+                        }).execute()
+                        str_lit.success(f"Personnage {c_name} créé avec succès ! Tu le retrouves dans l'accueil.")
+                    except Exception as e:
+                        str_lit.error(f"Erreur lors de la création : {e}")
+                else:
+                    str_lit.error("Base de données Supabase non connectée.")
 
 elif str_lit.session_state.page == "messages":
-    str_lit.title("Mes Discussions")
-    char_names_with_conv = get_user_conversations(str_lit.session_state.pseudo)
-    if not char_names_with_conv:
-        str_lit.info(
-            "Aucune discussion en cours. Choisissez un personnage sur l'accueil ou depuis votre profil !"
-        )
+    str_lit.title("💬 Mes Discussions")
+    str_lit.write("Retrouve l'historique de tes conversations en cours :")
+
+    met_chars = get_user_conversations(str_lit.session_state.pseudo)
+    if not met_chars:
+        str_lit.info("Tu n'as pas encore de conversations enregistrées. Va sur l'accueil pour commencer à discuter !")
     else:
-        for char_name in char_names_with_conv:
-            if char_name in CHARACTERS:
-                col1, col2, col3, col4 = str_lit.columns([1, 3, 1, 1])
-                with col1:
-                    str_lit.image(CHARACTERS[char_name]["img"], width=75)
-                with col2:
-                    str_lit.subheader(char_name)
-                    str_lit.caption(CHARACTERS[char_name]["quote"])
-                with col3:
-                    if str_lit.button(f"Ouvrir", key=f"open_msg_{char_name}"):
-                        str_lit.session_state.char_select = char_name
-                        str_lit.session_state.page = "chat"
-                        str_lit.rerun()
-                with col4:
-                    if str_lit.button(f"🗑️ Supprimer", key=f"del_conv_{char_name}"):
-                        if supabase:
-                            try:
-                                supabase.table("messages").delete().eq("user_pseudo", str_lit.session_state.pseudo).eq("char_name", char_name).execute()
-                                str_lit.success(f"Discussion avec {char_name} supprimée.")
-                                str_lit.rerun()
-                            except Exception as e:
-                                str_lit.error(f"Erreur : {e}")
-                str_lit.markdown("---")
+        for c_name in met_chars:
+            c_data = CHARACTERS.get(c_name, CHARACTERS["Caelum"])
+            col1, col2, col3 = str_lit.columns([1, 4, 2])
+            with col1:
+                str_lit.image(c_data["img"], width=60)
+            with col2:
+                str_lit.subheader(c_name)
+                str_lit.caption(c_data["quote"])
+            with col3:
+                if str_lit.button("Reprendre", key=f"resume_{c_name}"):
+                    str_lit.session_state.char_select = c_name
+                    str_lit.session_state.page = "chat"
+                    str_lit.rerun()
+            str_lit.markdown("---")
 
 elif str_lit.session_state.page == "profile":
-    str_lit.title("Mon Profil")
-    str_lit.write(f"Pseudo actuel : **{str_lit.session_state.pseudo}**")
-    str_lit.info("Gère tes informations et retrouve tes personnages créés ici.")
+    str_lit.title("👤 Mon Profil")
+    str_lit.write(f"Nom d'utilisateur : **{str_lit.session_state.pseudo}**")
+    str_lit.markdown("---")
+    str_lit.subheader("Statistiques de jeu")
+    
+    met_chars = get_user_conversations(str_lit.session_state.pseudo)
+    str_lit.metric("Personnages rencontrés", len(met_chars))
