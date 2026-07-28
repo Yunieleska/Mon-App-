@@ -59,9 +59,6 @@ str_lit.markdown(
         border-color: #ffffff !important;
         color: #ffffff !important;
     }
-    div.row-widget.stButton {
-        text-align: center;
-    }
     </style>
 """,
     unsafe_allow_html=True,
@@ -178,6 +175,7 @@ def get_all_characters():
         try:
             res = supabase.table("custom_characters").select("*").execute()
             if res.data:
+                sup_url = str_lit.secrets.get("SUPABASE_URL", "")
                 for item in res.data:
                     c_name = item.get("name")
                     if not c_name:
@@ -192,11 +190,9 @@ def get_all_characters():
                     if img_url:
                         if img_url.startswith("http"):
                             resolved_img = img_url
-                        else:
-                            try:
-                                resolved_img = supabase.storage.from_('storyia-images').get_public_url(img_url)
-                            except:
-                                pass
+                        elif sup_url:
+                            # Construction directe et sécurisée de l'URL publique Supabase Storage
+                            resolved_img = f"{sup_url}/storage/v1/object/public/storyia-images/{img_url}"
                     
                     chars[c_name] = {
                         "img": resolved_img,
@@ -382,7 +378,6 @@ if str_lit.session_state.page == "home":
     end_idx = start_idx + ITEMS_PER_PAGE
     current_items = public_items[start_idx:end_idx]
 
-    # Grille native Streamlit sécurisée (sans bug HTML)
     cols_per_row = 4
     for i in range(0, len(current_items), cols_per_row):
         row_items = current_items[i:i + cols_per_row]
@@ -634,11 +629,12 @@ elif str_lit.session_state.page == "profile":
             if user_db and user_db.data:
                 user_info = user_db.data
                 raw_avatar = user_info.get("avatar_url", "")
+                sup_url = str_lit.secrets.get("SUPABASE_URL", "")
                 if raw_avatar:
                     if raw_avatar.startswith("http"):
                         avatar_path = raw_avatar
-                    else:
-                        avatar_path = supabase.storage.from_("storyia-images").get_public_url(raw_avatar)
+                    elif sup_url:
+                        avatar_path = f"{sup_url}/storage/v1/object/public/storyia-images/{raw_avatar}"
         except Exception as e:
             str_lit.error(f"Erreur lors du chargement du profil : {e}")
 
@@ -678,6 +674,7 @@ elif str_lit.session_state.page == "profile":
                 .execute()
             )
             if my_chars.data:
+                sup_url = str_lit.secrets.get("SUPABASE_URL", "")
                 for mc in my_chars.data:
                     c_name = mc.get('name')
                     c_sex = mc.get('sex', 'Non spécifié')
@@ -687,8 +684,8 @@ elif str_lit.session_state.page == "profile":
                     
                     if c_img_raw.startswith("http"):
                         c_img = c_img_raw
-                    elif c_img_raw:
-                        c_img = supabase.storage.from_("storyia-images").get_public_url(c_img_raw)
+                    elif c_img_raw and sup_url:
+                        c_img = f"{sup_url}/storage/v1/object/public/storyia-images/{c_img_raw}"
                     else:
                         c_img = 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80'
 
