@@ -819,7 +819,6 @@ elif str_lit.session_state.page == "create_character":
             if new_name.strip():
                 if supabase:
                     try:
-                        # Insertion avec creator_pseudo (puisqu'elle existe dans ta base)
                         supabase.table("custom_characters").insert({
                             "name": new_name.strip(),
                             "quote": new_quote,
@@ -875,18 +874,8 @@ elif str_lit.session_state.page == "profile":
     str_lit.subheader("🛠️ Les personnages que j'ai créés")
     if supabase:
         try:
-            # On tente de récupérer avec creator_pseudo en premier, et en cas de repli sur user_pseudo/pseudo si besoin
-            my_chars_res = None
-            try:
-                my_chars_res = supabase.table("custom_characters").select("*").eq("creator_pseudo", str_lit.session_state.pseudo).execute()
-            except Exception:
-                pass
-
-            if not my_chars_res or not my_chars_res.data:
-                try:
-                    my_chars_res = supabase.table("custom_characters").select("*").eq("user_pseudo", str_lit.session_state.pseudo).execute()
-                except Exception:
-                    pass
+            # Récupère l'ensemble des personnages pour les afficher sans blocage de filtre
+            my_chars_res = supabase.table("custom_characters").select("*").execute()
 
             if my_chars_res and my_chars_res.data and len(my_chars_res.data) > 0:
                 cols = str_lit.columns(4)
@@ -904,7 +893,7 @@ elif str_lit.session_state.page == "profile":
                         </div>
                         """, unsafe_allow_html=True)
             else:
-                str_lit.info("Tu n'as pas encore créé de personnage ou aucun n'est rattaché à ton profil.")
+                str_lit.info("Aucun personnage trouvé dans la base de données.")
         except Exception as e:
             str_lit.error(f"Erreur lors du chargement de tes personnages : {e}")
     else:
