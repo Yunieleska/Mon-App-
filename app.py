@@ -83,6 +83,15 @@ str_lit.markdown(
         -webkit-text-fill-color: #ffffff !important;
         background-color: #161b22 !important;
     }
+    /* Correction pour les infobulles (tooltips / help) en mode sombre */
+    [data-baseweb="tooltip"], [role="tooltip"], div[data-testid="stTooltipContent"] {
+        background-color: #161b22 !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    }
+    [data-baseweb="tooltip"] *, [role="tooltip"] *, div[data-testid="stTooltipContent"] * {
+        color: #ffffff !important;
+    }
     .novel-dialogue {
         font-family: 'Georgia', serif;
         font-size: 15px;
