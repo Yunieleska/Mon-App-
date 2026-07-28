@@ -172,7 +172,7 @@ def get_all_characters():
             "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série ?",
         },
         "Ethan": {
-            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/ethan.png.PNG",
+            "img": "https://raw.githubusercontent.com/Yunieleska/Mon-App-/main/Ethan.png",
             "prompt": "Tu es Ethan, Loup Alpha." + base_instruction,
             "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines...",
         },
@@ -742,33 +742,13 @@ elif str_lit.session_state.page == "profile":
                             )
                             
                             if str_lit.button("Mettre à jour la visibilité", key=f"update_vis_{c_name}"):
-                                updated_vis = "Privé" if "Privé" in new_vis_choice else "Public"
                                 try:
+                                    updated_vis = "Privé" if "Privé" in new_vis_choice else "Public"
                                     supabase.table("custom_characters").update({"visibility": updated_vis}).eq("name", c_name).eq("creator", str_lit.session_state.pseudo).execute()
-                                    str_lit.success(f"Visibilité mise à jour pour {c_name} !")
+                                    str_lit.success("Visibilité mise à jour avec succès !")
                                     str_lit.rerun()
                                 except Exception as e:
                                     str_lit.error(f"Erreur : {e}")
-
-                            str_lit.write("")
-                            b_col1, b_col2 = str_lit.columns(2)
-                            with b_col1:
-                                if str_lit.button(f"💬 Discuter", key=f"chat_my_char_{c_name}"):
-                                    str_lit.session_state.char_select = c_name
-                                    str_lit.session_state.page = "chat"
-                                    str_lit.rerun()
-                            with b_col2:
-                                if str_lit.button(f"🗑️ Supprimer", key=f"del_my_char_{c_name}"):
-                                    try:
-                                        supabase.table("custom_characters").delete().eq("name", c_name).eq("creator", str_lit.session_state.pseudo).execute()
-                                        supabase.table("messages").delete().eq("char_name", c_name).execute()
-                                        str_lit.success(f"Personnage {c_name} supprimé avec succès !")
-                                        str_lit.rerun()
-                                    except Exception as e:
-                                        str_lit.error(f"Erreur lors de la suppression : {e}")
-
-                        str_lit.markdown("---")
-            else:
-                str_lit.info("Vous n'avez créé aucun personnage pour le moment.")
+                    str_lit.markdown("---")
         except Exception as e:
-            str_lit.error(f"Erreur lors de la récupération de vos personnages : {e}")
+            str_lit.error(f"Erreur lors du chargement de vos personnages : {e}")
