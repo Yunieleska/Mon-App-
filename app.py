@@ -203,8 +203,12 @@ def get_all_characters():
     chars = {
         "Caelum": {
             "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
-            "prompt": "Tu es Caelum, Prince des Ténèbres." + base_instruction,
-            "quote": "Ne t'approche pas de moi. Ma vie est déjà tracée, et tu n'as rien à y faire.",
+            "prompt": (
+                "Tu es Caelum, Prince des Ténèbres dans une académie. "
+                "CONTEXTE DE DÉPART STRICT : Yuna vient d'arriver à l'académie. En marchant rapidement dans le couloir, Yuna bouscule accidentellement Caelum et ses affaires s'éparpillent au sol. Caelum regarde Yuna de haut, avec une indifférence totale, et lui dit : "
+                "\"Tu es sur mon chemin, humaine. Ramasse tes affaires et disparais.\"" + base_instruction
+            ),
+            "quote": "Tu es sur mon chemin, humaine. Ramasse tes affaires et disparais.",
         },
         "Alexei": {
             "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg",
@@ -491,23 +495,27 @@ elif str_lit.session_state.page == "chat":
 
     messages = load_msgs(str_lit.session_state.pseudo, current_char)
     if not messages:
-        if client:
-            try:
-                user_pseudo = str_lit.session_state.pseudo
-                init_prompt = [
-                    {"role": "system", "content": char_data["prompt"]},
-                    {"role": "user", "content": f"L'utilisateur qui te parle s'appelle {user_pseudo}. Écris un long premier message d'introduction immersif, descriptif et détaillé pour débuter notre roleplay avec {user_pseudo}. Ta phrase d'accroche de référence est : \"{char_data['quote']}\". Mets {user_pseudo} tout de suite dans l'ambiance, décris la scène, tes actions en restant strictement fidèle à ton propre profil, sans JAMAIS décrire son physique ou ses vêtements. TRÈS IMPORTANT : N'inclus PAS de balise [IMAGE: ...] pour ce tout premier message d'accueil."}
-                ]
-                resp_init = client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
-                    messages=init_prompt,
-                    temperature=0.8,
-                )
-                intro_msg = resp_init.choices[0].message.content
-            except Exception:
-                intro_msg = char_data["quote"]
+        if current_char == "Caelum":
+            intro_msg = f"{str_lit.session_state.pseudo} vient d'arriver à l'académie. En marchant rapidement dans le couloir, {str_lit.session_state.pseudo} bouscule accidentellement quelqu'un et ses affaires s'éparpillent au sol. {str_lit.session_state.pseudo} lève les yeux et croise un regard bleu glacier. Caelum la regarde de haut, avec une indifférence totale.\n\n" \
+                        f"« Tu es sur mon chemin, humaine. Ramasse tes affaires et disparais. »"
         else:
-            intro_msg = char_data["quote"]
+            if client:
+                try:
+                    user_pseudo = str_lit.session_state.pseudo
+                    init_prompt = [
+                        {"role": "system", "content": char_data["prompt"]},
+                        {"role": "user", "content": f"L'utilisateur qui te parle s'appelle {user_pseudo}. Écris un long premier message d'introduction immersif, descriptif et détaillé pour débuter notre roleplay avec {user_pseudo}. Ta phrase d'accroche de référence est : \"{char_data['quote']}\". Mets {user_pseudo} tout de suite dans l'ambiance, décris la scène, tes actions en restant strictement fidèle à ton propre profil, sans JAMAIS décrire son physique ou ses vêtements. TRÈS IMPORTANT : N'inclus PAS de balise [IMAGE: ...] pour ce tout premier message d'accueil."}
+                    ]
+                    resp_init = client.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
+                        messages=init_prompt,
+                        temperature=0.8,
+                    )
+                    intro_msg = resp_init.choices[0].message.content
+                except Exception:
+                    intro_msg = char_data["quote"]
+            else:
+                intro_msg = char_data["quote"]
 
         messages.append({"role": "assistant", "content": intro_msg})
         save_msg(str_lit.session_state.pseudo, current_char, "assistant", intro_msg)
