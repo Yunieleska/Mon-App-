@@ -365,14 +365,23 @@ if str_lit.session_state.page == "home":
                 .execute()
             )
             public_custom_names = (
-                {item["name"] for item in res_pub.data} if res_pub.data else set()
+                {item["name"] for item in res_pub.data if item.get("visibility", "Public") != "Privé"} 
+                if res_pub.data else set()
             )
+
+            # On ajoute aussi ses propres personnages privés sur l'accueil ou on filtre les publics
+            my_private_names = (
+                {item["name"] for item in res_pub.data if item.get("creator") == str_lit.session_state.pseudo}
+                if res_pub.data else set()
+            )
+
+            allowed_names = public_custom_names.union(my_private_names)
 
             for name, data in CHARACTERS.items():
                 if name in [
                     "Caelum", "Alexei", "Killian", "Lucas",
                     "Ethan", "Léo", "Liam", "Noah",
-                ] or name in public_custom_names:
+                ] or name in allowed_names:
                     public_items.append((name, data))
         except Exception:
             public_items = list(CHARACTERS.items())
@@ -598,6 +607,8 @@ elif str_lit.session_state.page == "create_character":
                 try:
                     built_prompt = f"Tu es {char_name}, un personnage {char_sex}. Description et contexte : {char_description}."
 
+                    vis_val = "Privé" if "Privé" in visibility else "Public"
+
                     insert_data = {
                         "name": char_name,
                         "creator": str_lit.session_state.pseudo,
@@ -606,7 +617,8 @@ elif str_lit.session_state.page == "create_character":
                         "sex": char_sex,
                         "quote": char_quote if char_quote else f"Bonjour, je suis {char_name}.",
                         "secondary_chars": char_secondary,
-                        "img_url": img_path
+                        "img_url": img_path,
+                        "visibility": vis_val
                     }
                     
                     supabase.table("custom_characters").insert(insert_data).execute()
@@ -733,6 +745,12 @@ elif str_lit.session_state.page == "profile":
                                 str_lit.markdown(f"> *\"{c_quote}\"*")
                             if c_desc:
                                 str_lit.write(f"**Description :** {c_desc}")
+                            
+                            # Bouton direct pour discuter avec son propre personnage privé/public depuis le profil
+                            if str_lit.button(f"💬 Discuter avec {c_name}", key=f"chat_my_char_{c_name}"):
+                                str_lit.session_state.char_select = c_name
+                                str_lit.session_state.page = "chat"
+                                str_lit.rerun()
                         str_lit.markdown("---")
             else:
                 str_lit.info("Vous n'avez créé aucun personnage pour le moment.")
