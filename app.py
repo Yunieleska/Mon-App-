@@ -52,12 +52,34 @@ str_lit.markdown(
         border: 1px solid rgba(255, 255, 255, 0.15) !important;
         border-radius: 8px !important;
         height: 42px;
-        width: 100%;
     }
     .stButton>button:hover, button[kind="secondary"]:hover, button[kind="primary"]:hover, div.stFormSubmitButton > button:hover {
         background-color: #30363d !important;
         border-color: #ffffff !important;
         color: #ffffff !important;
+    }
+    .storyia-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-top: 10px;
+        margin-bottom: 20px;
+    }
+    @media (min-width: 900px) {
+        .storyia-grid {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+    }
+    .storyia-card {
+        background-color: #161b22;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 100%;
     }
     </style>
 """,
@@ -82,23 +104,6 @@ if "char_select" not in str_lit.session_state:
     str_lit.session_state.char_select = "Caelum"
 
 # --- SUPABASE FUNCTIONS ---
-
-def get_supabase_image_url(path):
-    if not path:
-        return "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80"
-    if path.startswith("http"):
-        return path
-    if supabase:
-        try:
-            res = supabase.storage.from_("storyia-images").get_public_url(path)
-            if res:
-                return res
-        except Exception:
-            pass
-    sup_url = str_lit.secrets.get("SUPABASE_URL", "")
-    if sup_url:
-        return f"{sup_url}/storage/v1/object/public/storyia-images/{path}"
-    return path
 
 def save_msg(pseudo, char, role, content):
     if not supabase:
@@ -147,42 +152,42 @@ def get_all_characters():
 
     chars = {
         "Caelum": {
-            "img": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80",
+            "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
             "prompt": "Tu es Caelum, Prince des Ténèbres." + base_instruction,
             "quote": "Ne t'approche pas de moi. Ma vie est déjà tracée, et tu n'as rien à y faire.",
         },
         "Alexei": {
-            "img": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=600&q=80",
+            "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg",
             "prompt": "Tu es Alexei, mafieux." + base_instruction,
             "quote": "Regardez qui s'est perdue sur mon territoire. La petite princesse des Volkov...",
         },
         "Killian": {
-            "img": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=80",
+            "img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg",
             "prompt": "Tu es Killian, un homme, le motard. C'est toi qui as sauvé Yuna lors de son grave accident de voiture par le passé." + base_instruction,
             "quote": "Respire, c'est fini... Je t'ai sorti de cette voiture à temps, t'inquiète pas.",
         },
         "Lucas": {
-            "img": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=600&q=80",
+            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/lucas.png.PNG",
             "prompt": "Tu es Lucas, un garçon populaire, décontracté et complice. RÈGLE ABSOLUE : Tu n'as jamais sauvé Yuna d'un accident de voiture (c'est le rôle d'un autre personnage). Ton univers est celui d'un lycéen/étudiant populaire, tu proposes simplement de squatter le canapé pour regarder une série ensemble." + base_instruction,
             "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série ?",
         },
         "Ethan": {
-            "img": "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=600&q=80",
+            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/ethan.png.PNG",
             "prompt": "Tu es Ethan, Loup Alpha." + base_instruction,
             "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines...",
         },
         "Léo": {
-            "img": "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=600&q=80",
+            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/leo.png.PNG",
             "prompt": "Tu es Léo, streameur." + base_instruction,
             "quote": "Prête à ce qu'on détruise l'équipe d'en face ?",
         },
         "Liam": {
-            "img": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80",
+            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/liam.png.PNG",
             "prompt": "Tu es Liam, le grand frère." + base_instruction,
             "quote": "Salut, l'amie de ma sœur. Essaie de ne pas faire trop de bruit.",
         },
         "Noah": {
-            "img": "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=600&q=80",
+            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/noah.png.PNG",
             "prompt": "Tu es Noah, quarterback star." + base_instruction,
             "quote": "Dis, tu crois qu'on est tous obligés de jouer un rôle pour plaire ?",
         },
@@ -200,12 +205,14 @@ def get_all_characters():
                     desc_val = item.get("description", "")
                     prompt_val = item.get("prompt", f"Tu es {c_name}. {desc_val}")
                     quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
-                    img_url = item.get("img_url", "")
-                    
-                    resolved_img = get_supabase_image_url(img_url)
+                    img_url = item.get("img_url", "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg")
                     
                     chars[c_name] = {
-                        "img": resolved_img,
+                        "img": (
+                            img_url
+                            if img_url and (img_url.startswith("http") or os.path.exists(img_url))
+                            else "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+                        ),
                         "prompt": prompt_val + base_instruction,
                         "quote": quote_val,
                     }
@@ -388,20 +395,37 @@ if str_lit.session_state.page == "home":
     end_idx = start_idx + ITEMS_PER_PAGE
     current_items = public_items[start_idx:end_idx]
 
-    cols_per_row = 4
-    for i in range(0, len(current_items), cols_per_row):
-        row_items = current_items[i:i + cols_per_row]
-        cols = str_lit.columns(cols_per_row)
-        for col_idx, (name, data) in enumerate(row_items):
-            with cols[col_idx]:
-                str_lit.image(data["img"], use_container_width=True)
-                str_lit.markdown(f"**{name}**")
-                str_lit.markdown(f"<span style='font-size:12px; color:#8b949e; font-style:italic;'>\"{data['quote']}\"</span>", unsafe_allow_html=True)
-                if str_lit.button("💬 Discuter", key=f"btn_grid_{name}_{i}_{col_idx}"):
-                    str_lit.session_state.char_select = name
-                    str_lit.session_state.page = "chat"
-                    str_lit.rerun()
-                str_lit.markdown("---")
+    grid_html = '<div class="storyia-grid">'
+    for idx, (name, data) in enumerate(current_items):
+        img_src = data["img"]
+        if not img_src.startswith("http") and not os.path.exists(img_src):
+            img_src = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+
+        grid_html += f"""
+        <div class="storyia-card">
+            <div>
+                <img src="{img_src}" style="width: 100%; height: 140px; object-fit: cover; display: block;">
+                <div style="padding: 10px 10px 4px 10px;">
+                    <div style="font-weight: 700; font-size: 14px; color: #ffffff; margin-bottom: 2px;">{name}</div>
+                    <div style="font-size: 11px; color: #8b949e; font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 30px;">"{data['quote']}"</div>
+                </div>
+            </div>
+            <div style="padding: 0px 10px 10px 10px;">
+                <a href="?user={str_lit.session_state.pseudo}&chat_target={name}" target="_self" style="display: block; text-align: center; background-color: #21262d; color: #ffffff; padding: 6px 10px; border-radius: 6px; text-decoration: none; border: 1px solid rgba(255, 255, 255, 0.15); font-size: 12px; font-weight: 600;">💬 Discuter</a>
+            </div>
+        </div>
+        """
+    grid_html += "</div>"
+    str_lit.html(grid_html)
+
+    if "chat_target" in query_params:
+        target_char = query_params["chat_target"]
+        if target_char in CHARACTERS:
+            str_lit.session_state.char_select = target_char
+            str_lit.session_state.page = "chat"
+            if "chat_target" in str_lit.query_params:
+                del str_lit.query_params["chat_target"]
+            str_lit.rerun()
 
 elif str_lit.session_state.page == "chat":
     current_char = str_lit.session_state.char_select
@@ -531,6 +555,16 @@ elif str_lit.session_state.page == "chat":
 elif str_lit.session_state.page == "create_character":
     str_lit.title("✨ Créer un nouveau personnage")
     
+    str_lit.markdown("""
+        <style>
+        textarea, input[type="text"] {
+            background-color: #21262d !important;
+            color: #ffffff !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    
     char_name = str_lit.text_input("Nom du personnage", key="input_char_name")
     char_sex = str_lit.selectbox(
         "Sexe / Genre", ["Homme", "Femme", "Non-binaire", "Autre"], key="select_char_sex"
@@ -551,21 +585,18 @@ elif str_lit.session_state.page == "create_character":
         "Visibilité", ["Public (toute la communauté)", "Privé"], key="radio_char_vis"
     )
     
-    if str_lit.button("🚀 Créer", key="btn_submit_char"):
+    if str_lit.button("🚀 Créer", use_container_width=True, key="btn_submit_char"):
         if char_name and char_description:
-            img_path = ""
-            if uploaded_char_img is not None and supabase:
-                try:
-                    file_name = f"char_{str_lit.session_state.pseudo}_{char_name}.png"
-                    file_bytes = uploaded_char_img.getbuffer()
-                    supabase.storage.from_("storyia-images").upload(file_name, file_bytes, {"upsert": "true"})
-                    img_path = file_name
-                except Exception as e:
-                    str_lit.error(f"Erreur d'upload de l'image sur Supabase : {e}")
+            img_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+            if uploaded_char_img is not None:
+                img_path = f"char_{str_lit.session_state.pseudo}_{char_name}.png"
+                with open(img_path, "wb") as f:
+                    f.write(uploaded_char_img.getbuffer())
 
             if supabase:
                 try:
                     built_prompt = f"Tu es {char_name}, un personnage {char_sex}. Description et contexte : {char_description}."
+
                     vis_val = "Privé" if "Privé" in visibility else "Public"
 
                     insert_data = {
@@ -625,7 +656,7 @@ elif str_lit.session_state.page == "messages":
 elif str_lit.session_state.page == "profile":
     str_lit.title("Mon Profil")
     user_info = {}
-    avatar_path = "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80"
+    avatar_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
 
     if supabase:
         try:
@@ -638,14 +669,14 @@ elif str_lit.session_state.page == "profile":
             )
             if user_db and user_db.data:
                 user_info = user_db.data
-                raw_avatar = user_info.get("avatar_url", "")
-                if raw_avatar:
-                    avatar_path = get_supabase_image_url(raw_avatar)
+                avatar_path = user_info.get("avatar_url", avatar_path)
         except Exception as e:
             str_lit.error(f"Erreur lors du chargement du profil : {e}")
 
     col_p1, col_p2, col_p3 = str_lit.columns([1, 2, 2])
     with col_p1:
+        if not avatar_path.startswith("http") and not os.path.exists(avatar_path):
+            avatar_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
         str_lit.image(avatar_path, width=130)
     with col_p2:
         str_lit.subheader(f"Pseudo : {str_lit.session_state.pseudo}")
@@ -658,15 +689,17 @@ elif str_lit.session_state.page == "profile":
     with str_lit.expander("🖼️ Modifier ma photo de profil"):
         new_avatar_file = str_lit.file_uploader("Choisir une image", type=["png", "jpg", "jpeg"], key="upload_avatar")
         if str_lit.button("Enregistrer la photo"):
-            if new_avatar_file is not None and supabase:
-                try:
-                    avatar_filename = f"avatar_{str_lit.session_state.pseudo}.png"
-                    supabase.storage.from_("storyia-images").upload(avatar_filename, new_avatar_file.getbuffer(), {"upsert": "true"})
-                    supabase.table("users").update({"avatar_url": avatar_filename}).eq("pseudo", str_lit.session_state.pseudo).execute()
-                    str_lit.success("Photo de profil mise à jour !")
-                    str_lit.rerun()
-                except Exception as e:
-                    str_lit.error(f"Erreur : {e}")
+            if new_avatar_file is not None:
+                new_avatar_path = f"avatar_{str_lit.session_state.pseudo}.png"
+                with open(new_avatar_path, "wb") as f:
+                    f.write(new_avatar_file.getbuffer())
+                if supabase:
+                    try:
+                        supabase.table("users").update({"avatar_url": new_avatar_path}).eq("pseudo", str_lit.session_state.pseudo).execute()
+                        str_lit.success("Photo de profil mise à jour !")
+                        str_lit.rerun()
+                    except Exception as e:
+                        str_lit.error(f"Erreur : {e}")
 
     str_lit.markdown("---")
     str_lit.subheader("✨ Mes Personnages Créés (Publics & Privés)")
@@ -685,9 +718,10 @@ elif str_lit.session_state.page == "profile":
                     c_sex = mc.get('sex', 'Non spécifié')
                     c_quote = mc.get('quote', '')
                     c_vis = mc.get('visibility', 'Public')
-                    c_img_raw = mc.get('img_url', '')
+                    c_img = mc.get('img_url', 'https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg')
                     
-                    c_img = get_supabase_image_url(c_img_raw)
+                    if not c_img.startswith("http") and not os.path.exists(c_img):
+                        c_img = 'https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg'
 
                     with str_lit.container():
                         cc1, cc2 = str_lit.columns([1, 4])
@@ -723,5 +757,18 @@ elif str_lit.session_state.page == "profile":
                                     str_lit.session_state.char_select = c_name
                                     str_lit.session_state.page = "chat"
                                     str_lit.rerun()
+                            with b_col2:
+                                if str_lit.button(f"🗑️ Supprimer", key=f"del_my_char_{c_name}"):
+                                    try:
+                                        supabase.table("custom_characters").delete().eq("name", c_name).eq("creator", str_lit.session_state.pseudo).execute()
+                                        supabase.table("messages").delete().eq("char_name", c_name).execute()
+                                        str_lit.success(f"Personnage {c_name} supprimé avec succès !")
+                                        str_lit.rerun()
+                                    except Exception as e:
+                                        str_lit.error(f"Erreur lors de la suppression : {e}")
+
+                        str_lit.markdown("---")
+            else:
+                str_lit.info("Vous n'avez créé aucun personnage pour le moment.")
         except Exception as e:
-            str_lit.error(f"Erreur lors du chargement de vos personnages : {e}")
+            str_lit.error(f"Erreur lors de la récupération de vos personnages : {e}")
