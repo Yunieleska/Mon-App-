@@ -819,6 +819,7 @@ elif str_lit.session_state.page == "create_character":
             if new_name.strip():
                 if supabase:
                     try:
+                        # Insertion avec creator_pseudo (puisqu'elle existe dans ta base)
                         supabase.table("custom_characters").insert({
                             "name": new_name.strip(),
                             "quote": new_quote,
@@ -834,7 +835,7 @@ elif str_lit.session_state.page == "create_character":
                     except Exception as e:
                         str_lit.error(f"Erreur lors de l'enregistrement : {e}")
                 else:
-                    str_lit.warning("Supabase n'est pas configuré pour sauvegarder les personnages personnalisés.")
+                    str_lit.warning("Supabase n'est pas configuré.")
             else:
                 str_lit.error("Veuillez donner un nom à votre personnage.")
 
@@ -874,9 +875,20 @@ elif str_lit.session_state.page == "profile":
     str_lit.subheader("🛠️ Les personnages que j'ai créés")
     if supabase:
         try:
-            my_chars_res = supabase.table("custom_characters").select("*").eq("creator_pseudo", str_lit.session_state.pseudo).execute()
-            
-            if my_chars_res.data and len(my_chars_res.data) > 0:
+            # On tente de récupérer avec creator_pseudo en premier, et en cas de repli sur user_pseudo/pseudo si besoin
+            my_chars_res = None
+            try:
+                my_chars_res = supabase.table("custom_characters").select("*").eq("creator_pseudo", str_lit.session_state.pseudo).execute()
+            except Exception:
+                pass
+
+            if not my_chars_res or not my_chars_res.data:
+                try:
+                    my_chars_res = supabase.table("custom_characters").select("*").eq("user_pseudo", str_lit.session_state.pseudo).execute()
+                except Exception:
+                    pass
+
+            if my_chars_res and my_chars_res.data and len(my_chars_res.data) > 0:
                 cols = str_lit.columns(4)
                 for i, char in enumerate(my_chars_res.data):
                     with cols[i % 4]:
@@ -885,18 +897,18 @@ elif str_lit.session_state.page == "profile":
                             c_img = DEFAULT_FALLBACK_IMG
                             
                         str_lit.markdown(f"""
-                        <div style="background-color: #21262d; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 10px; padding: 10px; text-align: center;">
+                        <div style="background-color: #21262d; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 10px; padding: 10px; text-align: center; margin-bottom: 10px;">
                             <img src="{c_img}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 10px;">
                             <strong style="color: #ffffff; font-size: 14px;">{char.get('name')}</strong><br>
                             <span style="font-size: 12px; color: #8b949e;">{char.get('visibility', 'Public')}</span>
                         </div>
                         """, unsafe_allow_html=True)
             else:
-                str_lit.info("Tu n'as pas encore créé de personnage. Va dans l'onglet 'Créer un Personnage' pour commencer !")
+                str_lit.info("Tu n'as pas encore créé de personnage ou aucun n'est rattaché à ton profil.")
         except Exception as e:
             str_lit.error(f"Erreur lors du chargement de tes personnages : {e}")
     else:
-        str_lit.warning("Connexion à la base de données requise pour voir tes personnages.")
+        str_lit.warning("Connexion à la base de données requise.")
 
     str_lit.markdown("<br>", unsafe_allow_html=True)
 
