@@ -322,7 +322,12 @@ def get_all_characters_cached():
                     desc_val = item.get("description", "")
                     prompt_val = item.get("prompt", f"Tu es {c_name}. {desc_val}")
                     quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
-                    img_url = item.get("img_url", DEFAULT_FALLBACK_IMG)
+                    
+                    # Attribution forcée de ton image personnalisée pour Lord Valerian Vance
+                    if c_name == "Lord Valerian Vance":
+                        img_url = "https://i.ibb.co/Cstfcz6S/image.png"
+                    else:
+                        img_url = item.get("img_url", DEFAULT_FALLBACK_IMG)
                     
                     chars[c_name] = {
                         "img": img_url if img_url and (img_url.startswith("http") or os.path.exists(img_url)) else DEFAULT_FALLBACK_IMG,
@@ -880,9 +885,13 @@ elif str_lit.session_state.page == "profile":
                 cols = str_lit.columns(4)
                 for i, char in enumerate(my_chars_res.data):
                     with cols[i % 4]:
-                        c_img = char.get("img_url", "")
-                        if not c_img or not c_img.startswith("http"):
-                            c_img = DEFAULT_FALLBACK_IMG
+                        c_name_val = char.get("name")
+                        if c_name_val == "Lord Valerian Vance":
+                            c_img = "https://i.ibb.co/Cstfcz6S/image.png"
+                        else:
+                            c_img = char.get("img_url", "")
+                            if not c_img or not c_img.startswith("http"):
+                                c_img = DEFAULT_FALLBACK_IMG
                             
                         str_lit.markdown(f"""
                         <div style="background-color: #21262d; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 10px; padding: 10px; text-align: center; margin-bottom: 10px;">
