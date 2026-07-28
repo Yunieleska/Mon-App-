@@ -842,4 +842,35 @@ elif str_lit.session_state.page == "profile":
     str_lit.title("👤 Profil Utilisateur")
     str_lit.write(f"Gestion de ton profil pour le pseudo : **{str_lit.session_state.pseudo}**")
     str_lit.markdown("---")
-    str_lit.info("Ici, tu peux retrouver les informations générales de ton compte.")
+
+    user_email = "Non disponible"
+    if supabase:
+        try:
+            res = supabase.table("users").select("*").eq("pseudo", str_lit.session_state.pseudo).maybe_single().execute()
+            if res and res.data:
+                user_email = res.data.get("email", "Non renseigné")
+        except Exception:
+            pass
+
+    str_lit.markdown(f"""
+    <div style="background-color: #161b22; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+        <h3 style="margin-top: 0; color: #58a6ff;">Informations du compte</h3>
+        <p><b>Pseudo :</b> {str_lit.session_state.pseudo}</p>
+        <p><b>E-mail :</b> {user_email}</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    str_lit.subheader("📊 Statistiques de tes histoires")
+    if supabase:
+        try:
+            clean_pseudo = str(str_lit.session_state.pseudo).strip()
+            res_msg = supabase.table("messages").select("char_name").eq("user_pseudo", clean_pseudo).execute()
+            if res_msg.data:
+                nb_convs = len(set([item["char_name"] for item in res_msg.data if item.get("char_name")]))
+                str_lit.info(f"Tu as actuellement **{nb_convs}** conversation(s) active(s) en cours.")
+            else:
+                str_lit.info("Tu n'as pas encore de conversations enregistrées.")
+        except Exception:
+            str_lit.info("Impossible de charger les statistiques pour le moment.")
+    else:
+        str_lit.info("Mode hors-ligne : statistiques non disponibles.")
