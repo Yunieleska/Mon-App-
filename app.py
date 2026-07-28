@@ -81,6 +81,12 @@ str_lit.markdown(
         justify-content: space-between;
         height: 100%;
     }
+    .typing-indicator {
+        font-style: italic;
+        color: #8b949e !important;
+        font-size: 13px;
+        margin-bottom: 10px;
+    }
     </style>
 """,
     unsafe_allow_html=True,
@@ -142,7 +148,45 @@ def load_msgs(pseudo, char):
         return []
 
 
-def get_all_characters():
+def get_affinity(pseudo, char):
+    if not supabase:
+        return 50
+    try:
+        res = (
+            supabase.table("affinities")
+            .select("score")
+            .eq("user_pseudo", str(pseudo).strip())
+            .eq("char_name", str(char))
+            .maybe_single()
+            .execute()
+        )
+        if res and res.data:
+            return res.data["score"]
+        else:
+            supabase.table("affinities").insert({
+                "user_pseudo": str(pseudo).strip(),
+                "char_name": str(char),
+                "score": 50
+            }).execute()
+            return 50
+    except Exception:
+        return 50
+
+
+def update_affinity(pseudo, char, delta):
+    if not supabase:
+        return 50
+    try:
+        current = get_affinity(pseudo, char)
+        new_score = max(0, min(100, current + delta))
+        supabase.table("affinities").update({"score": new_score}).eq("user_pseudo", str(pseudo).strip()).eq("char_name", str(char)).execute()
+        return new_score
+    except Exception:
+        return 50
+
+
+# Cache mis en place pour optimiser les requêtes Supabase sur les personnages
+def get_all_characters_cached():
     base_instruction = (
         " Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. "
         "RÈGLE ABSOLUE : L'utilisateur à qui tu parles s'appelle Yuna. Tu t'adresses TOUJOURS à Yuna en utilisant les accords féminins et son prénom. "
@@ -221,8 +265,7 @@ def get_all_characters():
 
     return chars
 
-
-CHARACTERS = get_all_characters()
+CHARACTERS = get_all_characters_cached()
 
 
 def get_user_conversations(pseudo):
@@ -431,12 +474,16 @@ elif str_lit.session_state.page == "chat":
     current_char = str_lit.session_state.char_select
     char_data = CHARACTERS.get(current_char, CHARACTERS["Caelum"])
 
-    col_h1, col_h2 = str_lit.columns([1, 5])
+    col_h1, col_h2, col_h3 = str_lit.columns([1, 4, 2])
     with col_h1:
         str_lit.image(char_data["img"], width=80)
     with col_h2:
         str_lit.title(current_char)
         str_lit.caption(char_data["quote"])
+    with col_h3:
+        affinity_score = get_affinity(str_lit.session_state.pseudo, current_char)
+        str_lit.markdown("### 💖 Affinité")
+        str_lit.progress(affinity_score / 100.0, text=f"{affinity_score}%")
 
     str_lit.markdown("---")
 
@@ -481,42 +528,69 @@ elif str_lit.session_state.page == "chat":
                 str_lit.image(char_data["img"], width=65)
             with col_content:
                 str_lit.write(msg["content"])
+                
+                # Bouton Modifier / Enregistrer pour l'Assistant
+                edit_key = f"edit_mode_ast_{idx}"
+                if edit_key not in str_lit.session_state:
+                    str_lit.session_state[edit_key] = False
+
+                if str_lit.button("✏️ Modifier", key=f"btn_edit_ast_{idx}"):
+                    str_lit.session_state[edit_key] = not str_lit.session_state[edit_key]
+                    str_lit.rerun()
+
+                if str_lit.session_state[edit_key]:
+                    new_text = str_lit.text_area(
+                        "Modifier la réponse de l'IA :",
+                        value=msg["content"],
+                        key=f"textarea_edit_ast_{idx}"
+                    )
+                    if str_lit.button("💾 Enregistrer", key=f"save_edit_ast_{idx}"):
+                        msg["content"] = new_text
+                        str_lit.session_state[edit_key] = False
+                        if supabase:
+                            try:
+                                supabase.table("messages").delete().eq("user_pseudo", str_lit.session_state.pseudo).eq("char_name", current_char).execute()
+                                for m in messages:
+                                    save_msg(str_lit.session_state.pseudo, current_char, m["role"], m["content"])
+                            except Exception:
+                                pass
+                        str_lit.success("Modifié !")
+                        str_lit.rerun()
         else:
             with str_lit.chat_message("user"):
                 str_lit.write(msg["content"])
-
-    if messages and messages[-1]["role"] == "assistant":
-        last_msg = messages[-1]
-        edit_key = f"edit_mode_{len(messages)}"
-        if edit_key not in str_lit.session_state:
-            str_lit.session_state[edit_key] = False
-
-        col_btn1, col_btn2 = str_lit.columns([1, 5])
-        with col_btn1:
-            if str_lit.button("✏️ Modifier", key=f"btn_edit_{len(messages)}"):
-                str_lit.session_state[edit_key] = not str_lit.session_state[edit_key]
-                str_lit.rerun()
-
-        if str_lit.session_state[edit_key]:
-            new_text = str_lit.text_area(
-                "Modifier la réponse de l'IA :",
-                value=last_msg["content"],
-                key=f"textarea_edit_{len(messages)}"
-            )
-            if str_lit.button("💾 Enregistrer la modification", key=f"save_edit_{len(messages)}"):
-                last_msg["content"] = new_text
-                str_lit.session_state[edit_key] = False
                 
-                if supabase:
-                    try:
-                        supabase.table("messages").delete().eq("user_pseudo", str_lit.session_state.pseudo).eq("char_name", current_char).eq("role", "assistant").execute()
-                        for m in messages:
-                            save_msg(str_lit.session_state.pseudo, current_char, m["role"], m["content"])
-                    except Exception as e:
-                        str_lit.error(f"Erreur lors de la sauvegarde : {e}")
-                        
-                str_lit.success("Message modifié avec succès !")
-                str_lit.rerun()
+                # Option de modification / suppression pour l'Utilisateur
+                edit_u_key = f"edit_mode_usr_{idx}"
+                if edit_u_key not in str_lit.session_state:
+                    str_lit.session_state[edit_u_key] = False
+
+                col_u1, col_u2 = str_lit.columns([1, 5])
+                with col_u1:
+                    if str_lit.button("✏️", key=f"btn_edit_usr_{idx}"):
+                        str_lit.session_state[edit_u_key] = not str_lit.session_state[edit_u_key]
+                        str_lit.rerun()
+
+                if str_lit.session_state[edit_u_key]:
+                    new_u_text = str_lit.text_input("Modifier ton message :", value=msg["content"], key=f"txt_usr_{idx}")
+                    if str_lit.button("💾 Valider", key=f"save_usr_{idx}"):
+                        msg["content"] = new_u_text
+                        str_lit.session_state[edit_u_key] = False
+                        if supabase:
+                            try:
+                                supabase.table("messages").delete().eq("user_pseudo", str_lit.session_state.pseudo).eq("char_name", current_char).execute()
+                                for m in messages:
+                                    save_msg(str_lit.session_state.pseudo, current_char, m["role"], m["content"])
+                            except Exception:
+                                pass
+                        str_lit.rerun()
+
+    # Script d'auto-scroll vers le bas de la page
+    str_lit.markdown("""
+        <script>
+            window.scrollTo(0, document.body.scrollHeight);
+        </script>
+    """, unsafe_allow_html=True)
 
     user_input = str_lit.chat_input("Votre message...")
     if user_input:
@@ -525,14 +599,25 @@ elif str_lit.session_state.page == "chat":
         save_msg(str_lit.session_state.pseudo, current_char, "user", user_input)
         messages.append({"role": "user", "content": user_input})
 
+        # Affichage de l'indicateur de frappe
+        typing_placeholder = str_lit.empty()
+        typing_placeholder.markdown(f'<div class="typing-indicator">💬 {current_char} est en train d'écrire...</div>', unsafe_allow_html=True)
+
         if client:
             try:
                 user_pseudo = str_lit.session_state.pseudo
-                context_reminder = {"role": "system", "content": f"Rappel important : Ton interlocuteur actuel s'appelle {user_pseudo}. Adresse-toi directement à elle au féminin en respectant strictement ton profil d'origine."}
+                current_aff = get_affinity(user_pseudo, current_char)
+                
+                # Adaptation du comportement selon l'affinité
+                aff_context = f" Niveau d'affinité actuel avec Yuna : {current_aff}%."
+                if current_aff < 30:
+                    aff_context += " Tu es distant, froid ou méfiant envers elle."
+                elif current_aff > 70:
+                    aff_context += " Tu es très attaché, chaleureux et complice avec elle."
+
+                context_reminder = {"role": "system", "content": f"Rappel important : Ton interlocuteur actuel s'appelle {user_pseudo}. Adresse-toi directement à elle au féminin en respectant strictement ton profil d'origine.{aff_context}"}
                 system_prompt = char_data["prompt"]
                 
-                # OPTIMISATION DE LA MÉMOIRE LONG TERME SANS PERDRE SUPABASE : 
-                # On envoie les 50 derniers messages pour garder l'IA rapide et performante
                 api_messages = [{"role": "system", "content": system_prompt}, context_reminder] + messages[-50:]
 
                 response = client.chat.completions.create(
@@ -541,10 +626,17 @@ elif str_lit.session_state.page == "chat":
                     temperature=0.8,
                 )
                 bot_reply = response.choices[0].message.content
+                
+                # Évolution automatique de l'affinité (+1 par message constructif)
+                update_affinity(user_pseudo, current_char, 1)
+
             except Exception as e:
                 bot_reply = f"Erreur de communication avec l'IA : {str(e)}"
         else:
             bot_reply = "Client Groq non initialisé."
+
+        # Effacer l'indicateur de frappe
+        typing_placeholder.empty()
 
         col_avatar, col_content = str_lit.columns([1, 6])
         with col_avatar:
@@ -615,6 +707,9 @@ elif str_lit.session_state.page == "create_character":
                     }
                     
                     supabase.table("custom_characters").insert(insert_data).execute()
+                    
+                    # Purger le cache pour prendre en compte le nouveau personnage instantanément
+                    get_all_characters_cached.clear()
 
                     str_lit.success("Personnage créé avec succès !")
                     str_lit.session_state.page = "profile"
@@ -748,6 +843,7 @@ elif str_lit.session_state.page == "profile":
                                 try:
                                     new_vis_val = "Privé" if "Privé" in new_vis_choice else "Public"
                                     supabase.table("custom_characters").update({"visibility": new_vis_val}).eq("name", c_name).eq("creator", str_lit.session_state.pseudo.strip()).execute()
+                                    get_all_characters_cached.clear()
                                     str_lit.success("Visibilité mise à jour !")
                                     str_lit.rerun()
                                 except Exception as e:
