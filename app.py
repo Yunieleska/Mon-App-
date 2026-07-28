@@ -70,12 +70,18 @@ str_lit.markdown(
         border-color: #ffffff !important;
         color: #ffffff !important;
     }
-    /* Correction pour enlever le rectangle blanc au clic / focus */
+    /* Correction pour enlever le rectangle blanc au clic / focus sur les boutons */
     .stButton>button:focus, .stButton>button:active, button[kind="secondary"]:focus, button[kind="secondary"]:active {
         background-color: #21262d !important;
         color: #ffffff !important;
         box-shadow: none !important;
         border-color: rgba(255, 255, 255, 0.3) !important;
+    }
+    /* Correction pour la couleur du texte dans les zones de texte et inputs */
+    textarea, input[type="text"], [data-baseweb="input"] input, [data-baseweb="textarea"] textarea {
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+        background-color: #161b22 !important;
     }
     .novel-dialogue {
         font-family: 'Georgia', serif;
