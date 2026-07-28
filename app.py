@@ -892,34 +892,59 @@ elif str_lit.session_state.page == "profile":
         except Exception:
             pass
 
-    # --- 2. CARTE PROFIL & MODIFICATION DE L'AVATAR ---
-    str_lit.markdown(f"""
-    <div style="background: linear-gradient(135deg, #1f1a24 0%, #0d1117 100%); border: 1px solid rgba(210, 153, 234, 0.2); border-radius: 16px; padding: 25px; margin-bottom: 25px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 25px;">
-        <img src="{avatar_url}" style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 2px solid #d299ea; box-shadow: 0 0 15px rgba(210,153,234,0.3);">
-        <div>
+    if "edit_avatar_open" not in str_lit.session_state:
+        str_lit.session_state.edit_avatar_open = False
+
+    # --- 2. CARTE PROFIL & AVATAR DISCRET ---
+    col_av1, col_av2 = str_lit.columns([1.5, 8.5])
+    
+    with col_av1:
+        str_lit.markdown(f"""
+        <div style="position: relative; display: inline-block;">
+            <img src="{avatar_url}" style="width: 95px; height: 95px; border-radius: 50%; object-fit: cover; border: 2px solid #d299ea; box-shadow: 0 0 15px rgba(210,153,234,0.3);">
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if str_lit.button("✏️ Modifier", key="toggle_edit_avatar", help="Changer la photo de profil"):
+            str_lit.session_state.edit_avatar_open = not str_lit.session_state.edit_avatar_open
+            str_lit.rerun()
+
+    with col_av2:
+        str_lit.markdown(f"""
+        <div style="padding-top: 10px;">
             <h2 style="margin: 0 0 5px 0; color: #f0f6fc; font-family: 'Georgia', serif;">{str_lit.session_state.pseudo}</h2>
             <p style="margin: 0; color: #8b949e; font-size: 14px;">Membre des ombres • E-mail : {user_email}</p>
             <span style="display: inline-block; margin-top: 8px; background-color: rgba(210, 153, 234, 0.1); color: #d299ea; padding: 2px 10px; border-radius: 12px; font-size: 11px; border: 1px solid rgba(210, 153, 234, 0.3);">Lecteur / Rôle-playeur</span>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
-    # Formulaire de modification de la photo de profil
-    with str_lit.form("update_avatar_form"):
-        str_lit.subheader("✏️ Modifier ta photo de profil")
-        new_avatar_input = str_lit.text_input("Nouvelle URL de l'image de profil", value=avatar_url)
-        submitted_avatar = str_lit.form_submit_button("Mettre à jour l'avatar")
-        
-        if submitted_avatar:
-            if supabase:
-                try:
-                    supabase.table("users").update({"avatar_url": new_avatar_input.strip()}).eq("pseudo", str_lit.session_state.pseudo).execute()
-                    str_lit.success("Photo de profil mise à jour avec succès !")
+    if str_lit.session_state.edit_avatar_open:
+        str_lit.markdown("<br>", unsafe_allow_html=True)
+        with str_lit.container():
+            str_lit.markdown("""
+            <div style="background-color: #161b22; border: 1px solid rgba(210, 153, 234, 0.2); border-radius: 10px; padding: 15px; margin-bottom: 20px;">
+                <div style="font-size: 13px; color: #c9d1d9; margin-bottom: 8px;">Colle ci-dessous le lien direct de ta nouvelle image de profil :</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            new_avatar_input = str_lit.text_input("URL de l'avatar", value=avatar_url, label_visibility="collapsed")
+            col_b1, col_b2, _ = str_lit.columns([1, 1, 3])
+            with col_b1:
+                if str_lit.button("💾 Enregistrer"):
+                    if supabase:
+                        try:
+                            supabase.table("users").update({"avatar_url": new_avatar_input.strip()}).eq("pseudo", str_lit.session_state.pseudo).execute()
+                            str_lit.session_state.edit_avatar_open = False
+                            str_lit.success("Photo de profil mise à jour !")
+                            str_lit.rerun()
+                        except Exception as e:
+                            str_lit.error(f"Erreur : {e}")
+                    else:
+                        str_lit.warning("Supabase non connecté.")
+            with col_b2:
+                if str_lit.button("Annuler"):
+                    str_lit.session_state.edit_avatar_open = False
                     str_lit.rerun()
-                except Exception as e:
-                    str_lit.error(f"Erreur lors de la mise à jour : {e}")
-            else:
-                str_lit.warning("Supabase non connecté.")
 
     str_lit.markdown("<br>", unsafe_allow_html=True)
 
