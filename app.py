@@ -172,7 +172,7 @@ def get_all_characters():
             "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série ?",
         },
         "Ethan": {
-            "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
+            "img": "https://i.pinimg.com/736x/8b/16/7a/8b167af653c2399dd93b952a48740620.jpg",
             "prompt": "Tu es Ethan, Loup Alpha." + base_instruction,
             "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines...",
         },
