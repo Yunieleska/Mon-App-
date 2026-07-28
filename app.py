@@ -525,7 +525,7 @@ elif str_lit.session_state.page == "messages":
                         c_data = CHARACTERS.get(c_name, {"img": DEFAULT_FALLBACK_IMG, "quote": "Discussion en cours..."})
                         with cols[i % 2]:
                             str_lit.markdown(f"""
-                            <div style="background-color: #161b22; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 15px; margin-bottom: 15px; display: flex; align-items: center; gap: 15px;">
+                            <div style="background-color: #161b22; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 15px;">
                                 <img src="{c_data['img']}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">
                                 <div style="flex-grow: 1;">
                                     <div style="font-weight: 700; font-size: 16px; color: #ffffff;">{c_name}</div>
@@ -534,10 +534,28 @@ elif str_lit.session_state.page == "messages":
                             </div>
                             """, unsafe_allow_html=True)
                             
-                            if str_lit.button(f"Reprendre avec {c_name}", key=f"resume_{c_name}"):
-                                str_lit.session_state.char_select = c_name
-                                str_lit.session_state.page = "chat"
-                                str_lit.rerun()
+                            b_col1, b_col2 = str_lit.columns(2)
+                            with b_col1:
+                                if str_lit.button(f"Reprendre", key=f"resume_{c_name}"):
+                                    str_lit.session_state.char_select = c_name
+                                    str_lit.session_state.page = "chat"
+                                    str_lit.rerun()
+                            with b_col2:
+                                if str_lit.button(f"🗑️ Supprimer", key=f"del_{c_name}"):
+                                    try:
+                                        supabase.table("messages").delete().eq("user_pseudo", clean_pseudo).eq("char_name", c_name).execute()
+                                        supabase.table("affinities").delete().eq("user_pseudo", clean_pseudo).eq("char_name", c_name).execute()
+                                        
+                                        cache_key = f"{clean_pseudo}_{c_name}"
+                                        if cache_key in str_lit.session_state.messages_cache:
+                                            del str_lit.session_state.messages_cache[cache_key]
+                                        if cache_key in str_lit.session_state.affinities_cache:
+                                            del str_lit.session_state.affinities_cache[cache_key]
+                                            
+                                        str_lit.success(f"Conversation avec {c_name} supprimée.")
+                                        str_lit.rerun()
+                                    except Exception as e:
+                                        str_lit.error(f"Erreur lors de la suppression : {e}")
                 else:
                     str_lit.info("Vous n'avez pas encore de conversations en cours. Allez dans l'Accueil pour commencer une histoire !")
             else:
