@@ -485,7 +485,7 @@ if str_lit.session_state.page == "home":
         grid_html += f"""
         <div class="storyia-card">
             <div>
-                <img src="{img_src}" style="width: 100%; height: 140px; object-fit: cover; display: block;">
+                <img src="{img_src}" onerror="this.onerror=null; this.src='{DEFAULT_FALLBACK_IMG}';" style="width: 100%; height: 140px; object-fit: cover; display: block;">
                 <div style="padding: 10px 10px 4px 10px;">
                     <div style="font-weight: 700; font-size: 14px; color: #ffffff; margin-bottom: 2px;">{name}</div>
                     <div style="font-size: 11px; color: #8b949e; font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 30px;">"{data['quote']}"</div>
@@ -529,7 +529,7 @@ elif str_lit.session_state.page == "messages":
                         
                         str_lit.markdown(f"""
                         <div style="background-color: #161b22; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 15px;">
-                            <img src="{c_data['img']}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">
+                            <img src="{c_data['img']}" onerror="this.onerror=null; this.src='{DEFAULT_FALLBACK_IMG}';" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">
                             <div style="flex-grow: 1;">
                                 <div style="font-weight: 700; font-size: 16px; color: #ffffff;">{c_name}</div>
                                 <div style="font-size: 12px; color: #8b949e; font-style: italic; margin-bottom: 2px;">Affinité : {get_affinity(clean_pseudo, c_name)}%</div>
@@ -874,20 +874,19 @@ elif str_lit.session_state.page == "profile":
     str_lit.subheader("🛠️ Les personnages que j'ai créés")
     if supabase:
         try:
-            # Récupère l'ensemble des personnages pour les afficher sans blocage de filtre
             my_chars_res = supabase.table("custom_characters").select("*").execute()
 
             if my_chars_res and my_chars_res.data and len(my_chars_res.data) > 0:
                 cols = str_lit.columns(4)
                 for i, char in enumerate(my_chars_res.data):
                     with cols[i % 4]:
-                        c_img = char.get("img_url", DEFAULT_FALLBACK_IMG)
-                        if not c_img.startswith("http") and not os.path.exists(c_img):
+                        c_img = char.get("img_url", "")
+                        if not c_img or not c_img.startswith("http"):
                             c_img = DEFAULT_FALLBACK_IMG
                             
                         str_lit.markdown(f"""
                         <div style="background-color: #21262d; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 10px; padding: 10px; text-align: center; margin-bottom: 10px;">
-                            <img src="{c_img}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 10px;">
+                            <img src="{c_img}" onerror="this.onerror=null; this.src='{DEFAULT_FALLBACK_IMG}';" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 10px;">
                             <strong style="color: #ffffff; font-size: 14px;">{char.get('name')}</strong><br>
                             <span style="font-size: 12px; color: #8b949e;">{char.get('visibility', 'Public')}</span>
                         </div>
