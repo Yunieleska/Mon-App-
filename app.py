@@ -200,18 +200,15 @@ def load_msgs(pseudo, char, limit=100):
             .execute()
         )
         if res.data:
-            # Nettoyage automatique si des doublons exacts d'introduction ont été créés par erreur
             messages = []
             seen_contents = set()
             for r in res.data:
                 content = r["content"]
-                # Si le premier message se répète consécutivement, on nettoie en base
                 if content not in seen_contents or r["role"] != "assistant":
                     messages.append({"id": r["id"], "role": r["role"], "content": content})
                     if r["role"] == "assistant":
                         seen_contents.add(content)
                 else:
-                    # Supprimer le doublon directement de Supabase
                     try:
                         supabase.table("messages").delete().eq("id", r["id"]).execute()
                     except:
@@ -623,17 +620,21 @@ elif str_lit.session_state.page == "chat":
         else:
             if client:
                 try:
+                    user_current_pseudo = str_lit.session_state.pseudo
                     init_prompt = [
-                        {"role": "system", "content": char_data["prompt"]},
-                        {"role": "user", "content": f"Écris un premier message d'introduction immersif et détaillé pour débuter le roleplay. CONSIGNE D'ACCROCHE : Intègre naturellement la phrase \"{char_data['quote']}\". Décris le décor et la situation. Ne mentionne aucun prénom ou nom d'utilisateur."}
+                        {"role": "system", "content": char_data["prompt"] + f" RÈGLE ABSOLUE POUR CE PREMIER MESSAGE : Tu ne connais PAS encore le prénom de l'interlocutrice. Il est strictement interdit d'utiliser le prénom '{user_current_pseudo}' ou n'importe quel autre prénom. Utilise des termes neutres ('tu', 'l'étrangère', 'cette personne')."},
+                        {"role": "user", "content": f"Écris un premier message d'introduction immersif et détaillé pour débuter le roleplay. CONSIGNE D'ACCROCHE : Intègre naturellement la phrase \"{char_data['quote']}\". Décris le décor et la situation. INTERDICTION FORMELLE d'inclure le prénom {user_current_pseudo}."}
                     ]
                     with str_lit.spinner(f"Génération de l'introduction avec {current_char}..."):
                         resp_init = client.chat.completions.create(
                             model="llama-3.3-70b-versatile",
                             messages=init_prompt,
-                            temperature=0.8,
+                            temperature=0.7,
                         )
                     intro_msg = resp_init.choices[0].message.content
+                    
+                    # Sécurité stricte pour nettoyer le pseudo si le modèle l'affiche malgré tout
+                    intro_msg = intro_msg.replace(user_current_pseudo, "tu").replace(user_current_pseudo.lower(), "tu")
                 except Exception:
                     intro_msg = char_data["quote"]
             else:
@@ -676,7 +677,6 @@ elif str_lit.session_state.page == "chat":
                         str_lit.success("Modifié !")
                         str_lit.rerun()
             with col_actions:
-                # 1. Bouton Supprimer
                 if str_lit.button("❌", key=f"del_msg_{idx}", help="Supprimer ce message"):
                     messages.pop(idx)
                     cache_key = f"{str_lit.session_state.pseudo}_{current_char}"
@@ -688,12 +688,10 @@ elif str_lit.session_state.page == "chat":
                             pass
                     str_lit.rerun()
 
-                # 2. Bouton Editer
                 if str_lit.button("✏️", key=f"btn_edit_ast_{idx}", help="Modifier"):
                     str_lit.session_state[edit_key] = not str_lit.session_state[edit_key]
                     str_lit.rerun()
                     
-                # 3. Bouton Régénérer (Affiché sur le dernier message)
                 if idx == len(messages) - 1 and client:
                     if str_lit.button("🔄", key=f"regen_{idx}", help="Régénérer la réponse"):
                         messages.pop()
