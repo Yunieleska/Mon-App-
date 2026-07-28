@@ -314,7 +314,6 @@ def get_all_characters_cached():
 
 CHARACTERS = get_all_characters_cached()
 
-
 # --- LOGIN LOGIC ---
 if not str_lit.session_state.logged_in:
     if os.path.exists(BACKGROUND_IMG_NAME):
@@ -695,3 +694,21 @@ elif str_lit.session_state.page == "chat":
                 user_pseudo = str_lit.session_state.pseudo
                 current_aff = get_affinity(user_pseudo, current_char)
                 aff_context = f" Niveau d'affinité actuel avec Yuna : {current_aff}%."
+                context_reminder = {"role": "system", "content": f"Rappel important : Ton interlocuteur actuel s'appelle {user_pseudo}. Adresse-toi directement à elle au féminin en respectant strictement ton profil d'origine.{aff_context}"}
+                
+                api_messages = [{"role": "system", "content": char_data["prompt"]}, context_reminder] + messages[-20:]
+                
+                with str_lit.spinner("Réflexion..."):
+                    response = client.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
+                        messages=api_messages,
+                        temperature=0.9,
+                    )
+                bot_reply = response.choices[0].message.content
+                messages.append({"role": "assistant", "content": bot_reply})
+                save_msg(user_pseudo, current_char, "assistant", bot_reply)
+            except Exception as e:
+                str_lit.error(f"Erreur lors de la génération : {e}")
+            
+            typing_placeholder.empty()
+            str_lit.rerun()
