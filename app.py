@@ -136,7 +136,6 @@ str_lit.markdown(
 # --- PERSISTANCE PAR URL & SESSION ---
 query_params = str_lit.query_params
 
-# Interception de la navigation de la nouvelle sidebar HTML
 if "nav" in query_params:
     str_lit.session_state.page = query_params["nav"]
     del str_lit.query_params["nav"]
@@ -415,7 +414,7 @@ if not str_lit.session_state.logged_in:
                         str_lit.error(f"Erreur : {e}")
     str_lit.stop()
 
-# --- SIDEBAR (MENU HTML PROPRE DARK ROMANCE) ---
+# --- SIDEBAR ---
 if os.path.exists(SIDEBAR_HEADER_IMG):
     str_lit.sidebar.image(SIDEBAR_HEADER_IMG, use_container_width=True)
 
@@ -463,7 +462,6 @@ menu_html = f"""
 </div>
 """
 str_lit.sidebar.markdown(menu_html, unsafe_allow_html=True)
-
 str_lit.sidebar.markdown("---")
 
 if str_lit.sidebar.button("🚪 S'échapper (Logout)"):
@@ -642,10 +640,8 @@ elif str_lit.session_state.page == "chat":
 
     str_lit.markdown("---")
 
-    # Chargement de l'historique
     messages = load_msgs(str_lit.session_state.pseudo, current_char, limit=50)
 
-    # Génération du premier message unique si la conversation est vide
     if not messages:
         if current_char == "Caelum":
             intro_msg = (
@@ -680,7 +676,6 @@ elif str_lit.session_state.page == "chat":
         save_msg(str_lit.session_state.pseudo, current_char, "assistant", intro_msg)
         messages = load_msgs(str_lit.session_state.pseudo, current_char, limit=50)
 
-    # Affichage des messages
     for idx, msg in enumerate(messages):
         msg_id = msg.get("id")
         
@@ -802,7 +797,6 @@ elif str_lit.session_state.page == "chat":
                         str_lit.success("Message modifié !")
                         str_lit.rerun()
 
-    # --- ZONE DE SAISIE MULTILIGNE ---
     with str_lit.form(key="chat_input_form", clear_on_submit=True):
         user_input = str_lit.text_area("Écris ta réponse (appuie sur Entrée pour aller à la ligne)...", key="user_message_input", height=90)
         submitted_user = str_lit.form_submit_button("Envoyer 🚀")
@@ -876,7 +870,7 @@ elif str_lit.session_state.page == "create_character":
                 str_lit.error("Veuillez donner un nom à votre personnage.")
 
 elif str_lit.session_state.page == "profile":
-    # --- PROFIL UTILISATEUR AVEC LA BANNIÈRE ---
+    # --- 1. BANNIÈRE SUPÉRIEURE ---
     banner_path = "profil utilisateur.jfif"
     if os.path.exists(banner_path):
         str_lit.image(banner_path, use_container_width=True)
@@ -898,7 +892,19 @@ elif str_lit.session_state.page == "profile":
         except Exception:
             pass
 
-    # --- SECTION 2 : PERSONNAGES CRÉÉS & ACTIONS ---
+    # --- 2. CARTE PROFIL (AVEC LA PHOTO DE PROFIL) ---
+    str_lit.markdown(f"""
+    <div style="background: linear-gradient(135deg, #1f1a24 0%, #0d1117 100%); border: 1px solid rgba(210, 153, 234, 0.2); border-radius: 16px; padding: 25px; margin-bottom: 25px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 25px;">
+        <img src="{avatar_url}" style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 2px solid #d299ea; box-shadow: 0 0 15px rgba(210,153,234,0.3);">
+        <div>
+            <h2 style="margin: 0 0 5px 0; color: #f0f6fc; font-family: 'Georgia', serif;">{str_lit.session_state.pseudo}</h2>
+            <p style="margin: 0; color: #8b949e; font-size: 14px;">Membre des ombres • E-mail : {user_email}</p>
+            <span style="display: inline-block; margin-top: 8px; background-color: rgba(210, 153, 234, 0.1); color: #d299ea; padding: 2px 10px; border-radius: 12px; font-size: 11px; border: 1px solid rgba(210, 153, 234, 0.3);">Lecteur / Rôle-playeur</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # --- 3. PERSONNAGES CRÉÉS & ACTIONS ---
     str_lit.subheader("🖤 Mes Créations ténébreuses")
     if supabase:
         try:
@@ -951,7 +957,7 @@ elif str_lit.session_state.page == "profile":
 
     str_lit.markdown("<br>", unsafe_allow_html=True)
 
-    # --- SECTION 3 : STATISTIQUES ---
+    # --- 4. STATISTIQUES ---
     str_lit.subheader("📊 Grimoire de statistiques")
     if supabase:
         try:
