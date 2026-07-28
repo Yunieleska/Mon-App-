@@ -414,24 +414,26 @@ if os.path.exists(SIDEBAR_HEADER_IMG):
     str_lit.sidebar.image(SIDEBAR_HEADER_IMG, use_container_width=True)
 
 str_lit.sidebar.info(f"Connecté : **{str_lit.session_state.pseudo}**")
+str_lit.sidebar.markdown("<br>", unsafe_allow_html=True)
 
-if str_lit.sidebar.button("🏠 Home"):
+if str_lit.sidebar.button("🕯️ Sanctuaire (Home)"):
     str_lit.session_state.page = "home"
     str_lit.rerun()
 
-if str_lit.sidebar.button("✨ Créer un Personnage"):
+if str_lit.sidebar.button("🖋️ Invoquer (Créer)"):
     str_lit.session_state.page = "create_character"
     str_lit.rerun()
 
-if str_lit.sidebar.button("💬 Messages"):
+if str_lit.sidebar.button("📜 Correspondances"):
     str_lit.session_state.page = "messages"
     str_lit.rerun()
 
-if str_lit.sidebar.button("👤 Profil"):
+if str_lit.sidebar.button("🪞 Mon Ombre (Profil)"):
     str_lit.session_state.page = "profile"
     str_lit.rerun()
 
-if str_lit.sidebar.button("🚪 Logout"):
+str_lit.sidebar.markdown("---")
+if str_lit.sidebar.button("🚪 S'échapper (Logout)"):
     if supabase:
         try:
             supabase.auth.sign_out()
