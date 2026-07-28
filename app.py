@@ -150,9 +150,10 @@ def get_all_characters():
         "Laisse toujours Yuna libre de décrire son propre physique."
     )
 
+    # Utilisation des liens publics de ton bucket Supabase "storyia-images" ou des URLs directes de tes images originales
     chars = {
         "Caelum": {
-            "img": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80",
+            "img": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80", # Remplace par ton lien Supabase du bucket si besoin
             "prompt": "Tu es Caelum, Prince des Ténèbres." + base_instruction,
             "quote": "Ne t'approche pas de moi. Ma vie est déjà tracée, et tu n'as rien à y faire.",
         },
@@ -205,13 +206,13 @@ def get_all_characters():
                     desc_val = item.get("description", "")
                     prompt_val = item.get("prompt", f"Tu es {c_name}. {desc_val}")
                     quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
-                    img_url = item.get("img_url", "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80")
+                    img_url = item.get("img_url", "")
                     
                     chars[c_name] = {
                         "img": (
                             img_url
-                            if img_url and (img_url.startswith("http") or os.path.exists(img_url))
-                            else "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80"
+                            if img_url and img_url.startswith("http")
+                            else f"{supabase.storage.from_('storyia-images').get_public_url(img_url) if img_url else 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80'}"
                         ),
                         "prompt": prompt_val + base_instruction,
                         "quote": quote_val,
@@ -398,8 +399,6 @@ if str_lit.session_state.page == "home":
     grid_html = '<div class="storyia-grid">'
     for idx, (name, data) in enumerate(current_items):
         img_src = data["img"]
-        if not img_src.startswith("http") and not os.path.exists(img_src):
-            img_src = "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80"
 
         grid_html += f"""
         <div class="storyia-card">
@@ -587,11 +586,15 @@ elif str_lit.session_state.page == "create_character":
     
     if str_lit.button("🚀 Créer", use_container_width=True, key="btn_submit_char"):
         if char_name and char_description:
-            img_path = "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80"
-            if uploaded_char_img is not None:
-                img_path = f"char_{str_lit.session_state.pseudo}_{char_name}.png"
-                with open(img_path, "wb") as f:
-                    f.write(uploaded_char_img.getbuffer())
+            img_path = ""
+            if uploaded_char_img is not None and supabase:
+                try:
+                    file_name = f"char_{str_lit.session_state.pseudo}_{char_name}.png"
+                    file_bytes = uploaded_char_img.getbuffer()
+                    supabase.storage.from_("storyia-images").upload(file_name, file_bytes, {"upsert": "true"})
+                    img_path = file_name
+                except Exception as e:
+                    str_lit.error(f"Erreur d'upload de l'image sur Supabase : {e}")
 
             if supabase:
                 try:
@@ -669,14 +672,17 @@ elif str_lit.session_state.page == "profile":
             )
             if user_db and user_db.data:
                 user_info = user_db.data
-                avatar_path = user_info.get("avatar_url", avatar_path)
+                raw_avatar = user_info.get("avatar_url", "")
+                if raw_avatar:
+                    if raw_avatar.startswith("http"):
+                        avatar_path = raw_avatar
+                    else:
+                        avatar_path = supabase.storage.from_("storyia-images").get_public_url(raw_avatar)
         except Exception as e:
             str_lit.error(f"Erreur lors du chargement du profil : {e}")
 
     col_p1, col_p2, col_p3 = str_lit.columns([1, 2, 2])
     with col_p1:
-        if not avatar_path.startswith("http") and not os.path.exists(avatar_path):
-            avatar_path = "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80"
         str_lit.image(avatar_path, width=130)
     with col_p2:
         str_lit.subheader(f"Pseudo : {str_lit.session_state.pseudo}")
@@ -689,17 +695,15 @@ elif str_lit.session_state.page == "profile":
     with str_lit.expander("🖼️ Modifier ma photo de profil"):
         new_avatar_file = str_lit.file_uploader("Choisir une image", type=["png", "jpg", "jpeg"], key="upload_avatar")
         if str_lit.button("Enregistrer la photo"):
-            if new_avatar_file is not None:
-                new_avatar_path = f"avatar_{str_lit.session_state.pseudo}.png"
-                with open(new_avatar_path, "wb") as f:
-                    f.write(new_avatar_file.getbuffer())
-                if supabase:
-                    try:
-                        supabase.table("users").update({"avatar_url": new_avatar_path}).eq("pseudo", str_lit.session_state.pseudo).execute()
-                        str_lit.success("Photo de profil mise à jour !")
-                        str_lit.rerun()
-                    except Exception as e:
-                        str_lit.error(f"Erreur : {e}")
+            if new_avatar_file is not None and supabase:
+                try:
+                    avatar_filename = f"avatar_{str_lit.session_state.pseudo}.png"
+                    supabase.storage.from_("storyia-images").upload(avatar_filename, new_avatar_file.getbuffer(), {"upsert": "true"})
+                    supabase.table("users").update({"avatar_url": avatar_filename}).eq("pseudo", str_lit.session_state.pseudo).execute()
+                    str_lit.success("Photo de profil mise à jour !")
+                    str_lit.rerun()
+                except Exception as e:
+                    str_lit.error(f"Erreur : {e}")
 
     str_lit.markdown("---")
     str_lit.subheader("✨ Mes Personnages Créés (Publics & Privés)")
@@ -718,9 +722,13 @@ elif str_lit.session_state.page == "profile":
                     c_sex = mc.get('sex', 'Non spécifié')
                     c_quote = mc.get('quote', '')
                     c_vis = mc.get('visibility', 'Public')
-                    c_img = mc.get('img_url', 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80')
+                    c_img_raw = mc.get('img_url', '')
                     
-                    if not c_img.startswith("http") and not os.path.exists(c_img):
+                    if c_img_raw.startswith("http"):
+                        c_img = c_img_raw
+                    elif c_img_raw:
+                        c_img = supabase.storage.from_("storyia-images").get_public_url(c_img_raw)
+                    else:
                         c_img = 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80'
 
                     with str_lit.container():
