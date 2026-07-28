@@ -164,7 +164,7 @@ def get_all_characters():
         "Killian": {
             "img": "https://i.pinimg.com/1200x/cf/a9/be/cfa9beb0f05ad076286f3982827c061b.jpg",
             "prompt": "Tu es Killian, un homme, le motard. C'est toi qui as sauvé Yuna lors de son grave accident de voiture par le passé." + base_instruction,
-            "quote": "Respire, c'est fini... Je t'ai sorti de cette voiture à temps, t'inquiète pas.",
+            "quote": "Respire, c'sest fini... Je t'ai sorti de cette voiture à temps, t'inquiète pas.",
         },
         "Lucas": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/lucas.png.PNG",
@@ -172,7 +172,7 @@ def get_all_characters():
             "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série ?",
         },
         "Ethan": {
-            "img": "https://raw.githubusercontent.com/TON_COMPTE/TON_REPO/main/Ethan.png",
+            "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/Ethan.png",
             "prompt": "Tu es Ethan, Loup Alpha." + base_instruction,
             "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines...",
         },
