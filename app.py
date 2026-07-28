@@ -653,19 +653,48 @@ elif str_lit.session_state.page == "messages":
 
 elif str_lit.session_state.page == "profile":
     str_lit.title("Mon Profil")
+    user_info = {}
+    avatar_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+
     if supabase:
         try:
             user_db = (
                 supabase.table("users")
                 .select("*")
-                .eq("pseudo", str_lit.session_state.pseudo)
-                .single()
+                .eq("pseudo", str_lit.session_state.pseudo.strip())
+                .maybe_single()
                 .execute()
             )
-            user_info = user_db.data if user_db.data else {}
-            avatar_path = user_info.get(
-                "avatar_url",
-                "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
+            if user_db and user_db.data:
+                user_info = user_db.data
+                avatar_path = user_info.get("avatar_url", avatar_path)
+        except Exception as e:
+            str_lit.error(f"Erreur lors du chargement du profil : {e}")
+
+    col_p1, col_p2 = str_lit.columns([1, 3])
+    with col_p1:
+        if not avatar_path.startswith("http") and not os.path.exists(avatar_path):
+            avatar_path = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+        str_lit.image(avatar_path, width=120)
+    with col_p2:
+        str_lit.subheader(f"Pseudo : {str_lit.session_state.pseudo}")
+        str_lit.write(f"E-mail : {user_info.get('email', 'Non renseigné')}")
+
+    str_lit.markdown("---")
+    str_lit.subheader("Mes Personnages Créés")
+
+    if supabase:
+        try:
+            my_chars = (
+                supabase.table("custom_characters")
+                .select("*")
+                .eq("creator", str_lit.session_state.pseudo.strip())
+                .execute()
             )
-        except Exception:
-            pass
+            if my_chars.data:
+                for mc in my_chars.data:
+                    str_lit.write(f"• **{mc.get('name')}** - {mc.get('sex', 'Non spécifié')}")
+            else:
+                str_lit.info("Vous n'avez créé aucun personnage pour le moment.")
+        except Exception as e:
+            str_lit.error(f"Erreur lors de la récupération de vos personnages : {e}")
