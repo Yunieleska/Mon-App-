@@ -530,7 +530,10 @@ elif str_lit.session_state.page == "chat":
                 user_pseudo = str_lit.session_state.pseudo
                 context_reminder = {"role": "system", "content": f"Rappel important : Ton interlocuteur actuel s'appelle {user_pseudo}. Adresse-toi directement à elle au féminin en respectant strictement ton profil d'origine."}
                 system_prompt = char_data["prompt"]
-                api_messages = [{"role": "system", "content": system_prompt}, context_reminder] + messages[-1000:]
+                
+                # OPTIMISATION DE LA MÉMOIRE LONG TERME SANS PERDRE SUPABASE : 
+                # On envoie les 50 derniers messages pour garder l'IA rapide et performante
+                api_messages = [{"role": "system", "content": system_prompt}, context_reminder] + messages[-50:]
 
                 response = client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
@@ -743,12 +746,12 @@ elif str_lit.session_state.page == "profile":
                             
                             if str_lit.button("Mettre à jour la visibilité", key=f"update_vis_{c_name}"):
                                 try:
-                                    updated_vis = "Privé" if "Privé" in new_vis_choice else "Public"
-                                    supabase.table("custom_characters").update({"visibility": updated_vis}).eq("name", c_name).eq("creator", str_lit.session_state.pseudo).execute()
-                                    str_lit.success("Visibilité mise à jour avec succès !")
+                                    new_vis_val = "Privé" if "Privé" in new_vis_choice else "Public"
+                                    supabase.table("custom_characters").update({"visibility": new_vis_val}).eq("name", c_name).eq("creator", str_lit.session_state.pseudo.strip()).execute()
+                                    str_lit.success("Visibilité mise à jour !")
                                     str_lit.rerun()
                                 except Exception as e:
                                     str_lit.error(f"Erreur : {e}")
                     str_lit.markdown("---")
         except Exception as e:
-            str_lit.error(f"Erreur lors du chargement de vos personnages : {e}")
+            str_lit.error(f"Erreur chargement personnages : {e}")
