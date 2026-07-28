@@ -83,6 +83,23 @@ if "char_select" not in str_lit.session_state:
 
 # --- SUPABASE FUNCTIONS ---
 
+def get_supabase_image_url(path):
+    if not path:
+        return "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80"
+    if path.startswith("http"):
+        return path
+    if supabase:
+        try:
+            res = supabase.storage.from_("storyia-images").get_public_url(path)
+            if res:
+                return res
+        except Exception:
+            pass
+    sup_url = str_lit.secrets.get("SUPABASE_URL", "")
+    if sup_url:
+        return f"{sup_url}/storage/v1/object/public/storyia-images/{path}"
+    return path
+
 def save_msg(pseudo, char, role, content):
     if not supabase:
         return
@@ -175,7 +192,6 @@ def get_all_characters():
         try:
             res = supabase.table("custom_characters").select("*").execute()
             if res.data:
-                sup_url = str_lit.secrets.get("SUPABASE_URL", "")
                 for item in res.data:
                     c_name = item.get("name")
                     if not c_name:
@@ -186,13 +202,7 @@ def get_all_characters():
                     quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
                     img_url = item.get("img_url", "")
                     
-                    resolved_img = "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80"
-                    if img_url:
-                        if img_url.startswith("http"):
-                            resolved_img = img_url
-                        elif sup_url:
-                            # Correction ici : Utilisation correcte du bucket 'storyia-images' pour obtenir l'URL publique de l'image du personnage
-                            resolved_img = f"{sup_url}/storage/v1/object/public/storyia-images/{img_url}"
+                    resolved_img = get_supabase_image_url(img_url)
                     
                     chars[c_name] = {
                         "img": resolved_img,
@@ -629,12 +639,8 @@ elif str_lit.session_state.page == "profile":
             if user_db and user_db.data:
                 user_info = user_db.data
                 raw_avatar = user_info.get("avatar_url", "")
-                sup_url = str_lit.secrets.get("SUPABASE_URL", "")
                 if raw_avatar:
-                    if raw_avatar.startswith("http"):
-                        avatar_path = raw_avatar
-                    elif sup_url:
-                        avatar_path = f"{sup_url}/storage/v1/object/public/storyia-images/{raw_avatar}"
+                    avatar_path = get_supabase_image_url(raw_avatar)
         except Exception as e:
             str_lit.error(f"Erreur lors du chargement du profil : {e}")
 
@@ -674,7 +680,6 @@ elif str_lit.session_state.page == "profile":
                 .execute()
             )
             if my_chars.data:
-                sup_url = str_lit.secrets.get("SUPABASE_URL", "")
                 for mc in my_chars.data:
                     c_name = mc.get('name')
                     c_sex = mc.get('sex', 'Non spécifié')
@@ -682,12 +687,7 @@ elif str_lit.session_state.page == "profile":
                     c_vis = mc.get('visibility', 'Public')
                     c_img_raw = mc.get('img_url', '')
                     
-                    if c_img_raw.startswith("http"):
-                        c_img = c_img_raw
-                    elif c_img_raw and sup_url:
-                        c_img = f"{sup_url}/storage/v1/object/public/storyia-images/{c_img_raw}"
-                    else:
-                        c_img = 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80'
+                    c_img = get_supabase_image_url(c_img_raw)
 
                     with str_lit.container():
                         cc1, cc2 = str_lit.columns([1, 4])
