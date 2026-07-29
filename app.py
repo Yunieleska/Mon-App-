@@ -135,7 +135,7 @@ str_lit.markdown(
         transform: translateY(-2px);
     }
     
-    /* BOUTONS ACTIONS HTML PROPRES (SANS CARRÉ BLANC) */
+    /* BOUTONS ACTIONS HTML PROPRES */
     .custom-action-btn {
         display: block;
         text-align: center;
@@ -173,7 +173,7 @@ str_lit.markdown(
         border-color: #ff7b72 !important;
     }
     
-    /* MINI BOUTONS ICÔNES DE CHAT PARFAITS */
+    /* MINI BOUTONS ICÔNES DE CHAT */
     .chat-icon-btn {
         display: inline-block;
         background-color: #21262d;
@@ -500,7 +500,7 @@ def get_all_characters_cached():
                     quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
                     
                     img_url = item.get("img_url", "")
-                    if not img_url or not img_url.startswith("http") or c_name == "Lord Valerian Vance":
+                    if not img_url or not img_url.startswith("http"):
                         img_url = DEFAULT_FALLBACK_IMG
                     
                     chars[c_name] = {
@@ -1100,7 +1100,7 @@ elif str_lit.session_state.page == "profile":
                     with cols[i % 4]:
                         c_name_val = char.get("name")
                         c_img = char.get("img_url", DEFAULT_FALLBACK_IMG)
-                        if not c_img or not c_img.startswith("http") or c_name_val == "Lord Valerian Vance":
+                        if not c_img or not c_img.startswith("http"):
                             c_img = DEFAULT_FALLBACK_IMG
                         vis_status = char.get('visibility', 'Public')
                         badge_color = "#ff7b72" if vis_status == "Privé" else "#3fb950"
