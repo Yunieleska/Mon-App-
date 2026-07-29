@@ -500,7 +500,7 @@ def get_all_characters_cached():
                     quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
                     
                     img_url = item.get("img_url", "")
-                    if not img_url or not img_url.startswith("http"):
+                    if not img_url:
                         img_url = DEFAULT_FALLBACK_IMG
                     
                     chars[c_name] = {
@@ -718,7 +718,7 @@ if str_lit.session_state.page == "home":
     grid_html = '<div class="storyia-grid">'
     for idx, (name, data) in enumerate(current_items):
         img_src = data["img"]
-        if not img_src.startswith("http") and not os.path.exists(img_src):
+        if not img_src:
             img_src = DEFAULT_FALLBACK_IMG
 
         grid_html += f"""
@@ -1100,7 +1100,7 @@ elif str_lit.session_state.page == "profile":
                     with cols[i % 4]:
                         c_name_val = char.get("name")
                         c_img = char.get("img_url", DEFAULT_FALLBACK_IMG)
-                        if not c_img or not c_img.startswith("http"):
+                        if not c_img:
                             c_img = DEFAULT_FALLBACK_IMG
                         vis_status = char.get('visibility', 'Public')
                         badge_color = "#ff7b72" if vis_status == "Privé" else "#3fb950"
