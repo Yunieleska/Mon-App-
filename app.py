@@ -499,13 +499,12 @@ def get_all_characters_cached():
                     prompt_val = item.get("prompt", f"Tu es {c_name}. {desc_val}")
                     quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
                     
-                    if c_name == "Lord Valerian Vance":
+                    img_url = item.get("img_url", "")
+                    if not img_url or not img_url.startswith("http") or c_name == "Lord Valerian Vance":
                         img_url = DEFAULT_FALLBACK_IMG
-                    else:
-                        img_url = item.get("img_url", DEFAULT_FALLBACK_IMG)
                     
                     chars[c_name] = {
-                        "img": img_url if img_url and (img_url.startswith("http") or os.path.exists(img_url)) else DEFAULT_FALLBACK_IMG,
+                        "img": img_url,
                         "prompt": prompt_val + " Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé.",
                         "quote": quote_val,
                     }
@@ -1101,6 +1100,8 @@ elif str_lit.session_state.page == "profile":
                     with cols[i % 4]:
                         c_name_val = char.get("name")
                         c_img = char.get("img_url", DEFAULT_FALLBACK_IMG)
+                        if not c_img or not c_img.startswith("http") or c_name_val == "Lord Valerian Vance":
+                            c_img = DEFAULT_FALLBACK_IMG
                         vis_status = char.get('visibility', 'Public')
                         badge_color = "#ff7b72" if vis_status == "Privé" else "#3fb950"
                             
