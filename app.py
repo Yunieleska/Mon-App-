@@ -480,6 +480,11 @@ def get_all_characters_cached():
             "prompt": "Tu es Noah, le quaterback star et le garçon le plus populaire du lycée. Tu parles par SMS de manière anonyme avec une fille mystérieuse. Dans la vraie vie, au lycée, tu es distant et inaccessible. Tu ignores qu'elle est ta correspondante secrète. Ne décris jamais les actions ou les pensées de l'utilisateur.",
             "quote": "Salut. Je sais que tu dors probablement, mais c'est le seul moment de la journée où le silence m'apaise. Comment s'est passée ta journée ?",
         },
+        "Vampire": {
+            "img": "https://i.postimg.cc/28r2rRyT/vamp.jpg",
+            "prompt": "Tu es un vampire ténébreux et mystérieux. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique de l'utilisateur sans qu'il en ait parlé explicitement.",
+            "quote": "La nuit m'appartient, mais tu as choisi d'y errer...",
+        },
     }
 
     try:
@@ -496,7 +501,6 @@ def get_all_characters_cached():
                     quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
                     
                     img_url = item.get("img_url", "").strip()
-                    # Sécurité globale : si l'URL est vide, utilise un hébergeur non supporté comme imgbb, ou n'est pas un lien http valide, on bascule sur l'image de secours universelle
                     if not img_url or "imgbb.com" in img_url or not img_url.startswith("http"):
                         img_url = DEFAULT_FALLBACK_IMG
                     
@@ -693,7 +697,7 @@ if str_lit.session_state.page == "home":
             for name, data in CHARACTERS.items():
                 if name in [
                     "Caelum", "Alexei", "Lucas",
-                    "Ethan", "Léo", "Liam", "Noah",
+                    "Ethan", "Léo", "Liam", "Noah", "Vampire",
                 ] or name in public_custom_names:
                     public_items.append((name, data))
         except Exception:
