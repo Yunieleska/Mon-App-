@@ -62,31 +62,32 @@ str_lit.markdown(
         color: #ffffff !important;
     }
     
-    /* FORCAGE ABSOLU DE LA VISIBILITÉ DES BOUTONS ET DE LEUR CONTENU */
+    /* STYLE DES BOUTONS GLOBAUX */
+    button, 
     .stButton > button, 
     button[kind="secondary"], 
     button[kind="primary"], 
     div.stFormSubmitButton > button,
-    .stButton > button * {
+    [data-testid="baseButton-secondary"],
+    [data-testid="baseButton-primary"] {
         background-color: #21262d !important;
         color: #ffffff !important;
         -webkit-text-fill-color: #ffffff !important;
         border: 1px solid rgba(255, 255, 255, 0.15) !important;
         border-radius: 8px !important;
+        box-shadow: none !important;
     }
-    .stButton > button p, 
-    .stButton > button span, 
-    .stButton > button div {
-        color: #ffffff !important;
-        -webkit-text-fill-color: #ffffff !important;
-    }
+    button:hover, 
     .stButton > button:hover, 
     button[kind="secondary"]:hover, 
     button[kind="primary"]:hover, 
-    div.stFormSubmitButton > button:hover {
+    div.stFormSubmitButton > button:hover,
+    [data-testid="baseButton-secondary"]:hover,
+    [data-testid="baseButton-primary"]:hover {
         background-color: #30363d !important;
         border-color: #ffffff !important;
         color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
     }
 
     textarea, input[type="text"], [data-baseweb="input"] input, [data-baseweb="textarea"] textarea {
@@ -133,6 +134,63 @@ str_lit.markdown(
         border-color: rgba(255, 255, 255, 0.3);
         transform: translateY(-2px);
     }
+    
+    /* BOUTONS ACTIONS HTML PROPRES (SANS CARRÉ BLANC) */
+    .custom-action-btn {
+        display: block;
+        text-align: center;
+        background-color: #21262d !important;
+        color: #ffffff !important;
+        padding: 8px 12px;
+        border-radius: 6px;
+        text-decoration: none !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        font-size: 13px;
+        font-weight: 600;
+        transition: background-color 0.2s;
+    }
+    .custom-action-btn:hover {
+        background-color: #30363d !important;
+        color: #ffffff !important;
+        border-color: #ffffff !important;
+    }
+    .custom-danger-btn {
+        display: block;
+        text-align: center;
+        background-color: #21262d !important;
+        color: #ff7b72 !important;
+        padding: 8px 12px;
+        border-radius: 6px;
+        text-decoration: none !important;
+        border: 1px solid rgba(255, 123, 114, 0.3) !important;
+        font-size: 13px;
+        font-weight: 600;
+        transition: background-color 0.2s;
+    }
+    .custom-danger-btn:hover {
+        background-color: #30363d !important;
+        color: #ff7b72 !important;
+        border-color: #ff7b72 !important;
+    }
+    
+    /* MINI BOUTONS ICÔNES DE CHAT PARFAITS */
+    .chat-icon-btn {
+        display: inline-block;
+        background-color: #21262d;
+        color: #ffffff;
+        padding: 6px 10px;
+        border-radius: 6px;
+        text-decoration: none !important;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        font-size: 13px;
+        text-align: center;
+        margin-right: 4px;
+        transition: background-color 0.2s;
+    }
+    .chat-icon-btn:hover {
+        background-color: #30363d;
+        border-color: #ffffff;
+    }
     </style>
 """,
     unsafe_allow_html=True,
@@ -145,6 +203,114 @@ if "nav" in query_params:
     str_lit.session_state.page = query_params["nav"]
     del str_lit.query_params["nav"]
     str_lit.rerun()
+
+if "action" in query_params:
+    action_type = query_params["action"]
+    c_name_param = query_params.get("char", "")
+    clean_pseudo = str(str_lit.session_state.pseudo).strip()
+    
+    if action_type == "resume" and c_name_param:
+        str_lit.session_state.char_select = c_name_param
+        str_lit.session_state.page = "chat"
+        del str_lit.query_params["action"]
+        if "char" in str_lit.query_params:
+            del str_lit.query_params["char"]
+        str_lit.rerun()
+        
+    elif action_type == "delete_chat" and c_name_param:
+        if supabase:
+            try:
+                supabase.table("messages").delete().eq("user_pseudo", clean_pseudo).eq("char_name", c_name_param).execute()
+                supabase.table("affinities").delete().eq("user_pseudo", clean_pseudo).eq("char_name", c_name_param).execute()
+            except:
+                pass
+        cache_key = f"{clean_pseudo}_{c_name_param}"
+        if cache_key in str_lit.session_state.messages_cache:
+            del str_lit.session_state.messages_cache[cache_key]
+        if cache_key in str_lit.session_state.affinities_cache:
+            del str_lit.session_state.affinities_cache[cache_key]
+        str_lit.query_params.clear()
+        str_lit.session_state.page = "messages"
+        str_lit.rerun()
+
+    elif action_type == "delete_char" and c_name_param:
+        if supabase:
+            try:
+                supabase.table("custom_characters").delete().eq("name", c_name_param).execute()
+                supabase.table("messages").delete().eq("char_name", c_name_param).execute()
+                supabase.table("affinities").delete().eq("char_name", c_name_param).execute()
+                str_lit.cache_data.clear()
+            except:
+                pass
+        str_lit.query_params.clear()
+        str_lit.session_state.page = "profile"
+        str_lit.rerun()
+
+    elif action_type == "del_msg":
+        idx_str = query_params.get("idx", "-1")
+        current_char = str_lit.session_state.get("char_select", "Caelum")
+        try:
+            idx = int(idx_str)
+            cache_key = f"{clean_pseudo}_{current_char}"
+            messages = str_lit.session_state.messages_cache.get(cache_key, [])
+            if 0 <= idx < len(messages):
+                msg_to_del = messages.pop(idx)
+                msg_id = msg_to_del.get("id")
+                if supabase and msg_id:
+                    supabase.table("messages").delete().eq("id", msg_id).execute()
+                str_lit.session_state.messages_cache[cache_key] = messages
+        except:
+            pass
+        str_lit.query_params.clear()
+        str_lit.session_state.page = "chat"
+        str_lit.rerun()
+
+    elif action_type == "edit_toggle":
+        idx_str = query_params.get("idx", "-1")
+        try:
+            idx = int(idx_str)
+            key_name = f"edit_mode_{idx}"
+            str_lit.session_state[key_name] = not str_lit.session_state.get(key_name, False)
+        except:
+            pass
+        str_lit.query_params.clear()
+        str_lit.session_state.page = "chat"
+        str_lit.rerun()
+
+    elif action_type == "regen_msg":
+        current_char = str_lit.session_state.get("char_select", "Caelum")
+        cache_key = f"{clean_pseudo}_{current_char}"
+        messages = str_lit.session_state.messages_cache.get(cache_key, [])
+        if messages:
+            last_msg = messages.pop()
+            if supabase and last_msg.get("id"):
+                try:
+                    supabase.table("messages").delete().eq("id", last_msg.get("id")).execute()
+                except:
+                    pass
+            
+            char_data = CHARACTERS.get(current_char, {})
+            current_aff = get_affinity(clean_pseudo, current_char)
+            aff_context = f" Niveau d'affinité actuel : {current_aff}%."
+            context_reminder = {"role": "system", "content": f"Rappel important : Le prénom de l'utilisatrice est {clean_pseudo}.{aff_context}"}
+            
+            api_messages = [{"role": "system", "content": char_data.get("prompt", "")}, context_reminder] + messages[-20:]
+            if client:
+                try:
+                    response = client.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
+                        messages=api_messages,
+                        temperature=0.9,
+                    )
+                    bot_reply = response.choices[0].message.content
+                    save_msg(clean_pseudo, current_char, "assistant", bot_reply)
+                    if cache_key in str_lit.session_state.messages_cache:
+                        del str_lit.session_state.messages_cache[cache_key]
+                except:
+                    pass
+        str_lit.query_params.clear()
+        str_lit.session_state.page = "chat"
+        str_lit.rerun()
 
 if "user" in query_params and query_params["user"]:
     str_lit.session_state.logged_in = True
@@ -615,27 +781,18 @@ elif str_lit.session_state.page == "messages":
                         
                         b_col1, b_col2 = str_lit.columns(2)
                         with b_col1:
-                            if str_lit.button(f"Reprendre", key=f"resume_{c_name}_{i}"):
-                                str_lit.session_state.char_select = c_name
-                                str_lit.session_state.page = "chat"
-                                str_lit.rerun()
+                            str_lit.markdown(f'''
+                            <a href="?user={clean_pseudo}&action=resume&char={c_name}" target="_self" class="custom-action-btn">
+                                Reprendre
+                            </a>
+                            ''', unsafe_allow_html=True)
                         with b_col2:
-                            if str_lit.button(f"🗑️ Supprimer", key=f"del_{c_name}_{i}"):
-                                try:
-                                    supabase.table("messages").delete().eq("user_pseudo", clean_pseudo).eq("char_name", c_name).execute()
-                                    supabase.table("affinities").delete().eq("user_pseudo", clean_pseudo).eq("char_name", c_name).execute()
-                                    
-                                    cache_key = f"{clean_pseudo}_{c_name}"
-                                    if cache_key in str_lit.session_state.messages_cache:
-                                        del str_lit.session_state.messages_cache[cache_key]
-                                    if cache_key in str_lit.session_state.affinities_cache:
-                                        del str_lit.session_state.affinities_cache[cache_key]
-                                        
-                                    str_lit.success(f"Conversation avec {c_name} supprimée.")
-                                    str_lit.rerun()
-                                except Exception as e:
-                                    str_lit.error(f"Erreur lors de la suppression : {e}")
-                        str_lit.markdown("---")
+                            str_lit.markdown(f'''
+                            <a href="?user={clean_pseudo}&action=delete_chat&char={c_name}" target="_self" class="custom-danger-btn">
+                                🗑️ Supprimer
+                            </a>
+                            ''', unsafe_allow_html=True)
+                        str_lit.markdown("<br>---", unsafe_allow_html=True)
                 else:
                     str_lit.info("Vous n'avez pas encore de conversations en cours. Allez dans l'Accueil pour commencer une histoire !")
             else:
@@ -646,11 +803,12 @@ elif str_lit.session_state.page == "messages":
 elif str_lit.session_state.page == "chat":
     current_char = str_lit.session_state.char_select
     char_data = CHARACTERS.get(current_char, {"img": DEFAULT_FALLBACK_IMG, "quote": "", "prompt": f"Tu es {current_char}."})
+    clean_pseudo = str(str_lit.session_state.pseudo).strip()
 
     user_avatar_url = DEFAULT_FALLBACK_IMG
     if supabase:
         try:
-            res_u = supabase.table("users").select("avatar_url").eq("pseudo", str_lit.session_state.pseudo).maybe_single().execute()
+            res_u = supabase.table("users").select("avatar_url").eq("pseudo", clean_pseudo).maybe_single().execute()
             if res_u and res_u.data and res_u.data.get("avatar_url"):
                 user_avatar_url = res_u.data.get("avatar_url")
         except Exception:
@@ -663,32 +821,18 @@ elif str_lit.session_state.page == "chat":
         str_lit.title(current_char)
         str_lit.caption(char_data["quote"])
     with col_h3:
-        affinity_score = get_affinity(str_lit.session_state.pseudo, current_char)
+        affinity_score = get_affinity(clean_pseudo, current_char)
         str_lit.markdown("### 💖 Affinité")
         str_lit.progress(affinity_score / 100.0, text=f"{affinity_score}%")
     with col_h4:
         str_lit.write("")
-        if str_lit.button("🗑️ Tout effacer", key="btn_delete_chat_page", help="Effacer toute la discussion"):
-            clean_pseudo = str(str_lit.session_state.pseudo).strip()
-            if supabase:
-                try:
-                    supabase.table("messages").delete().eq("user_pseudo", clean_pseudo).eq("char_name", current_char).execute()
-                    supabase.table("affinities").delete().eq("user_pseudo", clean_pseudo).eq("char_name", current_char).execute()
-                except Exception:
-                    pass
-            
-            cache_key = f"{clean_pseudo}_{current_char}"
-            if cache_key in str_lit.session_state.messages_cache:
-                del str_lit.session_state.messages_cache[cache_key]
-            if cache_key in str_lit.session_state.affinities_cache:
-                del str_lit.session_state.affinities_cache[cache_key]
-                
-            str_lit.success("Conversation réinitialisée !")
-            str_lit.rerun()
+        str_lit.markdown(f'''
+        <a href="?user={clean_pseudo}&action=delete_chat&char={current_char}" target="_self" class="custom-danger-btn" style="margin-top: 5px;">🗑️ Tout effacer</a>
+        ''', unsafe_allow_html=True)
 
     str_lit.markdown("---")
 
-    messages = load_msgs(str_lit.session_state.pseudo, current_char, limit=50)
+    messages = load_msgs(clean_pseudo, current_char, limit=50)
 
     if not messages:
         if current_char == "Caelum":
@@ -703,10 +847,9 @@ elif str_lit.session_state.page == "chat":
         else:
             if client:
                 try:
-                    user_current_pseudo = str_lit.session_state.pseudo
                     init_prompt = [
-                        {"role": "system", "content": char_data["prompt"] + f" RÈGLE ABSOLUE POUR CE PREMIER MESSAGE : Tu ne connais PAS encore le prénom de l'interlocutrice. Il est strictement interdit d'utiliser le prénom '{user_current_pseudo}' ou n'importe quel autre prénom. Utilise des termes neutres ('tu', 'l'étrangère', 'cette personne')."},
-                        {"role": "user", "content": f"Écris un premier message d'introduction immersif et détaillé pour débuter le roleplay. CONSIGNE D'ACCROCHE : Intègre naturellement la phrase \"{char_data['quote']}\". Décris le décor et la situation. INTERDICTION FORMELLE d'inclure le prénom {user_current_pseudo}."}
+                        {"role": "system", "content": char_data["prompt"] + f" RÈGLE ABSOLUE POUR CE PREMIER MESSAGE : Tu ne connais PAS encore le prénom de l'interlocutrice. Il est strictement interdit d'utiliser le prénom '{clean_pseudo}' ou n'importe quel autre prénom. Utilise des termes neutres."},
+                        {"role": "user", "content": f"Écris un premier message d'introduction immersif et détaillé pour débuter le roleplay. CONSIGNE D'ACCROCHE : Intègre naturellement la phrase \"{char_data['quote']}\"."}
                     ]
                     with str_lit.spinner(f"Génération de l'introduction avec {current_char}..."):
                         resp_init = client.chat.completions.create(
@@ -715,96 +858,48 @@ elif str_lit.session_state.page == "chat":
                             temperature=0.7,
                         )
                     intro_msg = resp_init.choices[0].message.content
-                    intro_msg = intro_msg.replace(user_current_pseudo, "tu").replace(user_current_pseudo.lower(), "tu")
+                    intro_msg = intro_msg.replace(clean_pseudo, "tu").replace(clean_pseudo.lower(), "tu")
                 except Exception:
                     intro_msg = char_data["quote"]
             else:
                 intro_msg = char_data["quote"]
 
-        save_msg(str_lit.session_state.pseudo, current_char, "assistant", intro_msg)
-        messages = load_msgs(str_lit.session_state.pseudo, current_char, limit=50)
+        save_msg(clean_pseudo, current_char, "assistant", intro_msg)
+        messages = load_msgs(clean_pseudo, current_char, limit=50)
 
     for idx, msg in enumerate(messages):
         msg_id = msg.get("id")
         
         if msg["role"] == "assistant":
-            col_avatar, col_content, col_actions = str_lit.columns([1, 5, 1.2])
+            col_avatar, col_content, col_actions = str_lit.columns([1, 5, 1.3])
             with col_avatar:
                 str_lit.image(char_data["img"], width=65)
             with col_content:
                 str_lit.markdown(f'<div class="novel-dialogue">{msg["content"]}</div>', unsafe_allow_html=True)
                 
-                edit_key = f"edit_mode_ast_{idx}"
-                if edit_key not in str_lit.session_state:
-                    str_lit.session_state[edit_key] = False
-
-                if str_lit.session_state[edit_key]:
-                    new_text = str_lit.text_area(
-                        "Modifier la réponse de l'IA :",
-                        value=msg["content"],
-                        key=f"textarea_edit_ast_{idx}"
-                    )
-                    if str_lit.button("💾 Enregistrer", key=f"save_edit_ast_{idx}"):
+                edit_key = f"edit_mode_{idx}"
+                if str_lit.session_state.get(edit_key, False):
+                    new_text = str_lit.text_area("Modifier la réponse :", value=msg["content"], key=f"txt_area_{idx}")
+                    if str_lit.button("💾 Enregistrer", key=f"save_edit_{idx}"):
                         msg["content"] = new_text
                         str_lit.session_state[edit_key] = False
-                        cache_key = f"{str_lit.session_state.pseudo}_{current_char}"
+                        cache_key = f"{clean_pseudo}_{current_char}"
                         str_lit.session_state.messages_cache[cache_key] = messages
                         if supabase and msg_id:
                             try:
                                 supabase.table("messages").update({"content": new_text}).eq("id", msg_id).execute()
-                            except Exception:
+                            except:
                                 pass
                         str_lit.success("Modifié !")
                         str_lit.rerun()
             with col_actions:
-                if str_lit.button("❌", key=f"del_msg_{idx}", help="Supprimer ce message"):
-                    messages.pop(idx)
-                    cache_key = f"{str_lit.session_state.pseudo}_{current_char}"
-                    str_lit.session_state.messages_cache[cache_key] = messages
-                    if supabase and msg_id:
-                        try:
-                            supabase.table("messages").delete().eq("id", msg_id).execute()
-                        except Exception:
-                            pass
-                    str_lit.rerun()
-
-                if str_lit.button("✏️", key=f"btn_edit_ast_{idx}", help="Modifier"):
-                    str_lit.session_state[edit_key] = not str_lit.session_state[edit_key]
-                    str_lit.rerun()
-                    
-                if idx == len(messages) - 1 and client:
-                    if str_lit.button("🔄", key=f"regen_{idx}", help="Régénérer la réponse"):
-                        messages.pop()
-                        cache_key = f"{str_lit.session_state.pseudo}_{current_char}"
-                        str_lit.session_state.messages_cache[cache_key] = messages
-                        
-                        if supabase and msg_id:
-                            try:
-                                supabase.table("messages").delete().eq("id", msg_id).execute()
-                            except Exception:
-                                pass
-                        
-                        user_pseudo = str_lit.session_state.pseudo
-                        current_aff = get_affinity(user_pseudo, current_char)
-                        aff_context = f" Niveau d'affinité actuel : {current_aff}%."
-                        context_reminder = {"role": "system", "content": f"Rappel important : Le prénom de l'utilisatrice est {user_pseudo} (à n'utiliser que s'ils se connaissent déjà).{aff_context}"}
-                        
-                        api_messages = [{"role": "system", "content": char_data["prompt"]}, context_reminder] + messages[-20:]
-                        
-                        try:
-                            with str_lit.spinner("Régénération en cours..."):
-                                response = client.chat.completions.create(
-                                    model="llama-3.3-70b-versatile",
-                                    messages=api_messages,
-                                    temperature=0.9,
-                                )
-                            bot_reply = response.choices[0].message.content
-                            save_msg(user_pseudo, current_char, "assistant", bot_reply)
-                            if cache_key in str_lit.session_state.messages_cache:
-                                del str_lit.session_state.messages_cache[cache_key]
-                        except Exception:
-                            pass
-                        str_lit.rerun()
+                str_lit.markdown(f"""
+                <div style="display: flex; gap: 4px; padding-top: 5px;">
+                    <a href="?user={clean_pseudo}&action=del_msg&idx={idx}" target="_self" class="chat-icon-btn" title="Supprimer">❌</a>
+                    <a href="?user={clean_pseudo}&action=edit_toggle&idx={idx}" target="_self" class="chat-icon-btn" title="Modifier">✏️</a>
+                    {'<a href="?user=' + clean_pseudo + '&action=regen_msg" target="_self" class="chat-icon-btn" title="Régénérer">🔄</a>' if idx == len(messages) - 1 else ''}
+                </div>
+                """, unsafe_allow_html=True)
         else:
             col_content_u, col_avatar_u = str_lit.columns([5, 1])
             with col_content_u:
@@ -814,38 +909,25 @@ elif str_lit.session_state.page == "chat":
                 </div>
                 """, unsafe_allow_html=True)
                 
-                edit_u_key = f"edit_mode_usr_{idx}"
-                if edit_u_key not in str_lit.session_state:
-                    str_lit.session_state[edit_u_key] = False
+                edit_u_key = f"edit_mode_{idx}"
+                str_lit.markdown(f"""
+                <div style="display: flex; gap: 4px; margin-bottom: 10px;">
+                    <a href="?user={clean_pseudo}&action=del_msg&idx={idx}" target="_self" class="chat-icon-btn" title="Supprimer">❌</a>
+                    <a href="?user={clean_pseudo}&action=edit_toggle&idx={idx}" target="_self" class="chat-icon-btn" title="Modifier">✏️</a>
+                </div>
+                """, unsafe_allow_html=True)
 
-                col_u1, col_u2, _ = str_lit.columns([1, 1, 4])
-                with col_u1:
-                    if str_lit.button("❌", key=f"del_usr_msg_{idx}", help="Supprimer ce message"):
-                        messages.pop(idx)
-                        cache_key = f"{str_lit.session_state.pseudo}_{current_char}"
-                        str_lit.session_state.messages_cache[cache_key] = messages
-                        if supabase and msg_id:
-                            try:
-                                supabase.table("messages").delete().eq("id", msg_id).execute()
-                            except Exception:
-                                pass
-                        str_lit.rerun()
-                with col_u2:
-                    if str_lit.button("✏️", key=f"btn_edit_usr_{idx}", help="Modifier message"):
-                        str_lit.session_state[edit_u_key] = not str_lit.session_state[edit_u_key]
-                        str_lit.rerun()
-
-                if str_lit.session_state[edit_u_key]:
+                if str_lit.session_state.get(edit_u_key, False):
                     new_u_text = str_lit.text_input("Modifier ton message :", value=msg["content"], key=f"txt_usr_{idx}")
                     if str_lit.button("💾 Valider", key=f"save_usr_{idx}"):
                         msg["content"] = new_u_text
                         str_lit.session_state[edit_u_key] = False
-                        cache_key = f"{str_lit.session_state.pseudo}_{current_char}"
+                        cache_key = f"{clean_pseudo}_{current_char}"
                         str_lit.session_state.messages_cache[cache_key] = messages
                         if supabase and msg_id:
                             try:
                                 supabase.table("messages").update({"content": new_u_text}).eq("id", msg_id).execute()
-                            except Exception:
+                            except:
                                 pass
                         str_lit.success("Message modifié !")
                         str_lit.rerun()
@@ -857,7 +939,7 @@ elif str_lit.session_state.page == "chat":
                 </div>
                 """, unsafe_allow_html=True)
 
-    # --- ZONE DE SAISIE LIBRE AVEC BOUTON FORCÉ CÔTE À CÔTE ET CORRECTION DE L'ENVOI ---
+    # --- ZONE DE SAISIE LIBRE ---
     str_lit.markdown("<br>", unsafe_allow_html=True)
     
     col_input, col_btn = str_lit.columns([4, 1])
@@ -868,23 +950,20 @@ elif str_lit.session_state.page == "chat":
 
     if send_clicked and user_input and user_input.strip():
         if not client:
-            str_lit.error("❌ Erreur : Le client Groq n'est pas initialisé. Vérifie ta clé API.")
+            str_lit.error("❌ Erreur : Le client Groq n'est pas initialisé.")
         else:
-            save_msg(str_lit.session_state.pseudo, current_char, "user", user_input.strip())
-            update_affinity(str_lit.session_state.pseudo, current_char, 2)
+            save_msg(clean_pseudo, current_char, "user", user_input.strip())
+            update_affinity(clean_pseudo, current_char, 2)
             
-            cache_key = f"{str_lit.session_state.pseudo}_{current_char}"
+            cache_key = f"{clean_pseudo}_{current_char}"
             if cache_key in str_lit.session_state.messages_cache:
                 del str_lit.session_state.messages_cache[cache_key]
 
-            user_pseudo = str_lit.session_state.pseudo
-            current_aff = get_affinity(user_pseudo, current_char)
+            current_aff = get_affinity(clean_pseudo, current_char)
             aff_context = f" Niveau d'affinité actuel : {current_aff}%."
-            context_reminder = {"role": "system", "content": f"Rappel important : L'interlocutrice s'appelle {user_pseudo}. Tu peux maintenant l'appeler par son prénom si le contexte s'y prête.{aff_context}"}
+            context_reminder = {"role": "system", "content": f"Rappel important : L'interlocutrice s'appelle {clean_pseudo}.{aff_context}"}
             
-            messages_actuels = load_msgs(user_pseudo, current_char, limit=50)
-            
-            # Formatage strict validé pour Groq
+            messages_actuels = load_msgs(clean_pseudo, current_char, limit=50)
             api_messages = [{"role": "system", "content": char_data["prompt"]}, context_reminder]
             for m in messages_actuels[-20:]:
                 role = m.get("role")
@@ -900,23 +979,19 @@ elif str_lit.session_state.page == "chat":
                         temperature=0.85,
                     )
                 bot_reply = response.choices[0].message.content
-                
                 if bot_reply:
-                    save_msg(user_pseudo, current_char, "assistant", bot_reply)
+                    save_msg(clean_pseudo, current_char, "assistant", bot_reply)
                     if cache_key in str_lit.session_state.messages_cache:
                         del str_lit.session_state.messages_cache[cache_key]
                     str_lit.rerun()
-                else:
-                    str_lit.warning("⚠️ L'IA a renvoyé une réponse vide.")
             except Exception as e:
-                str_lit.error(f"❌ Erreur technique de l'API Groq : {e}")
+                str_lit.error(f"❌ Erreur technique : {e}")
 
 elif str_lit.session_state.page == "create_character":
     if os.path.exists(CREATE_CHARACTER_BANNER):
         str_lit.image(CREATE_CHARACTER_BANNER, use_container_width=True)
     else:
         str_lit.title("✨ Créer un Personnage")
-        str_lit.write("Conçois ton propre personnage personnalisé pour l'intégrer à tes histoires.")
     str_lit.markdown("---")
 
     with str_lit.form("create_char_form"):
@@ -940,15 +1015,13 @@ elif str_lit.session_state.page == "create_character":
                             "creator_pseudo": str_lit.session_state.pseudo
                         }).execute()
                         str_lit.cache_data.clear()
-                        str_lit.success(f"Le personnage {new_name} a été créé avec succès !")
+                        str_lit.success(f"Personnage créé !")
                         str_lit.session_state.page = "home"
                         str_lit.rerun()
                     except Exception as e:
-                        str_lit.error(f"Erreur lors de l'enregistrement : {e}")
-                else:
-                    str_lit.warning("Supabase n'est pas configuré.")
+                        str_lit.error(f"Erreur : {e}")
             else:
-                str_lit.error("Veuillez donner un nom à votre personnage.")
+                str_lit.error("Veuillez donner un nom.")
 
 elif str_lit.session_state.page == "profile":
     banner_path = "profil utilisateur.jfif"
@@ -957,7 +1030,8 @@ elif str_lit.session_state.page == "profile":
     else:
         str_lit.title("Profil Utilisateur")
         
-    str_lit.write(f"Ton sanctuaire personnel, **{str_lit.session_state.pseudo}**.")
+    clean_pseudo = str(str_lit.session_state.pseudo).strip()
+    str_lit.write(f"Ton sanctuaire personnel, **{clean_pseudo}**.")
     str_lit.markdown("---")
 
     user_email = "Non disponible"
@@ -965,11 +1039,11 @@ elif str_lit.session_state.page == "profile":
 
     if supabase:
         try:
-            res = supabase.table("users").select("*").eq("pseudo", str_lit.session_state.pseudo).maybe_single().execute()
+            res = supabase.table("users").select("*").eq("pseudo", clean_pseudo).maybe_single().execute()
             if res and res.data:
                 user_email = res.data.get("email", "Non renseigné")
                 avatar_url = res.data.get("avatar_url", avatar_url)
-        except Exception:
+        except:
             pass
 
     if "edit_avatar_open" not in str_lit.session_state:
@@ -984,116 +1058,65 @@ elif str_lit.session_state.page == "profile":
         </div>
         """, unsafe_allow_html=True)
         
-        if str_lit.button("✏️ Modifier", key="toggle_edit_avatar", help="Changer la photo de profil"):
+        if str_lit.button("✏️ Modifier", key="toggle_edit_avatar"):
             str_lit.session_state.edit_avatar_open = not str_lit.session_state.edit_avatar_open
             str_lit.rerun()
 
     with col_av2:
         str_lit.markdown(f"""
         <div style="padding-top: 10px;">
-            <h2 style="margin: 0 0 5px 0; color: #f0f6fc; font-family: 'Georgia', serif;">{str_lit.session_state.pseudo}</h2>
+            <h2 style="margin: 0 0 5px 0; color: #f0f6fc; font-family: 'Georgia', serif;">{clean_pseudo}</h2>
             <p style="margin: 0; color: #8b949e; font-size: 14px;">Membre des ombres • E-mail : {user_email}</p>
-            <span style="display: inline-block; margin-top: 8px; background-color: rgba(210, 153, 234, 0.1); color: #d299ea; padding: 2px 10px; border-radius: 12px; font-size: 11px; border: 1px solid rgba(210, 153, 234, 0.3);">Lecteur / Rôle-playeur</span>
         </div>
         """, unsafe_allow_html=True)
 
     if str_lit.session_state.edit_avatar_open:
         str_lit.markdown("<br>", unsafe_allow_html=True)
         with str_lit.container():
-            str_lit.markdown("""
-            <div style="background-color: #161b22; border: 1px solid rgba(210, 153, 234, 0.2); border-radius: 10px; padding: 15px; margin-bottom: 20px;">
-                <div style="font-size: 13px; color: #c9d1d9; margin-bottom: 8px;">Colle ci-dessous le lien direct de ta nouvelle image de profil :</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            new_avatar_input = str_lit.text_input("URL de l'avatar", value=avatar_url, label_visibility="collapsed")
+            new_avatar_input = str_lit.text_input("URL de l'avatar", value=avatar_url)
             col_b1, col_b2, _ = str_lit.columns([1, 1, 3])
             with col_b1:
-                if str_lit.button("💾 Enregistrer"):
+                if str_lit.button("💾 Enregistrer avatar"):
                     if supabase:
                         try:
-                            supabase.table("users").update({"avatar_url": new_avatar_input.strip()}).eq("pseudo", str_lit.session_state.pseudo).execute()
+                            supabase.table("users").update({"avatar_url": new_avatar_input.strip()}).eq("pseudo", clean_pseudo).execute()
                             str_lit.session_state.edit_avatar_open = False
-                            str_lit.success("Photo de profil mise à jour !")
+                            str_lit.success("Mis à jour !")
                             str_lit.rerun()
                         except Exception as e:
                             str_lit.error(f"Erreur : {e}")
-                    else:
-                        str_lit.warning("Supabase non connecté.")
             with col_b2:
                 if str_lit.button("Annuler"):
                     str_lit.session_state.edit_avatar_open = False
                     str_lit.rerun()
 
     str_lit.markdown("<br>", unsafe_allow_html=True)
-
     str_lit.subheader("🖤 Mes Créations ténébreuses")
     if supabase:
         try:
             my_chars_res = supabase.table("custom_characters").select("*").execute()
-
-            if my_chars_res and my_chars_res.data and len(my_chars_res.data) > 0:
+            if my_chars_res and my_chars_res.data:
                 cols = str_lit.columns(4)
                 for i, char in enumerate(my_chars_res.data):
                     with cols[i % 4]:
                         c_name_val = char.get("name")
-                        if c_name_val == "Lord Valerian Vance":
-                            c_img = "https://i.ibb.co/Cstfcz6S/image.png"
-                        else:
-                            c_img = char.get("img_url", "")
-                            if not c_img or not c_img.startswith("http"):
-                                c_img = DEFAULT_FALLBACK_IMG
-                            
+                        c_img = char.get("img_url", DEFAULT_FALLBACK_IMG)
                         vis_status = char.get('visibility', 'Public')
                         badge_color = "#ff7b72" if vis_status == "Privé" else "#3fb950"
                             
                         str_lit.markdown(f"""
-                        <div style="background-color: #161b22; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 12px; text-align: center; margin-bottom: 10px; transition: transform 0.2s;">
+                        <div style="background-color: #161b22; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 12px; text-align: center; margin-bottom: 10px;">
                             <img src="{c_img}" onerror="this.onerror=null; this.src='{DEFAULT_FALLBACK_IMG}';" style="width: 100%; height: 130px; object-fit: cover; border-radius: 8px; margin-bottom: 8px;">
                             <strong style="color: #ffffff; font-size: 14px; display: block; margin-bottom: 4px;">{c_name_val}</strong>
-                            <span style="font-size: 10px; color: {badge_color}; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">● {vis_status}</span>
+                            <span style="font-size: 10px; color: {badge_color}; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">● {vis_status}</span>
                         </div>
                         """, unsafe_allow_html=True)
                         
-                        if str_lit.button(f"💬 Discuter", key=f"chat_my_char_{i}"):
-                            str_lit.session_state.char_select = c_name_val
-                            str_lit.session_state.page = "chat"
-                            str_lit.rerun()
-
-                        if str_lit.button(f"🗑️ Supprimer", key=f"del_char_db_{i}"):
-                            try:
-                                supabase.table("custom_characters").delete().eq("name", c_name_val).execute()
-                                supabase.table("messages").delete().eq("char_name", c_name_val).execute()
-                                supabase.table("affinities").delete().eq("char_name", c_name_val).execute()
-                                str_lit.cache_data.clear()
-                                str_lit.success(f"Personnage {c_name_val} supprimé !")
-                                str_lit.rerun()
-                            except Exception as e:
-                                str_lit.error(f"Erreur : {e}")
+                        str_lit.markdown(f'''
+                        <a href="?user={clean_pseudo}&chat_target={c_name_val}" target="_self" class="custom-action-btn" style="margin-bottom: 6px;">💬 Discuter</a>
+                        <a href="?user={clean_pseudo}&action=delete_char&char={c_name_val}" target="_self" class="custom-danger-btn">🗑️ Supprimer</a>
+                        ''', unsafe_allow_html=True)
             else:
-                str_lit.info("Aucun personnage ténébreux créé pour l'instant.")
+                str_lit.info("Aucun personnage créé pour l'instant.")
         except Exception as e:
-            str_lit.error(f"Erreur lors du chargement de tes personnages : {e}")
-    else:
-        str_lit.warning("Connexion à la base de données requise.")
-
-    str_lit.markdown("<br>", unsafe_allow_html=True)
-
-    str_lit.subheader("📊 Grimoire de statistiques")
-    if supabase:
-        try:
-            clean_pseudo = str(str_lit.session_state.pseudo).strip()
-            res_msg = supabase.table("messages").select("char_name").eq("user_pseudo", clean_pseudo).execute()
-            if res_msg.data:
-                nb_convs = len(set([item["char_name"] for item in res_msg.data if item.get("char_name")]))
-                str_lit.markdown(f"""
-                <div style="background-color: #161b22; border: 1px solid rgba(210, 153, 234, 0.15); border-radius: 12px; padding: 15px; color: #c9d1d9;">
-                    ✨ Histoires passionnelles en cours : <b style="color: #d299ea;">{nb_convs}</b>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                str_lit.info("Ton grimoire est encore vierge. Lance une conversation pour commencer.")
-        except Exception:
-            str_lit.info("Impossible de charger les statistiques pour le moment.")
-    else:
-        str_lit.info("Mode hors-ligne : statistiques non disponibles.")
+            str_lit.error(f"Erreur : {e}")
