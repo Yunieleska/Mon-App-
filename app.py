@@ -73,6 +73,10 @@ str_lit.markdown(
         border-color: #ffffff !important;
         color: #ffffff !important;
     }
+    /* Correction pour s'assurer que le texte et les émojis dans les boutons restent visibles */
+    .stButton>button p, .stButton>button div {
+        color: #ffffff !important;
+    }
     textarea, input[type="text"], [data-baseweb="input"] input, [data-baseweb="textarea"] textarea {
         color: #ffffff !important;
         -webkit-text-fill-color: #ffffff !important;
