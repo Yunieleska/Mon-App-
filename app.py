@@ -15,6 +15,38 @@ SIDEBAR_HEADER_IMG = "couple.png"
 CORRESPONDANCES_BANNER = "https://i.postimg.cc/tCnmbx3m/correspondances.jpg"
 CREATE_CHARACTER_BANNER = "créer un personnage.jfif"
 EXPLORER_BANNER = "explorer.jfif"
+SUPABASE_BUCKET_NAME = "storyia-images" # Nom de ton bucket Supabase Storage
+
+def upload_image_to_supabase(uploaded_file, folder="uploads"):
+    """Téléverse un fichier image directement sur Supabase Storage et retourne son URL publique"""
+    if not uploaded_file or not supabase:
+        return ""
+    try:
+        file_bytes = uploaded_file.getvalue()
+        file_name = f"{folder}/{os.urandom(8).hex()}_{uploaded_file.name}"
+        
+        # Upload dans le bucket Supabase
+        supabase.storage.from_(SUPABASE_BUCKET_NAME).upload(
+            path=file_name,
+            file=file_bytes,
+            file_options={"content-type": uploaded_file.type}
+        )
+        
+        # Récupération de l'URL publique
+        public_url_res = supabase.storage.from_(SUPABASE_BUCKET_NAME).get_public_url(file_name)
+        return public_url_res
+    except Exception as e:
+        str_lit.error(f"Erreur lors de l'upload de l'image : {e}")
+        return ""
+
+def force_image_url(url):
+    """Contourne les restrictions CORS et anti-hotlinking des hébergeurs tiers"""
+    if not url:
+        return ""
+    clean_url = url.strip()
+    if "supabase.co" in clean_url or "raw.githubusercontent.com" in clean_url or clean_url.startswith("http://localhost"):
+        return clean_url
+    return f"https://wsrv.nl/?url={clean_url.replace('https://', '').replace('http://', '')}&w=400&fit=cover"
 
 @str_lit.cache_resource
 def init_groq_client(api_key):
@@ -499,8 +531,8 @@ def get_all_characters_cached(current_user_pseudo=""):
                         prompt_val = item.get("prompt", f"Tu es {c_name}. {desc_val}")
                         quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
                         
-                        # On garde exactement le lien fourni, sans aucune substitution
-                        img_url = item.get("img_url", "").strip()
+                        raw_img_url = item.get("img_url", "").strip()
+                        img_url = force_image_url(raw_img_url)
                         
                         chars[c_name] = {
                             "img": img_url,
@@ -975,7 +1007,10 @@ elif str_lit.session_state.page == "create_character":
         new_name = str_lit.text_input("Nom du personnage")
         new_quote = str_lit.text_input("Phrase d'accroche (Citation)")
         new_desc = str_lit.text_area("Description / Personnalité / Contexte")
-        new_img = str_lit.text_input("URL de l'image (Lien direct)")
+        
+        # Remplacement du champ texte par l'upload direct
+        uploaded_file = str_lit.file_uploader("Importer l'image du personnage", type=["png", "jpg", "jpeg", "jfif"])
+        
         new_vis = str_lit.selectbox("Visibilité", ["Public", "Privé"])
 
         submitted = str_lit.form_submit_button("Créer le Personnage")
@@ -983,7 +1018,9 @@ elif str_lit.session_state.page == "create_character":
             if new_name.strip():
                 if supabase:
                     try:
-                        final_img = new_img.strip()
+                        final_img = ""
+                        if uploaded_file:
+                            final_img = upload_image_to_supabase(uploaded_file, folder="characters")
 
                         supabase.table("custom_characters").insert({
                             "name": new_name.strip(),
@@ -1052,13 +1089,18 @@ elif str_lit.session_state.page == "profile":
     if str_lit.session_state.edit_avatar_open:
         str_lit.markdown("<br>", unsafe_allow_html=True)
         with str_lit.container():
-            new_avatar_input = str_lit.text_input("URL de l'avatar", value=avatar_url)
+            # Remplacement de l'input texte par l'upload direct d'avatar
+            uploaded_avatar = str_lit.file_uploader("Choisir un nouvel avatar", type=["png", "jpg", "jpeg", "jfif"])
             col_b1, col_b2, _ = str_lit.columns([1, 1, 3])
             with col_b1:
                 if str_lit.button("💾 Enregistrer avatar"):
                     if supabase:
                         try:
-                            supabase.table("users").update({"avatar_url": new_avatar_input.strip()}).eq("pseudo", clean_pseudo).execute()
+                            new_avatar_url = avatar_url
+                            if uploaded_avatar:
+                                new_avatar_url = upload_image_to_supabase(uploaded_file=uploaded_avatar, folder="avatars")
+                            
+                            supabase.table("users").update({"avatar_url": new_avatar_url}).eq("pseudo", clean_pseudo).execute()
                             str_lit.session_state.edit_avatar_open = False
                             str_lit.success("Mis à jour !")
                             str_lit.rerun()
@@ -1079,7 +1121,8 @@ elif str_lit.session_state.page == "profile":
                 for i, char in enumerate(my_chars_res.data):
                     with cols[i % 4]:
                         c_name_val = char.get("name")
-                        c_img = char.get("img_url", "").strip()
+                        raw_c_img = char.get("img_url", "").strip()
+                        c_img = force_image_url(raw_c_img)
 
                         vis_status = char.get('visibility', 'Public')
                         badge_color = "#ff7b72" if vis_status == "Privé" else "#3fb950"
