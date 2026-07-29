@@ -426,8 +426,7 @@ menu_html = f"""
 .sidebar-nav-link {{
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 10px 14px;
+    padding: 12px 16px;
     margin-bottom: 8px;
     border-radius: 8px;
     color: #c9d1d9 !important;
@@ -444,27 +443,20 @@ menu_html = f"""
     color: #f0f6fc !important;
     transform: translateX(3px);
 }}
-.menu-img-icon {{
-    width: 24px;
-    height: 24px;
-    object-fit: cover;
-    border-radius: 4px;
-    border: 1px solid rgba(210, 153, 234, 0.3);
-}}
 </style>
 
 <div style="display: flex; flex-direction: column;">
     <a href="?user={str_lit.session_state.pseudo}&nav=home" target="_self" class="sidebar-nav-link">
-        <img src="https://i.postimg.cc/v8gvxdcK/sanctuaire.jpg" class="menu-img-icon"> Sanctuaire
+        Sanctuaire
     </a>
     <a href="?user={str_lit.session_state.pseudo}&nav=create_character" target="_self" class="sidebar-nav-link">
-        <img src="https://i.postimg.cc/g0zxdYbQ/invoquer.jpg" class="menu-img-icon"> Invoquer
+        Invoquer
     </a>
     <a href="?user={str_lit.session_state.pseudo}&nav=messages" target="_self" class="sidebar-nav-link">
-        <img src="https://i.postimg.cc/MGV9kmqq/correspondances.jpg" class="menu-img-icon"> Correspondances
+        Correspondances
     </a>
     <a href="?user={str_lit.session_state.pseudo}&nav=profile" target="_self" class="sidebar-nav-link">
-        <img src="https://i.postimg.cc/HxWkG3X5/mon-ombre.jpg" class="menu-img-icon"> Mon Ombre
+        Mon Ombre
     </a>
 </div>
 """
@@ -476,8 +468,7 @@ logout_html = f"""
 .logout-link {{
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 10px 14px;
+    padding: 12px 16px;
     margin-bottom: 8px;
     border-radius: 8px;
     color: #c9d1d9 !important;
@@ -496,7 +487,7 @@ logout_html = f"""
 }}
 </style>
 <a href="?user={str_lit.session_state.pseudo}&logout=true" target="_self" class="logout-link">
-    <img src="https://i.postimg.cc/FKzhD14L/s-echapper.jpg" class="menu-img-icon"> S'échapper (Logout)
+    S'échapper (Logout)
 </a>
 """
 str_lit.sidebar.markdown(logout_html, unsafe_allow_html=True)
