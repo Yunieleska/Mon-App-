@@ -645,6 +645,16 @@ elif str_lit.session_state.page == "chat":
     current_char = str_lit.session_state.char_select
     char_data = CHARACTERS.get(current_char, {"img": DEFAULT_FALLBACK_IMG, "quote": "", "prompt": f"Tu es {current_char}."})
 
+    # Récupération de l'avatar de l'utilisateur pour le chat
+    user_avatar_url = DEFAULT_FALLBACK_IMG
+    if supabase:
+        try:
+            res_u = supabase.table("users").select("avatar_url").eq("pseudo", str_lit.session_state.pseudo).maybe_single().execute()
+            if res_u and res_u.data and res_u.data.get("avatar_url"):
+                user_avatar_url = res_u.data.get("avatar_url")
+        except Exception:
+            pass
+
     col_h1, col_h2, col_h3, col_h4 = str_lit.columns([1, 3, 2, 1.5])
     with col_h1:
         str_lit.image(char_data["img"], width=70)
@@ -795,14 +805,20 @@ elif str_lit.session_state.page == "chat":
                             pass
                         str_lit.rerun()
         else:
-            with str_lit.chat_message("user"):
-                str_lit.write(msg["content"])
+            # --- MESSAGE UTILISATEUR AVEC AVATAR PERSONNALISÉ ---
+            col_content_u, col_avatar_u = str_lit.columns([5, 1])
+            with col_content_u:
+                str_lit.markdown(f"""
+                <div style="background-color: #21262d; font-family: 'Georgia', serif; font-size: 15px; line-height: 1.6; color: #e6edf3; padding: 15px; border-radius: 10px; border-right: 4px solid #d299ea; margin-bottom: 10px; text-align: right;">
+                    {msg["content"]}
+                </div>
+                """, unsafe_allow_html=True)
                 
                 edit_u_key = f"edit_mode_usr_{idx}"
                 if edit_u_key not in str_lit.session_state:
                     str_lit.session_state[edit_u_key] = False
 
-                col_u1, col_u2, col_u3 = str_lit.columns([1, 1, 4])
+                col_u1, col_u2, _ = str_lit.columns([1, 1, 4])
                 with col_u1:
                     if str_lit.button("❌", key=f"del_usr_msg_{idx}", help="Supprimer ce message"):
                         messages.pop(idx)
@@ -833,6 +849,13 @@ elif str_lit.session_state.page == "chat":
                                 pass
                         str_lit.success("Message modifié !")
                         str_lit.rerun()
+
+            with col_avatar_u:
+                str_lit.markdown(f"""
+                <div style="display: flex; justify-content: flex-end;">
+                    <img src="{user_avatar_url}" onerror="this.onerror=null; this.src='{DEFAULT_FALLBACK_IMG}';" style="width: 55px; height: 55px; border-radius: 50%; object-fit: cover; border: 2px solid #d299ea;">
+                </div>
+                """, unsafe_allow_html=True)
 
     with str_lit.form(key="chat_input_form", clear_on_submit=True):
         user_input = str_lit.text_area("Écris ta réponse (appuie sur Entrée pour aller à la ligne)...", key="user_message_input", height=90)
@@ -910,7 +933,6 @@ elif str_lit.session_state.page == "create_character":
                 str_lit.error("Veuillez donner un nom à votre personnage.")
 
 elif str_lit.session_state.page == "profile":
-    # --- 1. BANNIÈRE SUPÉRIEURE ---
     banner_path = "profil utilisateur.jfif"
     if os.path.exists(banner_path):
         str_lit.image(banner_path, use_container_width=True)
@@ -935,7 +957,6 @@ elif str_lit.session_state.page == "profile":
     if "edit_avatar_open" not in str_lit.session_state:
         str_lit.session_state.edit_avatar_open = False
 
-    # --- 2. CARTE PROFIL & AVATAR DISCRET ---
     col_av1, col_av2 = str_lit.columns([1.5, 8.5])
     
     with col_av1:
@@ -988,7 +1009,6 @@ elif str_lit.session_state.page == "profile":
 
     str_lit.markdown("<br>", unsafe_allow_html=True)
 
-    # --- 3. PERSONNAGES CRÉÉS & ACTIONS ---
     str_lit.subheader("🖤 Mes Créations ténébreuses")
     if supabase:
         try:
@@ -1041,7 +1061,6 @@ elif str_lit.session_state.page == "profile":
 
     str_lit.markdown("<br>", unsafe_allow_html=True)
 
-    # --- 4. STATISTIQUES ---
     str_lit.subheader("📊 Grimoire de statistiques")
     if supabase:
         try:
