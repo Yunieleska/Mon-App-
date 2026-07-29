@@ -578,8 +578,6 @@ elif str_lit.session_state.page == "messages":
         f'<img src="{CORRESPONDANCES_BANNER}" style="width: 100%; border-radius: 12px; margin-bottom: 20px; object-fit: cover;">',
         unsafe_allow_html=True
     )
-    str_lit.title("💬 Vos Conversations")
-    str_lit.write("Retrouvez ici tous les personnages avec qui vous avez une histoire en cours :")
     str_lit.markdown("---")
 
     if not supabase:
