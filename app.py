@@ -500,7 +500,7 @@ def get_all_characters_cached():
                     quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
                     
                     if c_name == "Lord Valerian Vance":
-                        img_url = "https://i.ibb.co/Cstfcz6S/image.png"
+                        img_url = DEFAULT_FALLBACK_IMG
                     else:
                         img_url = item.get("img_url", DEFAULT_FALLBACK_IMG)
                     
