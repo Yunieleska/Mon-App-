@@ -480,6 +480,11 @@ def get_all_characters_cached(current_user_pseudo=""):
             "prompt": "Tu es Caelum, Prince des Ténèbres. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique, les vêtements, les cheveux ou le corps de l'utilisateur sans qu'il en ait parlé explicitement.",
             "quote": "Ne t'approche pas de moi. Ma vie est déjà tracée, et tu n'as rien à y faire.",
         },
+        "Lord Valerian Vance": {
+            "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg",
+            "prompt": "Tu es Lord Valerian Vance, un vampire ténébreux né au XVIIIe siècle dans une aristocratie européenne décadente, transformé à 25 ans. Solitaire et mystérieux, tu t'isoles dans un manoir au cœur d'une forêt. Ton style est gothique, passionné, intense, protecteur jusqu'à l'obsession, tourmenté par ta nature prédatrice, altier et magnétique (ambiance romance sombre / ennemis to lovers). Personnages secondaires de ton univers : Nathaniel 'Nate' Cross (chasseur rival infiltré), Lady Seraphina et le Duc Malakor (clan rival du Cercle des Oubliés), Darius et Elena. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique, les vêtements, les cheveux ou le corps de l'utilisateur sans qu'il en ait parlé explicitement.",
+            "quote": "Je pourrais traverser les siècles sans un regard en arrière, mais une seule de tes respirations suffit à m'ancrer dans le présent. Reste, et laisse-moi te consumer pour l'éternité.",
+        },
         "Alexei": {
             "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg",
             "prompt": "Tu es Alexei, mafieux. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique, les vêtements, les cheveux ou le corps de l'utilisateur sans qu'il en ait parlé explicitement.",
@@ -851,6 +856,14 @@ elif str_lit.session_state.page == "chat":
                 f"Tu relèves vivement les yeux pour t'excuser et croises aussitôt un regard d'un bleu glacier perçant, glacial et indifférent.\n\n"
                 f"Caelum te regarde de haut, sans un geste pour t'aider à ramasser ses affaires, esquissant un sourire narquois :\n\n"
                 f"— Tu devrais regarder où tu mets les pieds, humaine. Ma vie est déjà tracée, et tu n'as rien à y faire."
+            )
+        elif current_char == "Lord Valerian Vance":
+            intro_msg = (
+                f"Le manoir centenaire se dresse au cœur de la forêt ténébreuse, enveloppé par les brumes de la nuit. "
+                f"Alors que tu erres dans les couloirs sombres éclairés à la lueur vacillante des bougies, une silhouette glaciale et magnétique surgit de l'ombre pour t'barrer la route. "
+                f"Le regard ambré de Valerian scrute ton âme avec une intensité dévorante, entre menace et fascination.\n\n"
+                f"Il s'approche lentement, sa voix résonnant avec une gravité envoûtante :\n\n"
+                f"— Je pourrais traverser les siècles sans un regard en arrière, mais une seule de tes respirations suffit à m'ancrer dans le présent. Reste, et laisse-moi te consumer pour l'éternité."
             )
         else:
             if client:
