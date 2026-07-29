@@ -443,7 +443,7 @@ def update_affinity(pseudo, char, delta):
 
 
 @str_lit.cache_data(show_spinner=False, ttl=1)
-def get_all_characters_cached():
+def get_all_characters_cached(current_user_pseudo=""):
     chars = {
         "Caelum": {
             "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
@@ -491,25 +491,30 @@ def get_all_characters_cached():
                     c_name = item.get("name")
                     if not c_name:
                         continue
-                    desc_val = item.get("description", "")
-                    prompt_val = item.get("prompt", f"Tu es {c_name}. {desc_val}")
-                    quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
                     
-                    img_url = item.get("img_url", "").strip()
-                    if not img_url or "imgbb.com" in img_url or not img_url.startswith("http"):
-                        img_url = DEFAULT_FALLBACK_IMG
-                    
-                    chars[c_name] = {
-                        "img": img_url,
-                        "prompt": prompt_val + " Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé.",
-                        "quote": quote_val,
-                    }
+                    vis = item.get("visibility", "Public")
+                    creator = item.get("creator_pseudo", "")
+
+                    if vis == "Public" or (vis == "Privé" and creator == current_user_pseudo):
+                        desc_val = item.get("description", "")
+                        prompt_val = item.get("prompt", f"Tu es {c_name}. {desc_val}")
+                        quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
+                        
+                        img_url = item.get("img_url", "").strip()
+                        if not img_url or "imgbb.com" in img_url or not img_url.startswith("http"):
+                            img_url = DEFAULT_FALLBACK_IMG
+                        
+                        chars[c_name] = {
+                            "img": img_url,
+                            "prompt": prompt_val + " Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé.",
+                            "quote": quote_val,
+                        }
     except Exception:
         pass
 
     return chars
 
-CHARACTERS = get_all_characters_cached()
+CHARACTERS = get_all_characters_cached(str_lit.session_state.get("pseudo", ""))
 
 # --- LOGIN LOGIC ---
 if not str_lit.session_state.logged_in:
@@ -680,25 +685,7 @@ if str_lit.session_state.page == "home":
     
     str_lit.markdown("---")
 
-    public_items = []
-    if supabase:
-        try:
-            res_pub = supabase.table("custom_characters").select("*").execute()
-            public_custom_names = (
-                {item["name"] for item in res_pub.data if item.get("visibility", "Public") != "Privé"} 
-                if res_pub.data else set()
-            )
-
-            for name, data in CHARACTERS.items():
-                if name in [
-                    "Caelum", "Alexei", "Lucas",
-                    "Ethan", "Léo", "Liam", "Noah",
-                ] or name in public_custom_names:
-                    public_items.append((name, data))
-        except Exception:
-            public_items = list(CHARACTERS.items())
-    else:
-        public_items = list(CHARACTERS.items())
+    public_items = list(CHARACTERS.items())
 
     ITEMS_PER_PAGE = 8
     if "home_page" not in str_lit.session_state:
@@ -1092,7 +1079,7 @@ elif str_lit.session_state.page == "profile":
     str_lit.subheader("🖤 Mes Créations ténébreuses")
     if supabase:
         try:
-            my_chars_res = supabase.table("custom_characters").select("*").execute()
+            my_chars_res = supabase.table("custom_characters").select("*").eq("creator_pseudo", clean_pseudo).execute()
             if my_chars_res and my_chars_res.data:
                 cols = str_lit.columns(4)
                 for i, char in enumerate(my_chars_res.data):
@@ -1118,6 +1105,6 @@ elif str_lit.session_state.page == "profile":
                         <a href="?user={clean_pseudo}&action=delete_char&char={c_name_val}" target="_self" class="custom-danger-btn">🗑️ Supprimer</a>
                         ''', unsafe_allow_html=True)
             else:
-                str_lit.info("Aucun personnage créé pour l'instant.")
+                str_lit.info("Vous n'avez créé aucun personnage pour l'instant.")
         except Exception as e:
             str_lit.error(f"Erreur : {e}")
