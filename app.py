@@ -13,6 +13,7 @@ if not groq_key and "GROQ_API_KEY" in str_lit.secrets:
 BACKGROUND_IMG_NAME = "bg.png"
 SIDEBAR_HEADER_IMG = "couple.png"
 DEFAULT_FALLBACK_IMG = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+CORRESPONDANCES_BANNER = "https://i.postimg.cc/tCnmbx3m/correspondances.jpg"
 
 @str_lit.cache_resource
 def init_groq_client(api_key):
@@ -573,6 +574,10 @@ if str_lit.session_state.page == "home":
             str_lit.rerun()
 
 elif str_lit.session_state.page == "messages":
+    str_lit.markdown(
+        f'<img src="{CORRESPONDANCES_BANNER}" style="width: 100%; border-radius: 12px; margin-bottom: 20px; object-fit: cover;">',
+        unsafe_allow_html=True
+    )
     str_lit.title("💬 Vos Conversations")
     str_lit.write("Retrouvez ici tous les personnages avec qui vous avez une histoire en cours :")
     str_lit.markdown("---")
