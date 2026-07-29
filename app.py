@@ -230,6 +230,7 @@ if "action" in query_params:
         str_lit.rerun()
 
     elif action_type == "delete_char" and c_name_param:
+        # Suppression volontaire demandée explicitement par l'utilisateur via le bouton Supprimer
         if supabase:
             try:
                 supabase.table("custom_characters").delete().eq("name", c_name_param).execute()
@@ -495,13 +496,15 @@ def get_all_characters_cached(current_user_pseudo=""):
                     vis = item.get("visibility", "Public")
                     creator = item.get("creator_pseudo", "")
 
-                    if vis == "Public" or (vis == "Privé" and creator == current_user_pseudo):
+                    # Sécurité : Si le personnage est public OU s'il appartient à l'utilisateur connecté, on l'affiche.
+                    # Si creator est vide/null (anciens persos), on l'affiche par défaut pour ne perdre personne.
+                    if vis == "Public" or not creator or creator == current_user_pseudo:
                         desc_val = item.get("description", "")
                         prompt_val = item.get("prompt", f"Tu es {c_name}. {desc_val}")
                         quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
                         
                         img_url = item.get("img_url", "").strip()
-                        if not img_url or "imgbb.com" in img_url or not img_url.startswith("http"):
+                        if not img_url:
                             img_url = DEFAULT_FALLBACK_IMG
                         
                         chars[c_name] = {
@@ -701,7 +704,7 @@ if str_lit.session_state.page == "home":
     grid_html = '<div class="storyia-grid">'
     for idx, (name, data) in enumerate(current_items):
         img_src = data["img"]
-        if not img_src or "imgbb.com" in img_src:
+        if not img_src:
             img_src = DEFAULT_FALLBACK_IMG
 
         grid_html += f"""
@@ -988,7 +991,7 @@ elif str_lit.session_state.page == "create_character":
                 if supabase:
                     try:
                         final_img = new_img.strip()
-                        if not final_img.startswith("http") or "imgbb.com" in final_img:
+                        if not final_img:
                             final_img = DEFAULT_FALLBACK_IMG
 
                         supabase.table("custom_characters").insert({
@@ -1079,14 +1082,15 @@ elif str_lit.session_state.page == "profile":
     str_lit.subheader("🖤 Mes Créations ténébreuses")
     if supabase:
         try:
-            my_chars_res = supabase.table("custom_characters").select("*").eq("creator_pseudo", clean_pseudo).execute()
+            # Récupère tous les personnages créés par l'utilisateur (ou sans créateur défini pour sécurité maximale)
+            my_chars_res = supabase.table("custom_characters").select("*").or_(f"creator_pseudo.eq.{clean_pseudo},creator_pseudo.is.null").execute()
             if my_chars_res and my_chars_res.data:
                 cols = str_lit.columns(4)
                 for i, char in enumerate(my_chars_res.data):
                     with cols[i % 4]:
                         c_name_val = char.get("name")
                         c_img = char.get("img_url", "").strip()
-                        if not c_img or "imgbb.com" in c_img or not c_img.startswith("http"):
+                        if not c_img:
                             c_img = DEFAULT_FALLBACK_IMG
 
                         vis_status = char.get('visibility', 'Public')
