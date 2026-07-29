@@ -61,22 +61,34 @@ str_lit.markdown(
         background-color: #161b22 !important;
         color: #ffffff !important;
     }
-    .stButton>button, button[kind="secondary"], button[kind="primary"], div.stFormSubmitButton > button {
+    
+    /* FORCAGE ABSOLU DE LA VISIBILITÉ DES BOUTONS ET DE LEUR CONTENU */
+    .stButton > button, 
+    button[kind="secondary"], 
+    button[kind="primary"], 
+    div.stFormSubmitButton > button,
+    .stButton > button * {
         background-color: #21262d !important;
         color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
         border: 1px solid rgba(255, 255, 255, 0.15) !important;
         border-radius: 8px !important;
-        height: 42px;
     }
-    .stButton>button:hover, button[kind="secondary"]:hover, button[kind="primary"]:hover, div.stFormSubmitButton > button:hover {
+    .stButton > button p, 
+    .stButton > button span, 
+    .stButton > button div {
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+    }
+    .stButton > button:hover, 
+    button[kind="secondary"]:hover, 
+    button[kind="primary"]:hover, 
+    div.stFormSubmitButton > button:hover {
         background-color: #30363d !important;
         border-color: #ffffff !important;
         color: #ffffff !important;
     }
-    /* Correction pour s'assurer que le texte et les émojis dans les boutons restent visibles */
-    .stButton>button p, .stButton>button div {
-        color: #ffffff !important;
-    }
+
     textarea, input[type="text"], [data-baseweb="input"] input, [data-baseweb="textarea"] textarea {
         color: #ffffff !important;
         -webkit-text-fill-color: #ffffff !important;
