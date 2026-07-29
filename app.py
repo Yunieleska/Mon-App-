@@ -527,7 +527,8 @@ def get_all_characters_cached(current_user_pseudo=""):
 
                     if vis == "Public" or not creator or creator == current_user_pseudo:
                         desc_val = item.get("description", "")
-                        prompt_val = item.get("prompt", f"Tu es {c_name}. {desc_val}")
+                        gender_val = item.get("gender", "Non spécifié")
+                        prompt_val = item.get("prompt", f"Tu es {c_name} (Genre: {gender_val}). {desc_val}")
                         quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
                         
                         raw_img_url = item.get("img_url", "").strip()
@@ -1002,6 +1003,7 @@ elif str_lit.session_state.page == "create_character":
 
     with str_lit.form("create_char_form"):
         new_name = str_lit.text_input("Nom du personnage")
+        new_gender = str_lit.selectbox("Sexe / Genre", ["Homme", "Femme", "Non-binaire / Autre"])
         new_quote = str_lit.text_input("Phrase d'accroche (Citation)")
         new_desc = str_lit.text_area("Description / Personnalité / Contexte")
         uploaded_file = str_lit.file_uploader("Importer l'image du personnage", type=["png", "jpg", "jpeg", "jfif"])
@@ -1018,6 +1020,7 @@ elif str_lit.session_state.page == "create_character":
 
                         supabase.table("custom_characters").insert({
                             "name": new_name.strip(),
+                            "gender": new_gender,
                             "quote": new_quote,
                             "description": new_desc,
                             "img_url": final_img,
