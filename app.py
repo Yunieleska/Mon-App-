@@ -16,32 +16,37 @@ CORRESPONDANCES_BANNER = "https://i.postimg.cc/tCnmbx3m/correspondances.jpg"
 CREATE_CHARACTER_BANNER = "créer un personnage.jfif"
 EXPLORER_BANNER = "explorer.jfif"
 SUPABASE_BUCKET_NAME = "storyia-images"
+DEFAULT_AVATAR = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
 
 def upload_image_to_supabase(uploaded_file, folder="uploads"):
-    """Téléverse un fichier image directement sur Supabase Storage et retourne son URL publique"""
+    """Téléverse un fichier image sur Supabase Storage et retourne l'URL publique absolue"""
     if not uploaded_file or not supabase:
         return ""
     try:
         file_bytes = uploaded_file.getvalue()
         file_name = f"{folder}/{os.urandom(8).hex()}_{uploaded_file.name}"
         
+        # Upload du fichier
         supabase.storage.from_(SUPABASE_BUCKET_NAME).upload(
             path=file_name,
             file=file_bytes,
             file_options={"content-type": uploaded_file.type}
         )
         
-        public_url_res = supabase.storage.from_(SUPABASE_BUCKET_NAME).get_public_url(file_name)
-        return public_url_res
+        # Récupération sécurisée de l'URL publique
+        public_url = supabase.storage.from_(SUPABASE_BUCKET_NAME).get_public_url(file_name)
+        if isinstance(public_url, dict):
+            public_url = public_url.get("publicUrl", "")
+        return str(public_url)
     except Exception as e:
         str_lit.error(f"Erreur lors de l'upload de l'image : {e}")
         return ""
 
 def force_image_url(url):
-    """Contourne les restrictions CORS et anti-hotlinking des hébergeurs tiers"""
-    if not url:
-        return ""
-    clean_url = url.strip()
+    """Contourne les restrictions CORS et garantit une image valide"""
+    if not url or not str(url).strip():
+        return DEFAULT_AVATAR
+    clean_url = str(url).strip()
     if "supabase.co" in clean_url or "raw.githubusercontent.com" in clean_url or clean_url.startswith("http://localhost"):
         return clean_url
     return f"https://wsrv.nl/?url={clean_url.replace('https://', '').replace('http://', '')}&w=400&fit=cover"
@@ -221,7 +226,7 @@ str_lit.markdown(
     unsafe_allow_html=True,
 )
 
-# --- PERSISTANCE PAR URL & SESSION (SÉCURISÉE) ---
+# --- PERSISTANCE PAR URL & SESSION ---
 if "pseudo" not in str_lit.session_state:
     str_lit.session_state.pseudo = "Yuna"
 if "logged_in" not in str_lit.session_state:
@@ -479,11 +484,6 @@ def get_all_characters_cached(current_user_pseudo=""):
             "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
             "prompt": "Tu es Caelum, Prince des Ténèbres. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique, les vêtements, les cheveux ou le corps de l'utilisateur sans qu'il en ait parlé explicitement.",
             "quote": "Ne t'approche pas de moi. Ma vie est déjà tracée, et tu n'as rien à y faire.",
-        },
-        "Lord Valerian Vance": {
-            "img": "https://i.pinimg.com/736x/8b/1b/30/8b1b3078a6358c27806509176374f1ad.jpg",
-            "prompt": "Tu es Lord Valerian Vance, un vampire ténébreux né au XVIIIe siècle dans une aristocratie européenne décadente, transformé à 25 ans. Solitaire et mystérieux, tu t'isoles dans un manoir au cœur d'une forêt. Ton style est gothique, passionné, intense, protecteur jusqu'à l'obsession, tourmenté par ta nature prédatrice, altier et magnétique (ambiance romance sombre / ennemis to lovers). Personnages secondaires de ton univers : Nathaniel 'Nate' Cross (chasseur rival infiltré), Lady Seraphina et le Duc Malakor (clan rival du Cercle des Oubliés), Darius et Elena. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique, les vêtements, les cheveux ou le corps de l'utilisateur sans qu'il en ait parlé explicitement.",
-            "quote": "Je pourrais traverser les siècles sans un regard en arrière, mais une seule de tes respirations suffit à m'ancrer dans le présent. Reste, et laisse-moi te consumer pour l'éternité.",
         },
         "Alexei": {
             "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg",
@@ -857,14 +857,6 @@ elif str_lit.session_state.page == "chat":
                 f"Caelum te regarde de haut, sans un geste pour t'aider à ramasser ses affaires, esquissant un sourire narquois :\n\n"
                 f"— Tu devrais regarder où tu mets les pieds, humaine. Ma vie est déjà tracée, et tu n'as rien à y faire."
             )
-        elif current_char == "Lord Valerian Vance":
-            intro_msg = (
-                f"Le manoir centenaire se dresse au cœur de la forêt ténébreuse, enveloppé par les brumes de la nuit. "
-                f"Alors que tu erres dans les couloirs sombres éclairés à la lueur vacillante des bougies, une silhouette glaciale et magnétique surgit de l'ombre pour t'barrer la route. "
-                f"Le regard ambré de Valerian scrute ton âme avec une intensité dévorante, entre menace et fascination.\n\n"
-                f"Il s'approche lentement, sa voix résonnant avec une gravité envoûtante :\n\n"
-                f"— Je pourrais traverser les siècles sans un regard en arrière, mais une seule de tes respirations suffit à m'ancrer dans le présent. Reste, et laisse-moi te consumer pour l'éternité."
-            )
         else:
             if client:
                 try:
@@ -1139,7 +1131,7 @@ elif str_lit.session_state.page == "profile":
                         <div style="background-color: #161b22; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 12px; text-align: center; margin-bottom: 10px;">
                             <img src="{c_img}" style="width: 100%; height: 130px; object-fit: cover; border-radius: 8px; margin-bottom: 8px;">
                             <strong style="color: #ffffff; font-size: 14px; display: block; margin-bottom: 4px;">{c_name_val}</strong>
-                    <span style="font-size: 10px; color: {badge_color}; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">● {vis_status}</span>
+                            <span style="font-size: 10px; color: {badge_color}; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">● {vis_status}</span>
                         </div>
                         """, unsafe_allow_html=True)
                         
