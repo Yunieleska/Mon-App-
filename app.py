@@ -62,7 +62,6 @@ str_lit.markdown(
         color: #ffffff !important;
     }
     
-    /* STYLE DES BOUTONS GLOBAUX */
     button, 
     .stButton > button, 
     button[kind="secondary"], 
@@ -135,7 +134,6 @@ str_lit.markdown(
         transform: translateY(-2px);
     }
     
-    /* BOUTONS ACTIONS HTML PROPRES */
     .custom-action-btn {
         display: block;
         text-align: center;
@@ -172,8 +170,6 @@ str_lit.markdown(
         color: #ff7b72 !important;
         border-color: #ff7b72 !important;
     }
-    
-    /* MINI BOUTONS ICÔNES DE CHAT */
     .chat-icon-btn {
         display: inline-block;
         background-color: #21262d;
@@ -500,10 +496,8 @@ def get_all_characters_cached():
                     quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
                     
                     img_url = item.get("img_url", "").strip()
-                    # Correction automatique si c'est le nom de ton personnage avec l'image locale "vamp.jpg" ou non-valide
-                    if c_name == "Lord Valerian Vance" and (not img_url or not img_url.startswith("http")):
-                        img_url = "https://i.ibb.co/68H18c8/vamp.jpg"
-                    elif not img_url or not img_url.startswith("http"):
+                    # Sécurité globale : si l'URL est vide, utilise un hébergeur non supporté comme imgbb, ou n'est pas un lien http valide, on bascule sur l'image de secours universelle
+                    if not img_url or "imgbb.com" in img_url or not img_url.startswith("http"):
                         img_url = DEFAULT_FALLBACK_IMG
                     
                     chars[c_name] = {
@@ -721,7 +715,7 @@ if str_lit.session_state.page == "home":
     grid_html = '<div class="storyia-grid">'
     for idx, (name, data) in enumerate(current_items):
         img_src = data["img"]
-        if not img_src:
+        if not img_src or "imgbb.com" in img_src:
             img_src = DEFAULT_FALLBACK_IMG
 
         grid_html += f"""
@@ -941,7 +935,6 @@ elif str_lit.session_state.page == "chat":
                 </div>
                 """, unsafe_allow_html=True)
 
-    # --- ZONE DE SAISIE LIBRE ---
     str_lit.markdown("<br>", unsafe_allow_html=True)
     
     col_input, col_btn = str_lit.columns([4, 1])
@@ -1009,11 +1002,8 @@ elif str_lit.session_state.page == "create_character":
                 if supabase:
                     try:
                         final_img = new_img.strip()
-                        if not final_img.startswith("http"):
-                            if new_name.strip() == "Lord Valerian Vance":
-                                final_img = "https://i.ibb.co/68H18c8/vamp.jpg"
-                            else:
-                                final_img = DEFAULT_FALLBACK_IMG
+                        if not final_img.startswith("http") or "imgbb.com" in final_img:
+                            final_img = DEFAULT_FALLBACK_IMG
 
                         supabase.table("custom_characters").insert({
                             "name": new_name.strip(),
@@ -1110,9 +1100,7 @@ elif str_lit.session_state.page == "profile":
                     with cols[i % 4]:
                         c_name_val = char.get("name")
                         c_img = char.get("img_url", "").strip()
-                        if c_name_val == "Lord Valerian Vance" and (not c_img or not c_img.startswith("http")):
-                            c_img = "https://i.ibb.co/68H18c8/vamp.jpg"
-                        elif not c_img or not c_img.startswith("http"):
+                        if not c_img or "imgbb.com" in c_img or not c_img.startswith("http"):
                             c_img = DEFAULT_FALLBACK_IMG
 
                         vis_status = char.get('visibility', 'Public')
