@@ -446,7 +446,7 @@ def update_affinity(pseudo, char, delta):
         return new_score
 
 
-@str_lit.cache_data(show_spinner=False)
+@str_lit.cache_data(show_spinner=False, ttl=1)
 def get_all_characters_cached():
     chars = {
         "Caelum": {
