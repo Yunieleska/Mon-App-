@@ -15,7 +15,7 @@ SIDEBAR_HEADER_IMG = "couple.png"
 CORRESPONDANCES_BANNER = "https://i.postimg.cc/tCnmbx3m/correspondances.jpg"
 CREATE_CHARACTER_BANNER = "créer un personnage.jfif"
 EXPLORER_BANNER = "explorer.jfif"
-SUPABASE_BUCKET_NAME = "storyia-images" # Nom de ton bucket Supabase Storage
+SUPABASE_BUCKET_NAME = "storyia-images"
 
 def upload_image_to_supabase(uploaded_file, folder="uploads"):
     """Téléverse un fichier image directement sur Supabase Storage et retourne son URL publique"""
@@ -25,14 +25,12 @@ def upload_image_to_supabase(uploaded_file, folder="uploads"):
         file_bytes = uploaded_file.getvalue()
         file_name = f"{folder}/{os.urandom(8).hex()}_{uploaded_file.name}"
         
-        # Upload dans le bucket Supabase
         supabase.storage.from_(SUPABASE_BUCKET_NAME).upload(
             path=file_name,
             file=file_bytes,
             file_options={"content-type": uploaded_file.type}
         )
         
-        # Récupération de l'URL publique
         public_url_res = supabase.storage.from_(SUPABASE_BUCKET_NAME).get_public_url(file_name)
         return public_url_res
     except Exception as e:
@@ -223,8 +221,19 @@ str_lit.markdown(
     unsafe_allow_html=True,
 )
 
-# --- PERSISTANCE PAR URL & SESSION ---
+# --- PERSISTANCE PAR URL & SESSION (SÉCURISÉE) ---
+if "pseudo" not in str_lit.session_state:
+    str_lit.session_state.pseudo = "Yuna"
+if "logged_in" not in str_lit.session_state:
+    str_lit.session_state.logged_in = False
+
 query_params = str_lit.query_params
+
+if "user" in query_params and query_params["user"]:
+    str_lit.session_state.logged_in = True
+    str_lit.session_state.pseudo = query_params["user"]
+
+clean_pseudo = str(str_lit.session_state.get("pseudo", "Yuna")).strip()
 
 if "nav" in query_params:
     str_lit.session_state.page = query_params["nav"]
@@ -234,7 +243,6 @@ if "nav" in query_params:
 if "action" in query_params:
     action_type = query_params["action"]
     c_name_param = query_params.get("char", "")
-    clean_pseudo = str(str_lit.session_state.pseudo).strip()
     
     if action_type == "resume" and c_name_param:
         str_lit.session_state.char_select = c_name_param
@@ -339,15 +347,6 @@ if "action" in query_params:
         str_lit.session_state.page = "chat"
         str_lit.rerun()
 
-if "user" in query_params and query_params["user"]:
-    str_lit.session_state.logged_in = True
-    str_lit.session_state.pseudo = query_params["user"]
-else:
-    if "logged_in" not in str_lit.session_state:
-        str_lit.session_state.logged_in = False
-    if "pseudo" not in str_lit.session_state:
-        str_lit.session_state.pseudo = "Yuna"
-
 if "page" not in str_lit.session_state:
     str_lit.session_state.page = "home"
 if "char_select" not in str_lit.session_state:
@@ -367,9 +366,9 @@ def save_msg(pseudo, char, role, content):
         str_lit.session_state.messages_cache[cache_key].append({"id": None, "role": role, "content": content})
         return
     try:
-        clean_pseudo = str(pseudo).strip()
+        p_clean = str(pseudo).strip()
         res = supabase.table("messages").insert({
-            "user_pseudo": clean_pseudo,
+            "user_pseudo": p_clean,
             "char_name": str(char),
             "role": str(role),
             "content": str(content),
@@ -392,11 +391,11 @@ def load_msgs(pseudo, char, limit=100):
     if not supabase:
         return str_lit.session_state.messages_cache.get(cache_key, [])
     try:
-        clean_pseudo = str(pseudo).strip()
+        p_clean = str(pseudo).strip()
         res = (
             supabase.table("messages")
             .select("id, role, content")
-            .eq("user_pseudo", clean_pseudo)
+            .eq("user_pseudo", p_clean)
             .eq("char_name", str(char))
             .order("id", desc=False)
             .limit(limit)
@@ -769,7 +768,6 @@ elif str_lit.session_state.page == "messages":
         str_lit.warning("Base de données non connectée.")
     else:
         try:
-            clean_pseudo = str(str_lit.session_state.pseudo).strip()
             res = supabase.table("messages").select("char_name").eq("user_pseudo", clean_pseudo).execute()
             
             if res.data:
@@ -813,7 +811,6 @@ elif str_lit.session_state.page == "messages":
 elif str_lit.session_state.page == "chat":
     current_char = str_lit.session_state.char_select
     char_data = CHARACTERS.get(current_char, {"img": "", "quote": "", "prompt": f"Tu es {current_char}."})
-    clean_pseudo = str(str_lit.session_state.pseudo).strip()
 
     user_avatar_url = ""
     if supabase:
@@ -1007,10 +1004,7 @@ elif str_lit.session_state.page == "create_character":
         new_name = str_lit.text_input("Nom du personnage")
         new_quote = str_lit.text_input("Phrase d'accroche (Citation)")
         new_desc = str_lit.text_area("Description / Personnalité / Contexte")
-        
-        # Remplacement du champ texte par l'upload direct
         uploaded_file = str_lit.file_uploader("Importer l'image du personnage", type=["png", "jpg", "jpeg", "jfif"])
-        
         new_vis = str_lit.selectbox("Visibilité", ["Public", "Privé"])
 
         submitted = str_lit.form_submit_button("Créer le Personnage")
@@ -1028,7 +1022,7 @@ elif str_lit.session_state.page == "create_character":
                             "description": new_desc,
                             "img_url": final_img,
                             "visibility": new_vis,
-                            "creator_pseudo": str_lit.session_state.pseudo
+                            "creator_pseudo": clean_pseudo
                         }).execute()
                         str_lit.cache_data.clear()
                         str_lit.success(f"Personnage créé !")
@@ -1046,7 +1040,6 @@ elif str_lit.session_state.page == "profile":
     else:
         str_lit.title("Profil Utilisateur")
         
-    clean_pseudo = str(str_lit.session_state.pseudo).strip()
     str_lit.write(f"Ton sanctuaire personnel, **{clean_pseudo}**.")
     str_lit.markdown("---")
 
@@ -1089,7 +1082,6 @@ elif str_lit.session_state.page == "profile":
     if str_lit.session_state.edit_avatar_open:
         str_lit.markdown("<br>", unsafe_allow_html=True)
         with str_lit.container():
-            # Remplacement de l'input texte par l'upload direct d'avatar
             uploaded_avatar = str_lit.file_uploader("Choisir un nouvel avatar", type=["png", "jpg", "jpeg", "jfif"])
             col_b1, col_b2, _ = str_lit.columns([1, 1, 3])
             with col_b1:
