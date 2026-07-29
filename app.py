@@ -15,6 +15,7 @@ SIDEBAR_HEADER_IMG = "couple.png"
 DEFAULT_FALLBACK_IMG = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
 CORRESPONDANCES_BANNER = "https://i.postimg.cc/tCnmbx3m/correspondances.jpg"
 CREATE_CHARACTER_BANNER = "créer un personnage.jfif"
+EXPLORER_BANNER = "explorer.jfif"
 
 @str_lit.cache_resource
 def init_groq_client(api_key):
@@ -508,8 +509,13 @@ if "logout" in query_params:
 
 # --- NAVIGATION ---
 if str_lit.session_state.page == "home":
-    str_lit.title("Explorer")
-    str_lit.write("Découvre et discute avec les personnages du moment :")
+    if os.path.exists(EXPLORER_BANNER):
+        str_lit.image(EXPLORER_BANNER, use_container_width=True)
+    else:
+        str_lit.title("Explorer")
+        str_lit.write("Découvre et discute avec les personnages du moment :")
+    
+    str_lit.markdown("---")
 
     public_items = []
     if supabase:
