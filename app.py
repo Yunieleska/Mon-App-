@@ -26,14 +26,12 @@ def upload_image_to_supabase(uploaded_file, folder="uploads"):
         file_bytes = uploaded_file.getvalue()
         file_name = f"{folder}/{os.urandom(8).hex()}_{uploaded_file.name}"
         
-        # Upload du fichier
         supabase.storage.from_(SUPABASE_BUCKET_NAME).upload(
             path=file_name,
             file=file_bytes,
             file_options={"content-type": uploaded_file.type}
         )
         
-        # Récupération sécurisée de l'URL publique
         public_url = supabase.storage.from_(SUPABASE_BUCKET_NAME).get_public_url(file_name)
         if isinstance(public_url, dict):
             public_url = public_url.get("publicUrl", "")
@@ -279,7 +277,6 @@ if "action" in query_params:
                 supabase.table("custom_characters").delete().eq("name", c_name_param).execute()
                 supabase.table("messages").delete().eq("char_name", c_name_param).execute()
                 supabase.table("affinities").delete().eq("char_name", c_name_param).execute()
-                str_lit.cache_data.clear()
             except:
                 pass
         str_lit.query_params.clear()
@@ -329,11 +326,11 @@ if "action" in query_params:
                 except:
                     pass
             
-            char_data = CHARACTERS.get(current_char, {})
             current_aff = get_affinity(clean_pseudo, current_char)
             aff_context = f" Niveau d'affinité actuel : {current_aff}%."
             context_reminder = {"role": "system", "content": f"Rappel important : Le prénom de l'utilisatrice est {clean_pseudo}.{aff_context}"}
             
+            char_data = get_all_characters_dynamically(clean_pseudo).get(current_char, {})
             api_messages = [{"role": "system", "content": char_data.get("prompt", "")}, context_reminder] + messages[-20:]
             if client:
                 try:
@@ -361,7 +358,7 @@ if "affinities_cache" not in str_lit.session_state:
 if "messages_cache" not in str_lit.session_state:
     str_lit.session_state.messages_cache = {}
 
-# --- SUPABASE FUNCTIONS & CACHE ---
+# --- SUPABASE FUNCTIONS ---
 
 def save_msg(pseudo, char, role, content):
     cache_key = f"{pseudo}_{char}"
@@ -477,8 +474,7 @@ def update_affinity(pseudo, char, delta):
         return new_score
 
 
-@str_lit.cache_data(show_spinner=False, ttl=1)
-def get_all_characters_cached(current_user_pseudo=""):
+def get_all_characters_dynamically(current_user_pseudo=""):
     chars = {
         "Caelum": {
             "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
@@ -549,7 +545,7 @@ def get_all_characters_cached(current_user_pseudo=""):
 
     return chars
 
-CHARACTERS = get_all_characters_cached(str_lit.session_state.get("pseudo", ""))
+CHARACTERS = get_all_characters_dynamically(clean_pseudo)
 
 # --- LOGIN LOGIC ---
 if not str_lit.session_state.logged_in:
@@ -653,20 +649,24 @@ menu_html = f"""
 
 <div style="display: flex; flex-direction: column;">
     <a href="?user={str_lit.session_state.pseudo}&nav=home" target="_self" class="sidebar-nav-link">
-        Sanctuaire
+        Sanctuaire (Accueil)
     </a>
     <a href="?user={str_lit.session_state.pseudo}&nav=create_character" target="_self" class="sidebar-nav-link">
-        Invoquer
+        Invoquer (Créer)
     </a>
     <a href="?user={str_lit.session_state.pseudo}&nav=messages" target="_self" class="sidebar-nav-link">
         Correspondances
     </a>
     <a href="?user={str_lit.session_state.pseudo}&nav=profile" target="_self" class="sidebar-nav-link">
-        Mon Ombre
+        Mon Ombre (Profil)
     </a>
 </div>
 """
 str_lit.sidebar.markdown(menu_html, unsafe_allow_html=True)
+
+if str_lit.sidebar.button("🔄 Actualiser les données"):
+    str_lit.rerun()
+
 str_lit.sidebar.markdown("---")
 
 logout_html = f"""
@@ -1032,8 +1032,7 @@ elif str_lit.session_state.page == "create_character":
                             "visibility": new_vis,
                             "creator_pseudo": clean_pseudo
                         }).execute()
-                        str_lit.cache_data.clear()
-                        str_lit.success(f"Personnage créé !")
+                        str_lit.success(f"Personnage créé avec succès !")
                         str_lit.session_state.page = "home"
                         str_lit.rerun()
                     except Exception as e:
