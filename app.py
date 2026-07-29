@@ -857,11 +857,12 @@ elif str_lit.session_state.page == "chat":
                 </div>
                 """, unsafe_allow_html=True)
 
-    with str_lit.form(key="chat_input_form", clear_on_submit=True):
-        user_input = str_lit.text_area("Écris ta réponse (appuie sur Entrée pour aller à la ligne)...", key="user_message_input", height=90)
-        submitted_user = str_lit.form_submit_button("Envoyer 🚀")
-
-        if submitted_user and user_input.strip():
+    # --- ZONE DE SAISIE LIBRE (SANS FORMULAIRE POUR ÉVITER LES BLOCAGES) ---
+    str_lit.markdown("<br>", unsafe_allow_html=True)
+    user_input = str_lit.text_area("Écris ta réponse...", key="user_message_input", height=90)
+    
+    if str_lit.button("Envoyer 🚀", key="send_message_btn"):
+        if user_input.strip():
             save_msg(str_lit.session_state.pseudo, current_char, "user", user_input.strip())
             update_affinity(str_lit.session_state.pseudo, current_char, 2)
             
