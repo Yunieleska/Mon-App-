@@ -444,27 +444,64 @@ menu_html = f"""
     color: #f0f6fc !important;
     transform: translateX(3px);
 }}
+.menu-img-icon {{
+    width: 24px;
+    height: 24px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid rgba(210, 153, 234, 0.3);
+}}
 </style>
 
 <div style="display: flex; flex-direction: column;">
     <a href="?user={str_lit.session_state.pseudo}&nav=home" target="_self" class="sidebar-nav-link">
-        <span>🕯️</span> Sanctuaire
+        <img src="https://i.postimg.cc/v8gvxdcK/sanctuaire.jpg" class="menu-img-icon"> Sanctuaire
     </a>
     <a href="?user={str_lit.session_state.pseudo}&nav=create_character" target="_self" class="sidebar-nav-link">
-        <span>🖋️</span> Invoquer
+        <img src="https://i.postimg.cc/g0zxdYbQ/invoquer.jpg" class="menu-img-icon"> Invoquer
     </a>
     <a href="?user={str_lit.session_state.pseudo}&nav=messages" target="_self" class="sidebar-nav-link">
-        <span>📜</span> Correspondances
+        <img src="https://i.postimg.cc/MGV9kmqq/correspondances.jpg" class="menu-img-icon"> Correspondances
     </a>
     <a href="?user={str_lit.session_state.pseudo}&nav=profile" target="_self" class="sidebar-nav-link">
-        <span>🖤</span> Mon Ombre
+        <img src="https://i.postimg.cc/HxWkG3X5/mon-ombre.jpg" class="menu-img-icon"> Mon Ombre
     </a>
 </div>
 """
 str_lit.sidebar.markdown(menu_html, unsafe_allow_html=True)
 str_lit.sidebar.markdown("---")
 
-if str_lit.sidebar.button("🚪 S'échapper (Logout)"):
+logout_html = f"""
+<style>
+.logout-link {{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    color: #c9d1d9 !important;
+    text-decoration: none !important;
+    background-color: #161b22;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}}
+.logout-link:hover {{
+    background-color: #21262d;
+    border-color: rgba(255, 123, 114, 0.4);
+    color: #f0f6fc !important;
+    transform: translateX(3px);
+}}
+</style>
+<a href="?user={str_lit.session_state.pseudo}&logout=true" target="_self" class="logout-link">
+    <img src="https://i.postimg.cc/FKzhD14L/s-echapper.jpg" class="menu-img-icon"> S'échapper (Logout)
+</a>
+"""
+str_lit.sidebar.markdown(logout_html, unsafe_allow_html=True)
+
+if "logout" in query_params:
     if supabase:
         try:
             supabase.auth.sign_out()
@@ -473,8 +510,7 @@ if str_lit.sidebar.button("🚪 S'échapper (Logout)"):
     str_lit.session_state.logged_in = False
     str_lit.session_state.pseudo = "Yuna"
     str_lit.session_state.messages_cache = {}
-    if "user" in str_lit.query_params:
-        del str_lit.query_params["user"]
+    str_lit.query_params.clear()
     str_lit.rerun()
 
 # --- NAVIGATION ---
