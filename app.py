@@ -12,7 +12,6 @@ if not groq_key and "GROQ_API_KEY" in str_lit.secrets:
 # --- CONSTANTES IMAGES ---
 BACKGROUND_IMG_NAME = "bg.png"
 SIDEBAR_HEADER_IMG = "couple.png"
-DEFAULT_FALLBACK_IMG = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
 CORRESPONDANCES_BANNER = "https://i.postimg.cc/tCnmbx3m/correspondances.jpg"
 CREATE_CHARACTER_BANNER = "créer un personnage.jfif"
 EXPLORER_BANNER = "explorer.jfif"
@@ -230,7 +229,6 @@ if "action" in query_params:
         str_lit.rerun()
 
     elif action_type == "delete_char" and c_name_param:
-        # Suppression volontaire demandée explicitement par l'utilisateur via le bouton Supprimer
         if supabase:
             try:
                 supabase.table("custom_characters").delete().eq("name", c_name_param).execute()
@@ -496,16 +494,13 @@ def get_all_characters_cached(current_user_pseudo=""):
                     vis = item.get("visibility", "Public")
                     creator = item.get("creator_pseudo", "")
 
-                    # Sécurité : Si le personnage est public OU s'il appartient à l'utilisateur connecté, on l'affiche.
-                    # Si creator est vide/null (anciens persos), on l'affiche par défaut pour ne perdre personne.
                     if vis == "Public" or not creator or creator == current_user_pseudo:
                         desc_val = item.get("description", "")
                         prompt_val = item.get("prompt", f"Tu es {c_name}. {desc_val}")
                         quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
                         
+                        # On garde exactement le lien fourni, sans aucune substitution
                         img_url = item.get("img_url", "").strip()
-                        if not img_url:
-                            img_url = DEFAULT_FALLBACK_IMG
                         
                         chars[c_name] = {
                             "img": img_url,
@@ -704,13 +699,11 @@ if str_lit.session_state.page == "home":
     grid_html = '<div class="storyia-grid">'
     for idx, (name, data) in enumerate(current_items):
         img_src = data["img"]
-        if not img_src:
-            img_src = DEFAULT_FALLBACK_IMG
 
         grid_html += f"""
         <div class="storyia-card">
             <div>
-                <img src="{img_src}" onerror="this.onerror=null; this.src='{DEFAULT_FALLBACK_IMG}';" style="width: 100%; height: 140px; object-fit: cover; display: block;">
+                <img src="{img_src}" style="width: 100%; height: 140px; object-fit: cover; display: block;">
                 <div style="padding: 10px 10px 4px 10px;">
                     <div style="font-weight: 700; font-size: 14px; color: #ffffff; margin-bottom: 2px;">{name}</div>
                     <div style="font-size: 11px; color: #8b949e; font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 30px;">"{data['quote']}"</div>
@@ -752,11 +745,11 @@ elif str_lit.session_state.page == "messages":
                 
                 if active_chars:
                     for i, c_name in enumerate(active_chars):
-                        c_data = CHARACTERS.get(c_name, {"img": DEFAULT_FALLBACK_IMG, "quote": "Discussion en cours..."})
+                        c_data = CHARACTERS.get(c_name, {"img": "", "quote": "Discussion en cours..."})
                         
                         str_lit.markdown(f"""
                         <div style="background-color: #161b22; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 15px;">
-                            <img src="{c_data['img']}" onerror="this.onerror=null; this.src='{DEFAULT_FALLBACK_IMG}';" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">
+                            <img src="{c_data['img']}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">
                             <div style="flex-grow: 1;">
                                 <div style="font-weight: 700; font-size: 16px; color: #ffffff;">{c_name}</div>
                                 <div style="font-size: 12px; color: #8b949e; font-style: italic; margin-bottom: 2px;">Affinité : {get_affinity(clean_pseudo, c_name)}%</div>
@@ -787,10 +780,10 @@ elif str_lit.session_state.page == "messages":
 
 elif str_lit.session_state.page == "chat":
     current_char = str_lit.session_state.char_select
-    char_data = CHARACTERS.get(current_char, {"img": DEFAULT_FALLBACK_IMG, "quote": "", "prompt": f"Tu es {current_char}."})
+    char_data = CHARACTERS.get(current_char, {"img": "", "quote": "", "prompt": f"Tu es {current_char}."})
     clean_pseudo = str(str_lit.session_state.pseudo).strip()
 
-    user_avatar_url = DEFAULT_FALLBACK_IMG
+    user_avatar_url = ""
     if supabase:
         try:
             res_u = supabase.table("users").select("avatar_url").eq("pseudo", clean_pseudo).maybe_single().execute()
@@ -920,7 +913,7 @@ elif str_lit.session_state.page == "chat":
             with col_avatar_u:
                 str_lit.markdown(f"""
                 <div style="display: flex; justify-content: flex-end;">
-                    <img src="{user_avatar_url}" onerror="this.onerror=null; this.src='{DEFAULT_FALLBACK_IMG}';" style="width: 55px; height: 55px; border-radius: 50%; object-fit: cover; border: 2px solid #d299ea;">
+                    <img src="{user_avatar_url}" style="width: 55px; height: 55px; border-radius: 50%; object-fit: cover; border: 2px solid #d299ea;">
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -991,8 +984,6 @@ elif str_lit.session_state.page == "create_character":
                 if supabase:
                     try:
                         final_img = new_img.strip()
-                        if not final_img:
-                            final_img = DEFAULT_FALLBACK_IMG
 
                         supabase.table("custom_characters").insert({
                             "name": new_name.strip(),
@@ -1023,7 +1014,7 @@ elif str_lit.session_state.page == "profile":
     str_lit.markdown("---")
 
     user_email = "Non disponible"
-    avatar_url = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+    avatar_url = ""
 
     if supabase:
         try:
@@ -1082,7 +1073,6 @@ elif str_lit.session_state.page == "profile":
     str_lit.subheader("🖤 Mes Créations ténébreuses")
     if supabase:
         try:
-            # Récupère tous les personnages créés par l'utilisateur (ou sans créateur défini pour sécurité maximale)
             my_chars_res = supabase.table("custom_characters").select("*").or_(f"creator_pseudo.eq.{clean_pseudo},creator_pseudo.is.null").execute()
             if my_chars_res and my_chars_res.data:
                 cols = str_lit.columns(4)
@@ -1090,15 +1080,13 @@ elif str_lit.session_state.page == "profile":
                     with cols[i % 4]:
                         c_name_val = char.get("name")
                         c_img = char.get("img_url", "").strip()
-                        if not c_img:
-                            c_img = DEFAULT_FALLBACK_IMG
 
                         vis_status = char.get('visibility', 'Public')
                         badge_color = "#ff7b72" if vis_status == "Privé" else "#3fb950"
                             
                         str_lit.markdown(f"""
                         <div style="background-color: #161b22; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 12px; text-align: center; margin-bottom: 10px;">
-                            <img src="{c_img}" onerror="this.onerror=null; this.src='{DEFAULT_FALLBACK_IMG}';" style="width: 100%; height: 130px; object-fit: cover; border-radius: 8px; margin-bottom: 8px;">
+                            <img src="{c_img}" style="width: 100%; height: 130px; object-fit: cover; border-radius: 8px; margin-bottom: 8px;">
                             <strong style="color: #ffffff; font-size: 14px; display: block; margin-bottom: 4px;">{c_name_val}</strong>
                             <span style="font-size: 10px; color: {badge_color}; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">● {vis_status}</span>
                         </div>
