@@ -73,24 +73,10 @@ str_lit.markdown(
         border-color: #ffffff !important;
         color: #ffffff !important;
     }
-    .stButton>button:focus, .stButton>button:active, button[kind="secondary"]:focus, button[kind="secondary"]:active {
-        background-color: #21262d !important;
-        color: #ffffff !important;
-        box-shadow: none !important;
-        border-color: rgba(255, 255, 255, 0.3) !important;
-    }
     textarea, input[type="text"], [data-baseweb="input"] input, [data-baseweb="textarea"] textarea {
         color: #ffffff !important;
         -webkit-text-fill-color: #ffffff !important;
         background-color: #161b22 !important;
-    }
-    [data-baseweb="tooltip"], [role="tooltip"], div[data-testid="stTooltipContent"] {
-        background-color: #161b22 !important;
-        color: #ffffff !important;
-        border: 1px solid rgba(255, 255, 255, 0.15) !important;
-    }
-    [data-baseweb="tooltip"] *, [role="tooltip"] *, div[data-testid="stTooltipContent"] * {
-        color: #ffffff !important;
     }
     .novel-dialogue {
         font-family: 'Georgia', serif;
@@ -645,7 +631,6 @@ elif str_lit.session_state.page == "chat":
     current_char = str_lit.session_state.char_select
     char_data = CHARACTERS.get(current_char, {"img": DEFAULT_FALLBACK_IMG, "quote": "", "prompt": f"Tu es {current_char}."})
 
-    # Récupération de l'avatar de l'utilisateur pour le chat
     user_avatar_url = DEFAULT_FALLBACK_IMG
     if supabase:
         try:
@@ -805,7 +790,6 @@ elif str_lit.session_state.page == "chat":
                             pass
                         str_lit.rerun()
         else:
-            # --- MESSAGE UTILISATEUR AVEC AVATAR PERSONNALISÉ ---
             col_content_u, col_avatar_u = str_lit.columns([5, 1])
             with col_content_u:
                 str_lit.markdown(f"""
@@ -857,42 +841,46 @@ elif str_lit.session_state.page == "chat":
                 </div>
                 """, unsafe_allow_html=True)
 
-    # --- ZONE DE SAISIE LIBRE (SANS FORMULAIRE POUR ÉVITER LES BLOCAGES) ---
+    # --- ZONE DE SAISIE LIBRE AVEC BOUTON FORCÉ CÔTE À CÔTE ---
     str_lit.markdown("<br>", unsafe_allow_html=True)
-    user_input = str_lit.text_area("Écris ta réponse...", key="user_message_input", height=90)
     
-    if str_lit.button("Envoyer 🚀", key="send_message_btn"):
-        if user_input.strip():
-            save_msg(str_lit.session_state.pseudo, current_char, "user", user_input.strip())
-            update_affinity(str_lit.session_state.pseudo, current_char, 2)
-            
-            cache_key = f"{str_lit.session_state.pseudo}_{current_char}"
-            if cache_key in str_lit.session_state.messages_cache:
-                del str_lit.session_state.messages_cache[cache_key]
+    col_input, col_btn = str_lit.columns([4, 1])
+    with col_input:
+        user_input = str_lit.text_input("Écris ta réponse...", key="user_message_input", label_visibility="collapsed")
+    with col_btn:
+        send_clicked = str_lit.button("Envoyer 🚀", key="send_message_btn", use_container_width=True)
 
-            if client:
-                user_pseudo = str_lit.session_state.pseudo
-                current_aff = get_affinity(user_pseudo, current_char)
-                aff_context = f" Niveau d'affinité actuel : {current_aff}%."
-                context_reminder = {"role": "system", "content": f"Rappel important : L'interlocutrice s'appelle {user_pseudo}. Tu peux maintenant l'appeler par son prénom si le contexte s'y prête.{aff_context}"}
-                
-                messages_actuels = load_msgs(user_pseudo, current_char, limit=50)
-                api_messages = [{"role": "system", "content": char_data["prompt"]}, context_reminder] + messages_actuels[-20:]
-                
-                try:
-                    with str_lit.spinner(f"{current_char} est en train d'écrire..."):
-                        response = client.chat.completions.create(
-                            model="llama-3.3-70b-versatile",
-                            messages=api_messages,
-                            temperature=0.85,
-                        )
-                    bot_reply = response.choices[0].message.content
-                    save_msg(user_pseudo, current_char, "assistant", bot_reply)
-                    if cache_key in str_lit.session_state.messages_cache:
-                        del str_lit.session_state.messages_cache[cache_key]
-                except Exception as e:
-                    str_lit.error(f"Erreur de génération : {e}")
-            str_lit.rerun()
+    if send_clicked and user_input and user_input.strip():
+        save_msg(str_lit.session_state.pseudo, current_char, "user", user_input.strip())
+        update_affinity(str_lit.session_state.pseudo, current_char, 2)
+        
+        cache_key = f"{str_lit.session_state.pseudo}_{current_char}"
+        if cache_key in str_lit.session_state.messages_cache:
+            del str_lit.session_state.messages_cache[cache_key]
+
+        if client:
+            user_pseudo = str_lit.session_state.pseudo
+            current_aff = get_affinity(user_pseudo, current_char)
+            aff_context = f" Niveau d'affinité actuel : {current_aff}%."
+            context_reminder = {"role": "system", "content": f"Rappel important : L'interlocutrice s'appelle {user_pseudo}. Tu peux maintenant l'appeler par son prénom si le contexte s'y prête.{aff_context}"}
+            
+            messages_actuels = load_msgs(user_pseudo, current_char, limit=50)
+            api_messages = [{"role": "system", "content": char_data["prompt"]}, context_reminder] + messages_actuels[-20:]
+            
+            try:
+                with str_lit.spinner(f"{current_char} est en train d'écrire..."):
+                    response = client.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
+                        messages=api_messages,
+                        temperature=0.85,
+                    )
+                bot_reply = response.choices[0].message.content
+                save_msg(user_pseudo, current_char, "assistant", bot_reply)
+                if cache_key in str_lit.session_state.messages_cache:
+                    del str_lit.session_state.messages_cache[cache_key]
+            except Exception as e:
+                str_lit.error(f"Erreur de génération : {e}")
+        str_lit.rerun()
 
 elif str_lit.session_state.page == "create_character":
     if os.path.exists(CREATE_CHARACTER_BANNER):
