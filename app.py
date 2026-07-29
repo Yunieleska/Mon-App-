@@ -499,8 +499,11 @@ def get_all_characters_cached():
                     prompt_val = item.get("prompt", f"Tu es {c_name}. {desc_val}")
                     quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
                     
-                    img_url = item.get("img_url", "")
-                    if not img_url:
+                    img_url = item.get("img_url", "").strip()
+                    # Correction automatique si c'est le nom de ton personnage avec l'image locale "vamp.jpg" ou non-valide
+                    if c_name == "Lord Valerian Vance" and (not img_url or not img_url.startswith("http")):
+                        img_url = "https://i.ibb.co/68H18c8/vamp.jpg"
+                    elif not img_url or not img_url.startswith("http"):
                         img_url = DEFAULT_FALLBACK_IMG
                     
                     chars[c_name] = {
@@ -1005,11 +1008,18 @@ elif str_lit.session_state.page == "create_character":
             if new_name.strip():
                 if supabase:
                     try:
+                        final_img = new_img.strip()
+                        if not final_img.startswith("http"):
+                            if new_name.strip() == "Lord Valerian Vance":
+                                final_img = "https://i.ibb.co/68H18c8/vamp.jpg"
+                            else:
+                                final_img = DEFAULT_FALLBACK_IMG
+
                         supabase.table("custom_characters").insert({
                             "name": new_name.strip(),
                             "quote": new_quote,
                             "description": new_desc,
-                            "img_url": new_img.strip() if new_img.strip() else DEFAULT_FALLBACK_IMG,
+                            "img_url": final_img,
                             "visibility": new_vis,
                             "creator_pseudo": str_lit.session_state.pseudo
                         }).execute()
@@ -1099,9 +1109,12 @@ elif str_lit.session_state.page == "profile":
                 for i, char in enumerate(my_chars_res.data):
                     with cols[i % 4]:
                         c_name_val = char.get("name")
-                        c_img = char.get("img_url", DEFAULT_FALLBACK_IMG)
-                        if not c_img:
+                        c_img = char.get("img_url", "").strip()
+                        if c_name_val == "Lord Valerian Vance" and (not c_img or not c_img.startswith("http")):
+                            c_img = "https://i.ibb.co/68H18c8/vamp.jpg"
+                        elif not c_img or not c_img.startswith("http"):
                             c_img = DEFAULT_FALLBACK_IMG
+
                         vis_status = char.get('visibility', 'Public')
                         badge_color = "#ff7b72" if vis_status == "Privé" else "#3fb950"
                             
