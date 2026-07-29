@@ -841,7 +841,7 @@ elif str_lit.session_state.page == "chat":
                 </div>
                 """, unsafe_allow_html=True)
 
-    # --- ZONE DE SAISIE LIBRE AVEC BOUTON FORCÉ CÔTE À CÔTE ---
+    # --- ZONE DE SAISIE LIBRE AVEC BOUTON FORCÉ CÔTE À CÔTE ET CORRECTION DE L'ENVOI ---
     str_lit.markdown("<br>", unsafe_allow_html=True)
     
     col_input, col_btn = str_lit.columns([4, 1])
@@ -851,21 +851,30 @@ elif str_lit.session_state.page == "chat":
         send_clicked = str_lit.button("Envoyer 🚀", key="send_message_btn", use_container_width=True)
 
     if send_clicked and user_input and user_input.strip():
-        save_msg(str_lit.session_state.pseudo, current_char, "user", user_input.strip())
-        update_affinity(str_lit.session_state.pseudo, current_char, 2)
-        
-        cache_key = f"{str_lit.session_state.pseudo}_{current_char}"
-        if cache_key in str_lit.session_state.messages_cache:
-            del str_lit.session_state.messages_cache[cache_key]
+        if not client:
+            str_lit.error("❌ Erreur : Le client Groq n'est pas initialisé. Vérifie ta clé API.")
+        else:
+            save_msg(str_lit.session_state.pseudo, current_char, "user", user_input.strip())
+            update_affinity(str_lit.session_state.pseudo, current_char, 2)
+            
+            cache_key = f"{str_lit.session_state.pseudo}_{current_char}"
+            if cache_key in str_lit.session_state.messages_cache:
+                del str_lit.session_state.messages_cache[cache_key]
 
-        if client:
             user_pseudo = str_lit.session_state.pseudo
             current_aff = get_affinity(user_pseudo, current_char)
             aff_context = f" Niveau d'affinité actuel : {current_aff}%."
             context_reminder = {"role": "system", "content": f"Rappel important : L'interlocutrice s'appelle {user_pseudo}. Tu peux maintenant l'appeler par son prénom si le contexte s'y prête.{aff_context}"}
             
             messages_actuels = load_msgs(user_pseudo, current_char, limit=50)
-            api_messages = [{"role": "system", "content": char_data["prompt"]}, context_reminder] + messages_actuels[-20:]
+            
+            # Formatage strict validé pour Groq
+            api_messages = [{"role": "system", "content": char_data["prompt"]}, context_reminder]
+            for m in messages_actuels[-20:]:
+                role = m.get("role")
+                content = m.get("content")
+                if role in ["user", "assistant"] and content:
+                    api_messages.append({"role": role, "content": content})
             
             try:
                 with str_lit.spinner(f"{current_char} est en train d'écrire..."):
@@ -875,12 +884,16 @@ elif str_lit.session_state.page == "chat":
                         temperature=0.85,
                     )
                 bot_reply = response.choices[0].message.content
-                save_msg(user_pseudo, current_char, "assistant", bot_reply)
-                if cache_key in str_lit.session_state.messages_cache:
-                    del str_lit.session_state.messages_cache[cache_key]
+                
+                if bot_reply:
+                    save_msg(user_pseudo, current_char, "assistant", bot_reply)
+                    if cache_key in str_lit.session_state.messages_cache:
+                        del str_lit.session_state.messages_cache[cache_key]
+                    str_lit.rerun()
+                else:
+                    str_lit.warning("⚠️ L'IA a renvoyé une réponse vide.")
             except Exception as e:
-                str_lit.error(f"Erreur de génération : {e}")
-        str_lit.rerun()
+                str_lit.error(f"❌ Erreur technique de l'API Groq : {e}")
 
 elif str_lit.session_state.page == "create_character":
     if os.path.exists(CREATE_CHARACTER_BANNER):
