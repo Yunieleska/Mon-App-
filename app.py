@@ -14,6 +14,7 @@ BACKGROUND_IMG_NAME = "bg.png"
 SIDEBAR_HEADER_IMG = "couple.png"
 DEFAULT_FALLBACK_IMG = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
 CORRESPONDANCES_BANNER = "https://i.postimg.cc/tCnmbx3m/correspondances.jpg"
+CREATE_CHARACTER_BANNER = "créer un personnage.jfif"
 
 @str_lit.cache_resource
 def init_groq_client(api_key):
@@ -864,8 +865,11 @@ elif str_lit.session_state.page == "chat":
             str_lit.rerun()
 
 elif str_lit.session_state.page == "create_character":
-    str_lit.title("✨ Créer un Personnage")
-    str_lit.write("Conçois ton propre personnage personnalisé pour l'intégrer à tes histoires.")
+    if os.path.exists(CREATE_CHARACTER_BANNER):
+        str_lit.image(CREATE_CHARACTER_BANNER, use_container_width=True)
+    else:
+        str_lit.title("✨ Créer un Personnage")
+        str_lit.write("Conçois ton propre personnage personnalisé pour l'intégrer à tes histoires.")
     str_lit.markdown("---")
 
     with str_lit.form("create_char_form"):
