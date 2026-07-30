@@ -593,29 +593,30 @@ menu_html = f"""
 """
 str_lit.sidebar.markdown(menu_html, unsafe_allow_html=True)
 
-# --- AMBIANCE SONORE DANS LA SIDEBAR (CORRIGÉ AVEC HTML5 AUDIO) ---
+# --- AMBIANCE SONORE DANS LA SIDEBAR (LECTEUR INTERACTIF ROBUSTE) ---
 str_lit.sidebar.markdown("---")
 str_lit.sidebar.markdown("### 🎧 Ambiance Immersive")
 ambient_choice = str_lit.sidebar.selectbox(
     "Décor sonore",
-    ["Aucun", "Pluie d'orage douce", "Feu de cheminée", "Nuit mystérieuse"],
+    ["Aucun", "Pluie", "Feu de cheminée", "Nuit mystérieuse"],
     label_visibility="collapsed"
 )
 
 audio_links = {
-    "Pluie d'orage douce": "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg",
-    "Feu de cheminée": "https://actions.google.com/sounds/v1/ambiences/campfire.ogg",
-    "Nuit mystérieuse": "https://actions.google.com/sounds/v1/ambiences/night_crickets.ogg"
+    "Pluie": "https://cdn.pixabay.com/download/audio/2021/08/09/audio_22397d899e.mp3?filename=gentle-rain-16499.mp3",
+    "Feu de cheminée": "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=campfire-chiming-fx-98188.mp3",
+    "Nuit mystérieuse": "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf756.mp3?filename=night-crickets-and-owls-113038.mp3"
 }
 
 if ambient_choice != "Aucun" and ambient_choice in audio_links:
     audio_url = audio_links[ambient_choice]
     str_lit.sidebar.markdown(f"""
-        <audio controls autoplay loop style="width: 100%; height: 35px;">
-            <source src="{audio_url}" type="audio/ogg">
+        <audio controls loop style="width: 100%; height: 35px;">
+            <source src="{audio_url}" type="audio/mp3">
             Votre navigateur ne supporte pas l'élément audio.
         </audio>
     """, unsafe_allow_html=True)
+    str_lit.sidebar.caption("Clique sur Play ▶ si le son ne démarre pas.")
 
 str_lit.sidebar.markdown("---")
 
