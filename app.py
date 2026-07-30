@@ -593,7 +593,7 @@ menu_html = f"""
 """
 str_lit.sidebar.markdown(menu_html, unsafe_allow_html=True)
 
-# --- AMBIANCE SONORE DANS LA SIDEBAR (LECTEUR HTML ROBUSTE) ---
+# --- AMBIANCE SONORE DANS LA SIDEBAR (LECTEUR HTML ROBUSTE & FORCAGE METADONNEES) ---
 str_lit.sidebar.markdown("---")
 str_lit.sidebar.markdown("### 🎧 Ambiance Immersive")
 ambient_choice = str_lit.sidebar.selectbox(
@@ -611,7 +611,7 @@ audio_links = {
 if ambient_choice != "Aucun" and ambient_choice in audio_links:
     audio_url = audio_links[ambient_choice]
     str_lit.sidebar.markdown(f"""
-        <audio controls loop style="width: 100%; height: 35px;" preload="auto">
+        <audio controls loop preload="metadata" style="width: 100%; height: 35px;" onloadedmetadata="this.currentTime=0.1;">
             <source src="{audio_url}" type="audio/ogg">
             Votre navigateur ne supporte pas l'élément audio.
         </audio>
