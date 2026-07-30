@@ -593,7 +593,7 @@ menu_html = f"""
 """
 str_lit.sidebar.markdown(menu_html, unsafe_allow_html=True)
 
-# --- AMBIANCE SONORE DANS LA SIDEBAR (LECTEUR HTML ULTRA-ROBUSTE) ---
+# --- AMBIANCE SONORE DANS LA SIDEBAR (LECTEUR FORCÉ EN JS PUR) ---
 str_lit.sidebar.markdown("---")
 str_lit.sidebar.markdown("### 🎧 Ambiance Immersive")
 ambient_choice = str_lit.sidebar.selectbox(
@@ -603,23 +603,25 @@ ambient_choice = str_lit.sidebar.selectbox(
 )
 
 audio_links = {
-    "Pluie": "https://upload.wikimedia.org/wikipedia/commons/b/b5/Rain_on_tent.ogg",
-    "Feu de cheminée": "https://upload.wikimedia.org/wikipedia/commons/b/b3/Wood_Fire_Crackling.ogg",
-    "Nuit mystérieuse": "https://upload.wikimedia.org/wikipedia/commons/7/7b/Night_ambience_in_a_temperate_forest.ogg"
+    "Pluie": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+    "Feu de cheminée": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+    "Nuit mystérieuse": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"
 }
 
 if ambient_choice != "Aucun" and ambient_choice in audio_links:
     audio_url = audio_links[ambient_choice]
     str_lit.sidebar.markdown(f"""
-        <audio id="immersive-audio" controls loop preload="auto" style="width: 100%; height: 35px;">
-            <source src="{audio_url}" type="audio/ogg">
+        <audio id="immersive-audio" controls loop style="width: 100%; height: 40px;">
+            <source src="{audio_url}" type="audio/mpeg">
             Votre navigateur ne supporte pas l'élément audio.
         </audio>
         <script>
-            var audioElem = document.getElementById('immersive-audio');
-            if(audioElem) {{
-                audioElem.load();
-            }}
+            setTimeout(function() {{
+                var audioElem = document.getElementById('immersive-audio');
+                if(audioElem) {{
+                    audioElem.load();
+                }}
+            }}, 200);
         </script>
     """, unsafe_allow_html=True)
 
