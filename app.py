@@ -1034,6 +1034,10 @@ elif str_lit.session_state.page == "create_character":
             if new_name.strip():
                 if supabase:
                     try:
+                        global CHARACTERS
+                        str_lit.cache_data.clear()
+                        CHARACTERS = get_all_characters_cached(clean_pseudo)
+
                         final_img = ""
                         if uploaded_file:
                             final_img = upload_image_to_supabase(uploaded_file, folder="characters")
@@ -1048,10 +1052,6 @@ elif str_lit.session_state.page == "create_character":
                             "creator_pseudo": clean_pseudo
                         }).execute()
                         
-                        str_lit.cache_data.clear()
-                        global CHARACTERS
-                        CHARACTERS = get_all_characters_cached(clean_pseudo)
-
                         str_lit.success(f"Personnage créé avec succès !")
                         str_lit.session_state.page = "home"
                         str_lit.rerun()
