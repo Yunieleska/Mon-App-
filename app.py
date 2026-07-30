@@ -261,17 +261,22 @@ if "action" in query_params:
         str_lit.rerun()
         
     elif action_type == "delete_chat" and c_name_param:
+        p_clean = str(clean_pseudo).strip()
+        c_name_clean = str(c_name_param).strip()
+        
         if supabase:
             try:
-                supabase.table("messages").delete().eq("user_pseudo", clean_pseudo).eq("char_name", c_name_param).execute()
-                supabase.table("affinities").delete().eq("user_pseudo", clean_pseudo).eq("char_name", c_name_param).execute()
-            except:
+                supabase.table("messages").delete().eq("user_pseudo", p_clean).eq("char_name", c_name_clean).execute()
+                supabase.table("affinities").delete().eq("user_pseudo", p_clean).eq("char_name", c_name_clean).execute()
+            except Exception:
                 pass
-        cache_key = f"{clean_pseudo}_{c_name_param}"
+                
+        cache_key = f"{p_clean}_{c_name_clean}"
         if cache_key in str_lit.session_state.messages_cache:
             del str_lit.session_state.messages_cache[cache_key]
         if cache_key in str_lit.session_state.affinities_cache:
             del str_lit.session_state.affinities_cache[cache_key]
+            
         str_lit.query_params.clear()
         str_lit.session_state.page = "messages"
         str_lit.rerun()
@@ -555,7 +560,6 @@ if not str_lit.session_state.logged_in:
                         str_lit.error(f"Erreur : {e}")
     str_lit.stop()
 
-# Chargement dynamique des personnages
 CHARACTERS = get_all_characters_dynamically(clean_pseudo)
 
 # --- SIDEBAR ---
@@ -768,9 +772,22 @@ elif str_lit.session_state.page == "chat":
         str_lit.progress(affinity_score / 100.0, text=f"{affinity_score}%")
     with col_h4:
         str_lit.write("")
-        str_lit.markdown(f'''
-        <a href="?user={clean_pseudo}&action=delete_chat&char={current_char}" target="_self" class="custom-danger-btn" style="margin-top: 5px;">🗑️ Tout effacer</a>
-        ''', unsafe_allow_html=True)
+        if str_lit.button("🗑️ Tout effacer", key="btn_clear_entire_chat"):
+            p_clean = str(clean_pseudo).strip()
+            c_name_clean = str(current_char).strip()
+            if supabase:
+                try:
+                    supabase.table("messages").delete().eq("user_pseudo", p_clean).eq("char_name", c_name_clean).execute()
+                    supabase.table("affinities").delete().eq("user_pseudo", p_clean).eq("char_name", c_name_clean).execute()
+                except:
+                    pass
+            cache_key = f"{p_clean}_{c_name_clean}"
+            if cache_key in str_lit.session_state.messages_cache:
+                del str_lit.session_state.messages_cache[cache_key]
+            if cache_key in str_lit.session_state.affinities_cache:
+                del str_lit.session_state.affinities_cache[cache_key]
+            str_lit.success("Conversation effacée !")
+            str_lit.rerun()
 
     str_lit.markdown("---")
 
