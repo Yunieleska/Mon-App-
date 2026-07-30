@@ -1,6 +1,5 @@
 import os
 import re
-import urllib.request
 import streamlit as str_lit
 from supabase import create_client
 from groq import Groq
@@ -593,32 +592,6 @@ menu_html = f"""
 </div>
 """
 str_lit.sidebar.markdown(menu_html, unsafe_allow_html=True)
-
-# --- AMBIANCE SONORE CORRIGÉE (LECTEUR NATIF STREAMLIT) ---
-str_lit.sidebar.markdown("---")
-str_lit.sidebar.markdown("### 🎧 Ambiance Immersive")
-ambient_choice = str_lit.sidebar.selectbox(
-    "Décor sonore",
-    ["Aucun", "Pluie", "Feu de cheminée", "Nuit mystérieuse"],
-    label_visibility="collapsed"
-)
-
-audio_links = {
-    "Pluie": "https://cdn.pixabay.com/download/audio/2021/08/09/audio_13a13467bf.mp3?filename=rain-and-thunder-nature-sounds-7576.mp3",
-    "Feu de cheminée": "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=campfire-crackles-bursts-and-sizzle-18758.mp3",
-    "Nuit mystérieuse": "https://cdn.pixabay.com/download/audio/2022/05/16/audio_db3295c52c.mp3?filename=night-crickets-and-owls-nature-sounds-11002.mp3"
-}
-
-if ambient_choice != "Aucun" and ambient_choice in audio_links:
-    try:
-        audio_url = audio_links[ambient_choice]
-        req = urllib.request.Request(audio_url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req) as response:
-            audio_bytes = response.read()
-        str_lit.sidebar.audio(audio_bytes, format="audio/mp3", loop=True)
-    except Exception as e:
-        str_lit.sidebar.error(f"Impossible de charger l'ambiance : {e}")
-
 str_lit.sidebar.markdown("---")
 
 logout_html = f"""
