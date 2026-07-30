@@ -1,5 +1,4 @@
 import os
-import reimport os
 import re
 import streamlit as str_lit
 from supabase import create_client
