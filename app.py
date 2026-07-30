@@ -949,9 +949,10 @@ elif str_lit.session_state.page == "chat":
                         str_lit.rerun()
 
             with col_avatar_u:
+                safe_user_avatar = user_avatar_url if user_avatar_url and user_avatar_url.startswith("http") else DEFAULT_AVATAR
                 str_lit.markdown(f"""
                 <div style="display: flex; justify-content: flex-end;">
-                    <img src="{user_avatar_url}" style="width: 55px; height: 55px; border-radius: 50%; object-fit: cover; border: 2px solid #d299ea;" onerror="this.onerror=null;this.src='{DEFAULT_AVATAR}';">
+                    <img src="{safe_user_avatar}" style="width: 55px; height: 55px; border-radius: 50%; object-fit: cover; border: 2px solid #d299ea;">
                 </div>
                 """, unsafe_allow_html=True)
 
