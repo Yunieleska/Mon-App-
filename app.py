@@ -17,7 +17,6 @@ CREATE_CHARACTER_BANNER = "créer un personnage.jfif"
 EXPLORER_BANNER = "explorer.jfif"
 SUPABASE_BUCKET_NAME = "storyia-images"
 DEFAULT_AVATAR = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
-# Avatar neutre dédié à l'utilisatrice pour éviter toute confusion avec les personnages
 USER_DEFAULT_AVATAR = "https://i.pinimg.com/736x/8f/3e/22/8f3e2262744383411a79857321e15555.jpg"
 
 def upload_image_to_supabase(uploaded_file, folder="uploads"):
@@ -671,9 +670,6 @@ menu_html = f"""
 """
 str_lit.sidebar.markdown(menu_html, unsafe_allow_html=True)
 
-if str_lit.sidebar.button("🔄 Actualiser les données"):
-    str_lit.rerun()
-
 str_lit.sidebar.markdown("---")
 
 logout_html = f"""
@@ -962,7 +958,6 @@ elif str_lit.session_state.page == "chat":
 
     str_lit.markdown("<br>", unsafe_allow_html=True)
     
-    # Utilisation d'un st.text_area pour autoriser les sauts de ligne (touches Entrée multiples)
     user_input = str_lit.text_area("Écris ta réponse...", key="user_message_input", label_visibility="collapsed", height=90)
     send_clicked = str_lit.button("Envoyer 🚀", key="send_message_btn", use_container_width=True)
 
