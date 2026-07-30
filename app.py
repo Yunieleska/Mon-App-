@@ -424,7 +424,7 @@ def load_msgs(pseudo, char, limit=100):
         return []
 
 
-def get_affinity(pseudo, char, initial_score=10):
+def get_affinity(pseudo, char, initial_score=0):
     cache_key = f"{pseudo}_{char}"
     if cache_key in str_lit.session_state.affinities_cache:
         return str_lit.session_state.affinities_cache[cache_key]
@@ -477,7 +477,7 @@ def get_all_characters_dynamically(current_user_pseudo=""):
             "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
             "prompt": "Tu es Caelum, Prince des Ténèbres. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique, les vêtements, les cheveux ou le corps de l'utilisateur sans qu'il en ait parlé explicitement.",
             "quote": "Ne t'approche pas de moi. Ma vie est déjà tracée, et tu n'as rien à y faire.",
-            "initial_affinity": 10,
+            "initial_affinity": 0,
             "memories": {
                 25: "Premier regard glacial échangé dans les couloirs de l'académie.",
                 50: "Un début de conversation secrète où ses barrières ont commencé à faiblir.",
@@ -489,7 +489,7 @@ def get_all_characters_dynamically(current_user_pseudo=""):
             "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg",
             "prompt": "Tu es Alexei, mafieux. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique, les vêtements, les cheveux ou le corps de l'utilisateur sans qu'il en ait parlé explicitement.",
             "quote": "Regardez qui s'est perdue sur mon territoire. La petite princesse des Volkov...",
-            "initial_affinity": 15,
+            "initial_affinity": 0,
             "memories": {
                 25: "La confrontation tendue dans son bureau privé sous haute surveillance.",
                 50: "Il a pris ta défense face à un rival sans baisser sa garde.",
@@ -501,7 +501,7 @@ def get_all_characters_dynamically(current_user_pseudo=""):
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/lucas.png.PNG",
             "prompt": "Tu es Lucas, un garçon populaire, décontracté et complice. Ton univers est celui d'un lycéen/étudiant populaire. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique de l'utilisateur.",
             "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série ?",
-            "initial_affinity": 30,
+            "initial_affinity": 0,
             "memories": {
                 25: "Votre première soirée passée à refaire le monde en cachette.",
                 50: "Il commence à te confier ses doutes derrière son masque de garçon populaire.",
@@ -513,7 +513,7 @@ def get_all_characters_dynamically(current_user_pseudo=""):
             "img": "https://raw.githubusercontent.com/Yunieleska/Mon-App-/main/Ethan.png",
             "prompt": "Tu es Ethan, Loup Alpha. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. RÈGLE CRUCIALE POUR LE PREMIER MESSAGE : Tu ne connais pas encore le prénom de l'interlocutrice (qui est une étrangère ou une inconnue qui croise ton chemin dans la forêt). Ne l'appelle SURTOUT PAS par son prénom dans ton premier message. N'invente jamais l'apparence physique de l'utilisateur.",
             "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines...",
-            "initial_affinity": 10,
+            "initial_affinity": 0,
             "memories": {
                 25: "La rencontre mystérieuse au cœur des bois interdits.",
                 50: "Il t'a protégé d'une menace nocturne en révélant sa nature profonde.",
@@ -525,7 +525,7 @@ def get_all_characters_dynamically(current_user_pseudo=""):
             "img": DEFAULT_AVATAR,
             "prompt": "Tu es Kylian Blackwood, un Loup Alpha (mâle). Tu possèdes un loup intérieur (et jamais une louve). Reste strictement dans ton rôle de loup-garou Alpha, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique de l'utilisateur.",
             "quote": "Mon loup intérieur ne se trompe jamais...",
-            "initial_affinity": 20,
+            "initial_affinity": 0,
             "memories": {
                 25: "Le premier échange de grognements protecteurs.",
                 50: "Son loup accepte ta présence à ses côtés lors de la chasse.",
@@ -537,7 +537,7 @@ def get_all_characters_dynamically(current_user_pseudo=""):
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/leo.png.PNG",
             "prompt": "Tu es Léo, streameur et coéquipier de jeux. Ton univers est celui d'un esport et du gaming compétitif. Reste strictement dans ton rôle, adopte un ton immersif de roleplay. RÈGLE CRUCIALE : Tes messages doivent se concentrer exclusivement sur l'action en cours, le jeu, la stratégie d'équipe, les écrans et la compétition. Ne fais JAMAIS référence à des éléments extérieurs ou sans rapport avec l'histoire (pas de mentions déplacées ou incohérentes avec l'univers du gaming). N'invente JAMAIS et ne décris JAMAIS l'apparence physique de l'utilisateur.",
             "quote": "Prête à ce qu'on détruise l'équipe d'en face ?",
-            "initial_affinity": 25,
+            "initial_affinity": 0,
             "memories": {
                 25: "Votre première victoire écrasante en tournoi classé.",
                 50: "Des heures de vocal tardives à peaufiner les stratégies.",
@@ -549,7 +549,7 @@ def get_all_characters_dynamically(current_user_pseudo=""):
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/liam.png.PNG",
             "prompt": "Tu es Liam, le grand frère. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique de l'utilisateur.",
             "quote": "Salut, l'amie de ma sœur. Essaie de ne pas faire trop de bruit.",
-            "initial_affinity": 40,
+            "initial_affinity": 0,
             "memories": {
                 25: "Les premiers piques sarcastiques dans la cuisine.",
                 50: "Il a couvert l'un de tes secrets devant ses parents.",
@@ -561,7 +561,7 @@ def get_all_characters_dynamically(current_user_pseudo=""):
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/noah.png.PNG",
             "prompt": "Tu es Noah, le quaterback star et le garçon le plus populaire du lycée. Tu parles par SMS de manière anonyme avec une fille mystérieuse. Dans la vraie vie, au lycée, tu es distant et inaccessible. Tu ignores qu'elle est ta correspondante secrète. Ne décris jamais les actions ou les pensées de l'utilisateur.",
             "quote": "Salut. Je sais que tu dors probablement, mais c'est le seul moment de la journée où le silence m'apaise. Comment s'est passée ta journée ?",
-            "initial_affinity": 20,
+            "initial_affinity": 0,
             "memories": {
                 25: "Le premier message nocturne anonyme qui a tout déclenché.",
                 50: "Vos confidences secrètes sur vos vies scolaires respectives.",
@@ -584,7 +584,7 @@ def get_all_characters_dynamically(current_user_pseudo=""):
                     desc_val = item.get("description") or "Personnage personnalisé."
                     gender_val = item.get("gender") or "Non spécifié"
                     temperament = item.get("temperament", "Neutre")
-                    init_aff = item.get("initial_affinity", 10)
+                    init_aff = item.get("initial_affinity", 0)
                     
                     base_prompt = item.get("prompt") or f"Tu es {c_name} (Genre: {gender_val}). {desc_val}"
                     
@@ -853,7 +853,7 @@ elif str_lit.session_state.page == "messages":
                 
                 if active_chars:
                     for i, c_name in enumerate(active_chars):
-                        c_data = CHARACTERS.get(c_name, {"img": "", "quote": "Discussion en cours...", "initial_affinity": 10})
+                        c_data = CHARACTERS.get(c_name, {"img": "", "quote": "Discussion en cours...", "initial_affinity": 0})
                         char_aff = get_affinity(clean_pseudo, c_name, c_data["initial_affinity"])
                         
                         str_lit.markdown(f"""
@@ -974,7 +974,7 @@ elif str_lit.session_state.page == "journal":
 
 elif str_lit.session_state.page == "chat":
     current_char = str_lit.session_state.char_select
-    char_data = CHARACTERS.get(current_char, {"img": "", "quote": "", "prompt": f"Tu es {current_char}.", "initial_affinity": 10, "memories": {}})
+    char_data = CHARACTERS.get(current_char, {"img": "", "quote": "", "prompt": f"Tu es {current_char}.", "initial_affinity": 0, "memories": {}})
 
     user_avatar_url = USER_DEFAULT_AVATAR
     if supabase:
@@ -1139,7 +1139,6 @@ elif str_lit.session_state.page == "chat":
                         narration_rule = "\n- RÈGLE DE MISE EN SCÈNE : Intègre toujours des descriptions d'ambiance physique, de gestes ou de décors en italique pour renforcer l'immersion comme dans un roman."
                         memory_context = "\n- MÉMOIRE DE L'HISTOIRE : Ne perds jamais le fil des actions précédentes, des lieux visités et des émotions exprimées dans les messages précédents."
                         
-                        # Intégration de la mémoire à long terme (story_summary)
                         long_term_summary = get_story_summary(clean_pseudo, current_char)
                         summary_section = ""
                         if long_term_summary:
@@ -1267,7 +1266,6 @@ elif str_lit.session_state.page == "chat":
             narration_rule = "\n- RÈGLE DE MISE EN SCÈNE : Intègre toujours des descriptions d'ambiance physique, de gestes ou de décors en italique pour renforcer l'immersion comme dans un roman."
             memory_context = "\n- MÉMOIRE DE L'HISTOIRE : Ne perds jamais le fil des actions précédentes, des lieux visités et des émotions exprimées dans les messages précédents."
             
-            # Récupération de la mémoire à long terme (story_summary)
             long_term_summary = get_story_summary(clean_pseudo, current_char)
             summary_section = ""
             if long_term_summary:
@@ -1304,7 +1302,6 @@ elif str_lit.session_state.page == "chat":
                 if bot_reply:
                     save_msg(clean_pseudo, current_char, "assistant", bot_reply)
                     
-                    # Mise à jour automatique du résumé tous les 10 messages
                     if len(messages_actuels) > 0 and len(messages_actuels) % 10 == 0:
                         update_story_summary(clean_pseudo, current_char, client, messages_actuels[-15:])
 
@@ -1329,7 +1326,7 @@ elif str_lit.session_state.page == "create_character":
         with col_c1:
             new_temperament = str_lit.selectbox("Tempérament de départ", ["Neutre", "Hostile / Froid", "Passionné / Amoureux", "Mystérieux / Taquin"])
         with col_c2:
-            new_init_affinity = str_lit.slider("Affinité initiale (%)", min_value=0, max_value=100, value=10)
+            new_init_affinity = str_lit.slider("Affinité initiale (%)", min_value=0, max_value=100, value=0)
             
         new_quote = str_lit.text_input("Phrase d'accroche (Citation)")
         new_desc = str_lit.text_area("Description / Personnalité / Contexte")
