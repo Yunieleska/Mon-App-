@@ -13,6 +13,7 @@ if not groq_key and "GROQ_API_KEY" in str_lit.secrets:
 BACKGROUND_IMG_NAME = "bg.png"
 SIDEBAR_HEADER_IMG = "couple.png"
 CORRESPONDANCES_BANNER = "https://i.postimg.cc/tCnmbx3m/correspondances.jpg"
+JOURNAL_BANNER = "https://raw.githubusercontent.com/Yunieleska/Mon-App-/refs/heads/main/journal%20intimes.jfif"
 CREATE_CHARACTER_BANNER = "créer un personnage.jfif"
 EXPLORER_BANNER = "explorer.jfif"
 SUPABASE_BUCKET_NAME = "storyia-images"
@@ -888,8 +889,10 @@ elif str_lit.session_state.page == "messages":
             str_lit.error(f"Erreur lors du chargement des messages : {e}")
 
 elif str_lit.session_state.page == "journal":
-    str_lit.title("Journal Intime & Souvenirs Débloquables")
-    str_lit.write("Suivez l'évolution de vos relations et débloquez des contenus exclusifs (pensées intimes, journal secret, lettres d'amour et chansons personnalisées) en faisant progresser votre affinité.")
+    str_lit.markdown(
+        f'<img src="{JOURNAL_BANNER}" style="width: 100%; border-radius: 12px; margin-bottom: 20px; object-fit: cover;">',
+        unsafe_allow_html=True
+    )
     str_lit.markdown("---")
 
     selected_char_journal = str_lit.selectbox("Choisir un personnage pour consulter ses souvenirs :", list(CHARACTERS.keys()))
