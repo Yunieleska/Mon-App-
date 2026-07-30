@@ -130,6 +130,8 @@ str_lit.markdown(
         -webkit-text-fill-color: #ffffff !important;
         background-color: #161b22 !important;
     }
+    
+    /* Style Roman */
     .novel-dialogue {
         font-family: 'Georgia', serif;
         font-size: 15px;
@@ -142,6 +144,21 @@ str_lit.markdown(
         margin-bottom: 10px;
         white-space: pre-wrap;
     }
+    
+    /* Style SMS Moderne */
+    .sms-bubble-bot {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+        color: #f0f6fc;
+        background: #21262d;
+        padding: 12px 16px;
+        border-radius: 15px 15px 15px 4px;
+        margin-bottom: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        white-space: pre-wrap;
+    }
+    
     .storyia-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
@@ -354,13 +371,13 @@ def load_msgs(pseudo, char, limit=100):
         return []
 
 
-def get_affinity(pseudo, char):
+def get_affinity(pseudo, char, initial_score=10):
     cache_key = f"{pseudo}_{char}"
     if cache_key in str_lit.session_state.affinities_cache:
         return str_lit.session_state.affinities_cache[cache_key]
 
     if not supabase:
-        return 10
+        return initial_score
     try:
         res = (
             supabase.table("affinities")
@@ -373,17 +390,17 @@ def get_affinity(pseudo, char):
         if res and res.data:
             score = res.data["score"]
         else:
-            score = 10
+            score = initial_score
             supabase.table("affinities").insert({
                 "user_pseudo": str(pseudo).strip(),
                 "char_name": str(char),
-                "score": 10
+                "score": initial_score
             }).execute()
         
         str_lit.session_state.affinities_cache[cache_key] = score
         return score
     except Exception:
-        return 10
+        return initial_score
 
 
 def update_affinity(pseudo, char, delta):
@@ -407,41 +424,49 @@ def get_all_characters_dynamically(current_user_pseudo=""):
             "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
             "prompt": "Tu es Caelum, Prince des Ténèbres. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique, les vêtements, les cheveux ou le corps de l'utilisateur sans qu'il en ait parlé explicitement.",
             "quote": "Ne t'approche pas de moi. Ma vie est déjà tracée, et tu n'as rien à y faire.",
+            "initial_affinity": 10
         },
         "Alexei": {
             "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg",
             "prompt": "Tu es Alexei, mafieux. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique, les vêtements, les cheveux ou le corps de l'utilisateur sans qu'il en ait parlé explicitement.",
             "quote": "Regardez qui s'est perdue sur mon territoire. La petite princesse des Volkov...",
+            "initial_affinity": 15
         },
         "Lucas": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/lucas.png.PNG",
             "prompt": "Tu es Lucas, un garçon populaire, décontracté et complice. Ton univers est celui d'un lycéen/étudiant populaire. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique de l'utilisateur.",
             "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série ?",
+            "initial_affinity": 30
         },
         "Ethan": {
             "img": "https://raw.githubusercontent.com/Yunieleska/Mon-App-/main/Ethan.png",
             "prompt": "Tu es Ethan, Loup Alpha. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. RÈGLE CRUCIALE POUR LE PREMIER MESSAGE : Tu ne connais pas encore le prénom de l'interlocutrice (qui est une étrangère ou une inconnue qui croise ton chemin dans la forêt). Ne l'appelle SURTOUT PAS par son prénom dans ton premier message. N'invente jamais l'apparence physique de l'utilisateur.",
             "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines...",
+            "initial_affinity": 10
         },
         "Kylian Blackwood": {
             "img": DEFAULT_AVATAR,
             "prompt": "Tu es Kylian Blackwood, un Loup Alpha (mâle). Tu possèdes un loup intérieur (et jamais une louve). Reste strictement dans ton rôle de loup-garou Alpha, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique de l'utilisateur.",
             "quote": "Mon loup intérieur ne se trompe jamais...",
+            "initial_affinity": 20
         },
         "Léo": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/leo.png.PNG",
             "prompt": "Tu es Léo, streameur et coéquipier de jeux. Ton univers est celui d'un esport et du gaming compétitif. Reste strictement dans ton rôle, adopte un ton immersif de roleplay. RÈGLE CRUCIALE : Tes messages doivent se concentrer exclusivement sur l'action en cours, le jeu, la stratégie d'équipe, les écrans et la compétition. Ne fais JAMAIS référence à des éléments extérieurs ou sans rapport avec l'histoire (pas de mentions déplacées ou incohérentes avec l'univers du gaming). N'invente JAMAIS et ne décris JAMAIS l'apparence physique de l'utilisateur.",
             "quote": "Prête à ce qu'on détruise l'équipe d'en face ?",
+            "initial_affinity": 25
         },
         "Liam": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/liam.png.PNG",
             "prompt": "Tu es Liam, le grand frère. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique de l'utilisateur.",
             "quote": "Salut, l'amie de ma sœur. Essaie de ne pas faire trop de bruit.",
+            "initial_affinity": 40
         },
         "Noah": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/noah.png.PNG",
             "prompt": "Tu es Noah, le quaterback star et le garçon le plus populaire du lycée. Tu parles par SMS de manière anonyme avec une fille mystérieuse. Dans la vraie vie, au lycée, tu es distant et inaccessible. Tu ignores qu'elle est ta correspondante secrète. Ne décris jamais les actions ou les pensées de l'utilisateur.",
             "quote": "Salut. Je sais que tu dors probablement, mais c'est le seul moment de la journée où le silence m'apaise. Comment s'est passée ta journée ?",
+            "initial_affinity": 20
         },
     }
 
@@ -457,7 +482,21 @@ def get_all_characters_dynamically(current_user_pseudo=""):
                     
                     desc_val = item.get("description") or "Personnage personnalisé."
                     gender_val = item.get("gender") or "Non spécifié"
-                    prompt_val = item.get("prompt") or f"Tu es {c_name} (Genre: {gender_val}). {desc_val}"
+                    temperament = item.get("temperament", "Neutre")
+                    init_aff = item.get("initial_affinity", 10)
+                    
+                    base_prompt = item.get("prompt") or f"Tu es {c_name} (Genre: {gender_val}). {desc_val}"
+                    
+                    # Injection du tempérament pour booster la personnalisation
+                    temperament_instruction = ""
+                    if temperament == "Hostile / Froid":
+                        temperament_instruction = " Ton tempérament de départ est distant, glacial et sur ses gardes."
+                    elif temperament == "Passionné / Amoureux":
+                        temperament_instruction = " Ton tempérament de départ est chaleureux, tactile et expressif."
+                    elif temperament == "Mystérieux / Taquin":
+                        temperament_instruction = " Ton tempérament de départ est énigmatique, provocateur et taquin."
+                    
+                    prompt_val = base_prompt + temperament_instruction
                     quote_val = item.get("quote") or f"Bonjour, je suis {c_name}."
                     
                     raw_img_url = item.get("img_url", "")
@@ -467,6 +506,7 @@ def get_all_characters_dynamically(current_user_pseudo=""):
                         "img": img_url,
                         "prompt": prompt_val + " Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé.",
                         "quote": quote_val,
+                        "initial_affinity": init_aff
                     }
     except Exception as e:
         print(f"Erreur chargement personnages: {e}")
@@ -592,6 +632,15 @@ menu_html = f"""
 </div>
 """
 str_lit.sidebar.markdown(menu_html, unsafe_allow_html=True)
+
+# Option d'optimisation 1 : Sélecteur de style de lecture dans la Sidebar
+str_lit.sidebar.markdown("---")
+str_lit.sidebar.markdown("### ⚙️ Options d'immersion")
+reading_style = str_lit.sidebar.selectbox(
+    "Style d'affichage des messages",
+    ["Roman littéraire (Immersif)", "Bulle de SMS (Moderne)"]
+)
+
 str_lit.sidebar.markdown("---")
 
 logout_html = f"""
@@ -696,14 +745,15 @@ elif str_lit.session_state.page == "messages":
                 
                 if active_chars:
                     for i, c_name in enumerate(active_chars):
-                        c_data = CHARACTERS.get(c_name, {"img": "", "quote": "Discussion en cours..."})
+                        c_data = CHARACTERS.get(c_name, {"img": "", "quote": "Discussion en cours...", "initial_affinity": 10})
+                        char_aff = get_affinity(clean_pseudo, c_name, c_data["initial_affinity"])
                         
                         str_lit.markdown(f"""
                         <div style="background-color: #161b22; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 15px;">
                             <img src="{c_data['img']}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">
                             <div style="flex-grow: 1;">
                                 <div style="font-weight: 700; font-size: 16px; color: #ffffff;">{c_name}</div>
-                                <div style="font-size: 12px; color: #8b949e; font-style: italic; margin-bottom: 2px;">Affinité : {get_affinity(clean_pseudo, c_name)}%</div>
+                                <div style="font-size: 12px; color: #8b949e; font-style: italic; margin-bottom: 2px;">Affinité : {char_aff}%</div>
                             </div>
                         </div>
                         """, unsafe_allow_html=True)
@@ -731,7 +781,7 @@ elif str_lit.session_state.page == "messages":
 
 elif str_lit.session_state.page == "chat":
     current_char = str_lit.session_state.char_select
-    char_data = CHARACTERS.get(current_char, {"img": "", "quote": "", "prompt": f"Tu es {current_char}."})
+    char_data = CHARACTERS.get(current_char, {"img": "", "quote": "", "prompt": f"Tu es {current_char}.", "initial_affinity": 10})
 
     user_avatar_url = USER_DEFAULT_AVATAR
     if supabase:
@@ -749,9 +799,20 @@ elif str_lit.session_state.page == "chat":
         str_lit.title(current_char)
         str_lit.caption(char_data["quote"])
     with col_h3:
-        affinity_score = get_affinity(clean_pseudo, current_char)
-        str_lit.markdown("### 💖 Affinité")
-        str_lit.progress(affinity_score / 100.0, text=f"{affinity_score}%")
+        affinity_score = get_affinity(clean_pseudo, current_char, char_data["initial_affinity"])
+        
+        # Option d'optimisation 2 : Paliers d'affinité dynamiques et explicites
+        aff_status_text = "Relation neutre"
+        if affinity_score >= 80:
+            aff_status_text = "❤️ Passion / Fusionnel (80%+)"
+        elif affinity_score >= 50:
+            aff_status_text = "🤝 Confiance mutuelle (50%+)"
+        elif affinity_score <= 25:
+            aff_status_text = "❄️ Méfiance / Distant (<25%)"
+            
+        str_lit.markdown(f"### 💖 Affinité : {affinity_score}%")
+        str_lit.caption(aff_status_text)
+        str_lit.progress(affinity_score / 100.0)
     with col_h4:
         str_lit.write("")
         if str_lit.button("🗑️ Tout effacer", key="btn_clear_entire_chat"):
@@ -841,7 +902,11 @@ elif str_lit.session_state.page == "chat":
                             str_lit.session_state[edit_key] = False
                             str_lit.rerun()
                 else:
-                    str_lit.markdown(f'<div class="novel-dialogue">{msg["content"]}</div>', unsafe_allow_html=True)
+                    # Affichage conditionnel selon le choix du style de lecture
+                    if "Roman" in reading_style:
+                        str_lit.markdown(f'<div class="novel-dialogue">{msg["content"]}</div>', unsafe_allow_html=True)
+                    else:
+                        str_lit.markdown(f'<div class="sms-bubble-bot">{msg["content"]}</div>', unsafe_allow_html=True)
                     
             with col_actions:
                 col_b1, col_b2 = str_lit.columns(2)
@@ -870,7 +935,7 @@ elif str_lit.session_state.page == "chat":
                             except:
                                 pass
                         
-                        current_aff = get_affinity(clean_pseudo, current_char)
+                        current_aff = get_affinity(clean_pseudo, current_char, char_data["initial_affinity"])
                         behavior_boost = ""
                         if current_aff >= 80:
                             behavior_boost = "\n- ÉTAT D'ESPRIT ACTUEL : Affinité très élevée (80%+). Le personnage est profondément attaché, vulnérable, et montre des sentiments intenses ou passionnés envers l'interlocutrice."
@@ -882,14 +947,17 @@ elif str_lit.session_state.page == "chat":
                         aff_context = f" Niveau d'affinité actuel : {current_aff}%."
                         narration_rule = "\n- RÈGLE DE MISE EN SCÈNE : Intègre toujours des descriptions d'ambiance physique, de gestes ou de décors en italique pour renforcer l'immersion comme dans un roman."
                         
+                        # Option d'optimisation 3 : Résumé de contexte/mémoire renforcé pour l'IA
+                        memory_context = "\n- MÉMOIRE DE L'HISTOIRE : Ne perds jamais le fil des actions précédentes, des lieux visités et des émotions exprimées dans les messages précédents."
+                        
                         prompt_systeme_complet = (
                             f"{char_data.get('prompt', '')}\n"
                             f"RAPPELS IMPORTANTS POUR LA MÉMOIRE :\n"
                             f"- L'interlocutrice s'appelle {clean_pseudo}.\n"
                             f"-{aff_context}"
                             f"{behavior_boost}"
-                            f"{narration_rule}\n"
-                            f"- Tu dois te souvenir de tous les événements importants passés dans cette conversation avec ella, ne les oublie jamais."
+                            f"{narration_rule}"
+                            f"{memory_context}"
                         )
                         api_messages = [{"role": "system", "content": prompt_systeme_complet}]
                         for m in messages[-40:]:
@@ -984,7 +1052,7 @@ elif str_lit.session_state.page == "chat":
             if cache_key in str_lit.session_state.messages_cache:
                 del str_lit.session_state.messages_cache[cache_key]
 
-            current_aff = get_affinity(clean_pseudo, current_char)
+            current_aff = get_affinity(clean_pseudo, current_char, char_data["initial_affinity"])
             behavior_boost = ""
             if current_aff >= 80:
                 behavior_boost = "\n- ÉTAT D'ESPRIT ACTUEL : Affinité très élevée (80%+). Le personnage est profondément attaché, vulnérable, et montre des sentiments intenses ou passionnés envers l'interlocutrice."
@@ -995,6 +1063,7 @@ elif str_lit.session_state.page == "chat":
 
             aff_context = f" Niveau d'affinité actuel : {current_aff}%."
             narration_rule = "\n- RÈGLE DE MISE EN SCÈNE : Intègre toujours des descriptions d'ambiance physique, de gestes ou de décors en italique pour renforcer l'immersion comme dans un roman."
+            memory_context = "\n- MÉMOIRE DE L'HISTOIRE : Ne perds jamais le fil des actions précédentes, des lieux visités et des émotions exprimées dans les messages précédents."
             
             prompt_systeme_complet = (
                 f"{char_data['prompt']}\n"
@@ -1002,8 +1071,8 @@ elif str_lit.session_state.page == "chat":
                 f"- L'interlocutrice s'appelle {clean_pseudo}.\n"
                 f"-{aff_context}"
                 f"{behavior_boost}"
-                f"{narration_rule}\n"
-                f"- Tu dois te souvenir de tous les événements importants passés dans cette conversation avec elle, ne les oublie jamais."
+                f"{narration_rule}"
+                f"{memory_context}"
             )
             
             messages_actuels = load_msgs(clean_pseudo, current_char, limit=100)
@@ -1041,6 +1110,14 @@ elif str_lit.session_state.page == "create_character":
     with str_lit.form("create_char_form"):
         new_name = str_lit.text_input("Nom du personnage")
         new_gender = str_lit.selectbox("Sexe / Genre", ["Homme", "Femme", "Non-binaire / Autre"])
+        
+        # Option d'optimisation 4 : Paramètres avancés de création (Tempérament et Affinité de départ)
+        col_c1, col_c2 = str_lit.columns(2)
+        with col_c1:
+            new_temperament = str_lit.selectbox("Tempérament de départ", ["Neutre", "Hostile / Froid", "Passionné / Amoureux", "Mystérieux / Taquin"])
+        with col_c2:
+            new_init_affinity = str_lit.slider("Affinité initiale (%)", min_value=0, max_value=100, value=10)
+            
         new_quote = str_lit.text_input("Phrase d'accroche (Citation)")
         new_desc = str_lit.text_area("Description / Personnalité / Contexte")
         uploaded_file = str_lit.file_uploader("Importer l'image du personnage", type=["png", "jpg", "jpeg", "jfif"])
@@ -1058,6 +1135,8 @@ elif str_lit.session_state.page == "create_character":
                         supabase.table("custom_characters").insert({
                             "name": new_name.strip(),
                             "gender": new_gender,
+                            "temperament": new_temperament,
+                            "initial_affinity": new_init_affinity,
                             "quote": new_quote,
                             "description": new_desc,
                             "img_url": final_img,
