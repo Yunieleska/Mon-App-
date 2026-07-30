@@ -593,7 +593,7 @@ menu_html = f"""
 """
 str_lit.sidebar.markdown(menu_html, unsafe_allow_html=True)
 
-# --- AMBIANCE SONORE DANS LA SIDEBAR (LECTEUR INTERACTIF ROBUSTE) ---
+# --- AMBIANCE SONORE DANS LA SIDEBAR (LECTEUR STABLE CORRIGÉ) ---
 str_lit.sidebar.markdown("---")
 str_lit.sidebar.markdown("### 🎧 Ambiance Immersive")
 ambient_choice = str_lit.sidebar.selectbox(
@@ -603,16 +603,16 @@ ambient_choice = str_lit.sidebar.selectbox(
 )
 
 audio_links = {
-    "Pluie": "https://cdn.pixabay.com/download/audio/2021/08/09/audio_22397d899e.mp3?filename=gentle-rain-16499.mp3",
-    "Feu de cheminée": "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=campfire-chiming-fx-98188.mp3",
-    "Nuit mystérieuse": "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf756.mp3?filename=night-crickets-and-owls-113038.mp3"
+    "Pluie": "https://upload.wikimedia.org/wikipedia/commons/b/b5/Rain_on_tent_-_ambient_sound.ogg",
+    "Feu de cheminée": "https://upload.wikimedia.org/wikipedia/commons/a/a3/Campfire_crackling.ogg",
+    "Nuit mystérieuse": "https://upload.wikimedia.org/wikipedia/commons/9/98/Night_sounds_in_a_temperate_forest.ogg"
 }
 
 if ambient_choice != "Aucun" and ambient_choice in audio_links:
     audio_url = audio_links[ambient_choice]
     str_lit.sidebar.markdown(f"""
         <audio controls loop style="width: 100%; height: 35px;">
-            <source src="{audio_url}" type="audio/mp3">
+            <source src="{audio_url}" type="audio/ogg">
             Votre navigateur ne supporte pas l'élément audio.
         </audio>
     """, unsafe_allow_html=True)
