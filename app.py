@@ -32,22 +32,24 @@ def upload_image_to_supabase(uploaded_file, folder="uploads"):
             file_options={"content-type": uploaded_file.type}
         )
         
-        public_url = supabase.storage.from_(SUPABASE_BUCKET_NAME).get_public_url(file_name)
-        if isinstance(public_url, dict):
-            public_url = public_url.get("publicUrl", "")
+        res_url = supabase.storage.from_(SUPABASE_BUCKET_NAME).get_public_url(file_name)
+        if isinstance(res_url, dict):
+            public_url = res_url.get("publicUrl") or res_url.get("signedURL") or ""
+        else:
+            public_url = str(res_url)
         return str(public_url)
     except Exception as e:
         str_lit.error(f"Erreur lors de l'upload de l'image : {e}")
         return ""
 
 def force_image_url(url):
-    """Contourne les restrictions CORS et garantit une image valide"""
-    if not url or not str(url).strip():
+    """Garantit une URL d'image valide et gère les fallbacks sans blocage"""
+    if not url or not str(url).strip() or str(url).strip() == "None":
         return DEFAULT_AVATAR
     clean_url = str(url).strip()
-    if "supabase.co" in clean_url or "raw.githubusercontent.com" in clean_url or clean_url.startswith("http://localhost"):
+    if clean_url.startswith("http://") or clean_url.startswith("https://"):
         return clean_url
-    return f"https://wsrv.nl/?url={clean_url.replace('https://', '').replace('http://', '')}&w=400&fit=cover"
+    return DEFAULT_AVATAR
 
 @str_lit.cache_resource
 def init_groq_client(api_key):
