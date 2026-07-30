@@ -1241,8 +1241,18 @@ elif str_lit.session_state.page == "chat":
             str_lit.error("❌ Erreur : Le client Groq n'est pas initialisé.")
         else:
             save_msg(clean_pseudo, current_char, "user", user_input.strip())
+            
+            # Rechargement de tous les messages pour compter le total exact
+            messages_actuels = load_msgs(clean_pseudo, current_char, limit=1000)
+            total_messages = len(messages_actuels)
+            
             old_aff = get_affinity(clean_pseudo, current_char, char_data["initial_affinity"])
-            new_aff = update_affinity(clean_pseudo, current_char, 2)
+            
+            # L'affinité augmente de +1 uniquement si le total de messages est un multiple de 20
+            if total_messages > 0 and total_messages % 20 == 0:
+                new_aff = update_affinity(clean_pseudo, current_char, 1)
+            else:
+                new_aff = old_aff
             
             milestones = [25, 50, 75, 100]
             for m in milestones:
@@ -1282,7 +1292,6 @@ elif str_lit.session_state.page == "chat":
                 f"{memory_context}"
             )
             
-            messages_actuels = load_msgs(clean_pseudo, current_char, limit=100)
             api_messages = [{"role": "system", "content": prompt_systeme_complet}]
             
             for m in messages_actuels[-40:]:
