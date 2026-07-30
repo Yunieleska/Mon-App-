@@ -528,12 +528,12 @@ def get_all_characters_dynamically(current_user_pseudo=""):
                     if not c_name:
                         continue
                     
-                    vis = str(item.get("visibility", "Public")).strip()
+                    vis = str(item.get("visibility", "Public")).strip().lower()
                     creator = str(item.get("creator_pseudo", "")).strip()
                     p_user = str(current_user_pseudo).strip()
 
-                    # Correction : Affichage si Public OU si le créateur est l'utilisateur connecté
-                    if vis.lower() == "public" or (creator and creator == p_user):
+                    # Correction : Gère correctement la visibilité publique normalisée ou le créateur
+                    if vis == "public" or (creator and creator.lower() == p_user.lower()):
                         desc_val = item.get("description", "")
                         gender_val = item.get("gender", "Non spécifié")
                         prompt_val = item.get("prompt", f"Tu es {c_name} (Genre: {gender_val}). {desc_val}")
@@ -547,8 +547,8 @@ def get_all_characters_dynamically(current_user_pseudo=""):
                             "prompt": prompt_val + " Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé.",
                             "quote": quote_val,
                         }
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Erreur chargement personnages: {e}")
 
     return chars
 
