@@ -207,23 +207,6 @@ str_lit.markdown(
         color: #ff7b72 !important;
         border-color: #ff7b72 !important;
     }
-    .chat-icon-btn {
-        display: inline-block;
-        background-color: #21262d;
-        color: #ffffff;
-        padding: 6px 10px;
-        border-radius: 6px;
-        text-decoration: none !important;
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        font-size: 13px;
-        text-align: center;
-        margin-right: 4px;
-        transition: background-color 0.2s;
-    }
-    .chat-icon-btn:hover {
-        background-color: #30363d;
-        border-color: #ffffff;
-    }
     </style>
 """,
     unsafe_allow_html=True,
@@ -610,7 +593,7 @@ menu_html = f"""
 """
 str_lit.sidebar.markdown(menu_html, unsafe_allow_html=True)
 
-# --- AJOUT : AMBIANCE SONORE DANS LA SIDEBAR ---
+# --- AMBIANCE SONORE DANS LA SIDEBAR (CORRIGÉ AVEC HTML5 AUDIO) ---
 str_lit.sidebar.markdown("---")
 str_lit.sidebar.markdown("### 🎧 Ambiance Immersive")
 ambient_choice = str_lit.sidebar.selectbox(
@@ -620,13 +603,19 @@ ambient_choice = str_lit.sidebar.selectbox(
 )
 
 audio_links = {
-    "Pluie d'orage douce": "https://cdn.pixabay.com/download/audio/2021/08/09/audio_2d326a2754.mp3?filename=gentle-rain-ambient-111154.mp3",
-    "Feu de cheminée": "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c18305f639.mp3?filename=campfire-crackles-104992.mp3",
-    "Nuit mystérieuse": "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=night-ambience-96264.mp3"
+    "Pluie d'orage douce": "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg",
+    "Feu de cheminée": "https://actions.google.com/sounds/v1/ambiences/campfire.ogg",
+    "Nuit mystérieuse": "https://actions.google.com/sounds/v1/ambiences/night_crickets.ogg"
 }
 
 if ambient_choice != "Aucun" and ambient_choice in audio_links:
-    str_lit.sidebar.audio(audio_links[ambient_choice], format="audio/mp3", autoplay=True, loop=True)
+    audio_url = audio_links[ambient_choice]
+    str_lit.sidebar.markdown(f"""
+        <audio controls autoplay loop style="width: 100%; height: 35px;">
+            <source src="{audio_url}" type="audio/ogg">
+            Votre navigateur ne supporte pas l'élément audio.
+        </audio>
+    """, unsafe_allow_html=True)
 
 str_lit.sidebar.markdown("---")
 
@@ -906,7 +895,6 @@ elif str_lit.session_state.page == "chat":
                             except:
                                 pass
                         
-                        # --- AJOUT : COMPORTEMENTS DYNAMIQUES & MISE EN SCÈNE LORS DE LA RÉGÉNÉRATION ---
                         current_aff = get_affinity(clean_pseudo, current_char)
                         behavior_boost = ""
                         if current_aff >= 80:
@@ -1021,7 +1009,6 @@ elif str_lit.session_state.page == "chat":
             if cache_key in str_lit.session_state.messages_cache:
                 del str_lit.session_state.messages_cache[cache_key]
 
-            # --- AJOUT : COMPORTEMENTS DYNAMIQUES & MISE EN SCÈNE LORS DE L'ENVOI ---
             current_aff = get_affinity(clean_pseudo, current_char)
             behavior_boost = ""
             if current_aff >= 80:
