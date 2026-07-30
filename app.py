@@ -302,7 +302,60 @@ if "affinities_cache" not in str_lit.session_state:
 if "messages_cache" not in str_lit.session_state:
     str_lit.session_state.messages_cache = {}
 
-# --- SUPABASE FUNCTIONS ---
+# --- SUPABASE FUNCTIONS & LONG-TERM MEMORY ---
+
+def get_story_summary(pseudo, char):
+    """Récupère le résumé à long terme depuis la table affinities"""
+    if not supabase:
+        return ""
+    try:
+        res = (
+            supabase.table("affinities")
+            .select("story_summary")
+            .eq("user_pseudo", str(pseudo).strip())
+            .eq("char_name", str(char))
+            .maybe_single()
+            .execute()
+        )
+        if res and res.data:
+            return res.data.get("story_summary", "") or ""
+    except Exception:
+        pass
+    return ""
+
+def update_story_summary(pseudo, char, client_groq, recent_messages):
+    """Met à jour le résumé de l'histoire dans la table affinities"""
+    if not supabase or not client_groq:
+        return
+    
+    current_summary = get_story_summary(pseudo, char)
+    messages_text = "\n".join([f"{m['role']}: {m['content']}" for m in recent_messages])
+    
+    prompt_resume = f"""
+    Voici l'ancien résumé de l'histoire entre le personnage et l'utilisateur :
+    "{current_summary}"
+
+    Voici les derniers échanges récents :
+    {messages_text}
+
+    Rédige ou mets à jour un résumé concis, narratif et global de l'histoire (maximum 5-6 phrases) qui capture les faits importants, les émotions et l'évolution de la relation. Ne perds aucun élément clé.
+    """
+    
+    try:
+        response = client_groq.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt_resume}],
+            temperature=0.5,
+        )
+        new_summary = response.choices[0].message.content
+        
+        supabase.table("affinities").upsert({
+            "user_pseudo": str(pseudo).strip(),
+            "char_name": str(char),
+            "story_summary": new_summary
+        }, on_conflict="user_pseudo,char_name").execute()
+    except Exception as e:
+        print(f"Erreur lors de la mise à jour du résumé : {e}")
 
 def save_msg(pseudo, char, role, content):
     cache_key = f"{pseudo}_{char}"
@@ -1086,12 +1139,19 @@ elif str_lit.session_state.page == "chat":
                         narration_rule = "\n- RÈGLE DE MISE EN SCÈNE : Intègre toujours des descriptions d'ambiance physique, de gestes ou de décors en italique pour renforcer l'immersion comme dans un roman."
                         memory_context = "\n- MÉMOIRE DE L'HISTOIRE : Ne perds jamais le fil des actions précédentes, des lieux visités et des émotions exprimées dans les messages précédents."
                         
+                        # Intégration de la mémoire à long terme (story_summary)
+                        long_term_summary = get_story_summary(clean_pseudo, current_char)
+                        summary_section = ""
+                        if long_term_summary:
+                            summary_section = f"\n- SOUVENIRS ET HISTORIQUE GLOBAL DE VOTRE RELATION (Mémoire à long terme) : {long_term_summary}\n"
+
                         prompt_systeme_complet = (
                             f"{char_data.get('prompt', '')}\n"
                             f"RAPPELS IMPORTANTS POUR LA MÉMOIRE :\n"
                             f"- L'interlocutrice s'appelle {clean_pseudo}.\n"
                             f"-{aff_context}"
                             f"{behavior_boost}"
+                            f"{summary_section}"
                             f"{narration_rule}"
                             f"{memory_context}"
                         )
@@ -1207,12 +1267,19 @@ elif str_lit.session_state.page == "chat":
             narration_rule = "\n- RÈGLE DE MISE EN SCÈNE : Intègre toujours des descriptions d'ambiance physique, de gestes ou de décors en italique pour renforcer l'immersion comme dans un roman."
             memory_context = "\n- MÉMOIRE DE L'HISTOIRE : Ne perds jamais le fil des actions précédentes, des lieux visités et des émotions exprimées dans les messages précédents."
             
+            # Récupération de la mémoire à long terme (story_summary)
+            long_term_summary = get_story_summary(clean_pseudo, current_char)
+            summary_section = ""
+            if long_term_summary:
+                summary_section = f"\n- SOUVENIRS ET HISTORIQUE GLOBAL DE VOTRE RELATION (Mémoire à long terme) : {long_term_summary}\n"
+
             prompt_systeme_complet = (
                 f"{char_data['prompt']}\n"
                 f"RAPPELS IMPORTANTS POUR LA MÉMOIRE :\n"
                 f"- L'interlocutrice s'appelle {clean_pseudo}.\n"
                 f"-{aff_context}"
                 f"{behavior_boost}"
+                f"{summary_section}"
                 f"{narration_rule}"
                 f"{memory_context}"
             )
@@ -1236,6 +1303,11 @@ elif str_lit.session_state.page == "chat":
                 bot_reply = response.choices[0].message.content
                 if bot_reply:
                     save_msg(clean_pseudo, current_char, "assistant", bot_reply)
+                    
+                    # Mise à jour automatique du résumé tous les 10 messages
+                    if len(messages_actuels) > 0 and len(messages_actuels) % 10 == 0:
+                        update_story_summary(clean_pseudo, current_char, client, messages_actuels[-15:])
+
                     if cache_key in str_lit.session_state.messages_cache:
                         del str_lit.session_state.messages_cache[cache_key]
                     str_lit.rerun()
