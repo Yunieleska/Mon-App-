@@ -563,7 +563,7 @@ def get_all_characters_dynamically(current_user_pseudo=""):
             "quote": "Salut. Je sais que tu dors probablement, mais c'est le seul moment de la journée où le silence m'apaise. Comment s'est passée ta journée ?",
             "initial_affinity": 0,
             "memories": {
-                25: "Le premier message nocturne anonyme qui a tout déclenché.",
+                25: "Le premier message anonyme qui a tout déclenché.",
                 50: "Vos confidences secrètes sur vos vies scolaires respectives.",
                 75: "Le frisson de vous croiser au lycée en faisant semblant de vous ignorer.",
                 100: "La révélation des masques : il découvre enfin qui se cache derrière ses messages."
@@ -1330,12 +1330,7 @@ elif str_lit.session_state.page == "create_character":
     with str_lit.form("create_char_form"):
         new_name = str_lit.text_input("Nom du personnage")
         new_gender = str_lit.selectbox("Sexe / Genre", ["Homme", "Femme", "Non-binaire / Autre"])
-        
-        col_c1, col_c2 = str_lit.columns(2)
-        with col_c1:
-            new_temperament = str_lit.selectbox("Tempérament de départ", ["Neutre", "Hostile / Froid", "Passionné / Amoureux", "Mystérieux / Taquin"])
-        with col_c2:
-            new_init_affinity = str_lit.slider("Affinité initiale (%)", min_value=0, max_value=100, value=0)
+        new_temperament = str_lit.selectbox("Tempérament de départ", ["Neutre", "Hostile / Froid", "Passionné / Amoureux", "Mystérieux / Taquin"])
             
         new_quote = str_lit.text_input("Phrase d'accroche (Citation)")
         new_desc = str_lit.text_area("Description / Personnalité / Contexte")
@@ -1355,7 +1350,7 @@ elif str_lit.session_state.page == "create_character":
                             "name": new_name.strip(),
                             "gender": new_gender,
                             "temperament": new_temperament,
-                            "initial_affinity": new_init_affinity,
+                            "initial_affinity": 0,
                             "quote": new_quote,
                             "description": new_desc,
                             "img_url": final_img,
