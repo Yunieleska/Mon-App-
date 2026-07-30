@@ -17,6 +17,8 @@ CREATE_CHARACTER_BANNER = "créer un personnage.jfif"
 EXPLORER_BANNER = "explorer.jfif"
 SUPABASE_BUCKET_NAME = "storyia-images"
 DEFAULT_AVATAR = "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
+# Avatar neutre dédié à l'utilisatrice pour éviter toute confusion avec les personnages
+USER_DEFAULT_AVATAR = "https://i.pinimg.com/736x/8f/3e/22/8f3e2262744383411a79857321e15555.jpg"
 
 def upload_image_to_supabase(uploaded_file, folder="uploads"):
     """Téléverse un fichier image sur Supabase Storage et retourne l'URL publique absolue"""
@@ -42,14 +44,15 @@ def upload_image_to_supabase(uploaded_file, folder="uploads"):
         str_lit.error(f"Erreur lors de l'upload de l'image : {e}")
         return ""
 
-def force_image_url(url):
+def force_image_url(url, is_user=False):
     """Garantit une URL d'image valide et gère les fallbacks sans blocage"""
+    fallback = USER_DEFAULT_AVATAR if is_user else DEFAULT_AVATAR
     if not url or not str(url).strip() or str(url).strip() == "None":
-        return DEFAULT_AVATAR
+        return fallback
     clean_url = str(url).strip()
     if clean_url.startswith("http://") or clean_url.startswith("https://"):
         return clean_url
-    return DEFAULT_AVATAR
+    return fallback
 
 @str_lit.cache_resource
 def init_groq_client(api_key):
@@ -535,7 +538,7 @@ def get_all_characters_dynamically(current_user_pseudo=""):
                         quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
                         
                         raw_img_url = item.get("img_url", "").strip()
-                        img_url = force_image_url(raw_img_url)
+                        img_url = force_image_url(raw_img_url, is_user=False)
                         
                         chars[c_name] = {
                             "img": img_url,
@@ -612,7 +615,7 @@ if not str_lit.session_state.logged_in:
                                 "pseudo": new_pseudo,
                                 "email": new_email,
                                 "secret_answer": reponse_secrete,
-                                "avatar_url": DEFAULT_AVATAR
+                                "avatar_url": USER_DEFAULT_AVATAR
                             }).execute()
                             str_lit.success("Compte créé ! Veuillez vous connecter.")
                     except Exception as e:
@@ -821,12 +824,12 @@ elif str_lit.session_state.page == "chat":
     current_char = str_lit.session_state.char_select
     char_data = CHARACTERS.get(current_char, {"img": "", "quote": "", "prompt": f"Tu es {current_char}."})
 
-    user_avatar_url = DEFAULT_AVATAR
+    user_avatar_url = USER_DEFAULT_AVATAR
     if supabase:
         try:
             res_u = supabase.table("users").select("avatar_url").eq("pseudo", clean_pseudo).maybe_single().execute()
             if res_u and res_u.data and res_u.data.get("avatar_url"):
-                user_avatar_url = force_image_url(res_u.data.get("avatar_url"))
+                user_avatar_url = force_image_url(res_u.data.get("avatar_url"), is_user=True)
         except Exception:
             pass
 
@@ -949,10 +952,10 @@ elif str_lit.session_state.page == "chat":
                         str_lit.rerun()
 
             with col_avatar_u:
-                valid_avatar = user_avatar_url if (user_avatar_url and str(user_avatar_url).startswith("http") and "undefined" not in user_avatar_url and "null" not in user_avatar_url) else DEFAULT_AVATAR
+                valid_avatar = user_avatar_url if (user_avatar_url and str(user_avatar_url).startswith("http") and "undefined" not in user_avatar_url and "null" not in user_avatar_url) else USER_DEFAULT_AVATAR
                 str_lit.markdown(f"""
                 <div style="display: flex; justify-content: flex-end;">
-                    <img src="{valid_avatar}" style="width: 55px; height: 55px; border-radius: 50%; object-fit: cover; border: 2px solid #d299ea;" onerror="this.onerror=null;this.src='{DEFAULT_AVATAR}';">
+                    <img src="{valid_avatar}" style="width: 55px; height: 55px; border-radius: 50%; object-fit: cover; border: 2px solid #d299ea;" onerror="this.onerror=null;this.src='{USER_DEFAULT_AVATAR}';">
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -1054,8 +1057,14 @@ elif str_lit.session_state.page == "profile":
     str_lit.write(f"Ton sanctuaire personnel, **{clean_pseudo}**.")
     str_lit.markdown("---")
 
+    # Gestion de l'action de modification par URL
+    if "action" in query_params and query_params["action"] == "toggle_edit_avatar":
+        str_lit.session_state.edit_avatar_open = not str_lit.session_state.get("edit_avatar_open", False)
+        del str_lit.query_params["action"]
+        str_lit.rerun()
+
     user_email = "Non disponible"
-    avatar_url = DEFAULT_AVATAR
+    avatar_url = USER_DEFAULT_AVATAR
 
     if supabase:
         try:
@@ -1063,7 +1072,7 @@ elif str_lit.session_state.page == "profile":
             if res and res.data:
                 user_email = res.data.get("email", "Non renseigné")
                 if res.data.get("avatar_url"):
-                    avatar_url = force_image_url(res.data.get("avatar_url"))
+                    avatar_url = force_image_url(res.data.get("avatar_url"), is_user=True)
         except:
             pass
 
@@ -1075,13 +1084,16 @@ elif str_lit.session_state.page == "profile":
     with col_av1:
         str_lit.markdown(f"""
         <div style="position: relative; display: inline-block;">
-            <img src="{avatar_url}" style="width: 95px; height: 95px; border-radius: 50%; object-fit: cover; border: 2px solid #d299ea; box-shadow: 0 0 15px rgba(210,153,234,0.3);" onerror="this.onerror=null;this.src='{DEFAULT_AVATAR}';">
+            <img src="{avatar_url}" style="width: 95px; height: 95px; border-radius: 50%; object-fit: cover; border: 2px solid #d299ea; box-shadow: 0 0 15px rgba(210,153,234,0.3);" onerror="this.onerror=null;this.src='{USER_DEFAULT_AVATAR}';">
         </div>
         """, unsafe_allow_html=True)
         
-        if str_lit.button("✏️ Modifier", key="toggle_edit_avatar"):
-            str_lit.session_state.edit_avatar_open = not str_lit.session_state.edit_avatar_open
-            str_lit.rerun()
+        # Lien stylisé en bouton pour basculer l'ouverture proprement
+        str_lit.markdown(f'''
+        <a href="?user={clean_pseudo}&nav=profile&action=toggle_edit_avatar" target="_self" class="custom-action-btn" style="margin-top: 8px; text-align: center;">
+            ✏️ Modifier
+        </a>
+        ''', unsafe_allow_html=True)
 
     with col_av2:
         str_lit.markdown(f"""
@@ -1094,7 +1106,8 @@ elif str_lit.session_state.page == "profile":
     if str_lit.session_state.edit_avatar_open:
         str_lit.markdown("<br>", unsafe_allow_html=True)
         with str_lit.container():
-            uploaded_avatar = str_lit.file_uploader("Choisir un nouvel avatar", type=["png", "jpg", "jpeg", "jfif"])
+            str_lit.markdown("### Modifier ton avatar")
+            uploaded_avatar = str_lit.file_uploader("Choisir une nouvelle image", type=["png", "jpg", "jpeg", "jfif"])
             col_b1, col_b2, _ = str_lit.columns([1, 1, 3])
             with col_b1:
                 if str_lit.button("💾 Enregistrer avatar"):
@@ -1106,7 +1119,7 @@ elif str_lit.session_state.page == "profile":
                             
                             supabase.table("users").update({"avatar_url": new_avatar_url}).eq("pseudo", clean_pseudo).execute()
                             str_lit.session_state.edit_avatar_open = False
-                            str_lit.success("Mis à jour !")
+                            str_lit.success("Avatar mis à jour avec succès !")
                             str_lit.rerun()
                         except Exception as e:
                             str_lit.error(f"Erreur : {e}")
@@ -1126,7 +1139,7 @@ elif str_lit.session_state.page == "profile":
                     with cols[i % 4]:
                         c_name_val = char.get("name")
                         raw_c_img = char.get("img_url", "").strip()
-                        c_img = force_image_url(raw_c_img)
+                        c_img = force_image_url(raw_c_img, is_user=False)
 
                         vis_status = char.get('visibility', 'Public')
                         badge_color = "#ff7b72" if vis_status == "Privé" else "#3fb950"
