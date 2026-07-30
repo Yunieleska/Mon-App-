@@ -593,7 +593,7 @@ menu_html = f"""
 """
 str_lit.sidebar.markdown(menu_html, unsafe_allow_html=True)
 
-# --- AMBIANCE SONORE DANS LA SIDEBAR (LECTEUR HTML ROBUSTE & FORCAGE METADONNEES) ---
+# --- AMBIANCE SONORE DANS LA SIDEBAR (LECTEUR HTML ULTRA-ROBUSTE) ---
 str_lit.sidebar.markdown("---")
 str_lit.sidebar.markdown("### 🎧 Ambiance Immersive")
 ambient_choice = str_lit.sidebar.selectbox(
@@ -603,18 +603,24 @@ ambient_choice = str_lit.sidebar.selectbox(
 )
 
 audio_links = {
-    "Pluie": "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg",
-    "Feu de cheminée": "https://actions.google.com/sounds/v1/ambiences/indoor_fireplace_crackling.ogg",
-    "Nuit mystérieuse": "https://actions.google.com/sounds/v1/environments/night_crickets.ogg"
+    "Pluie": "https://upload.wikimedia.org/wikipedia/commons/b/b5/Rain_on_tent.ogg",
+    "Feu de cheminée": "https://upload.wikimedia.org/wikipedia/commons/b/b3/Wood_Fire_Crackling.ogg",
+    "Nuit mystérieuse": "https://upload.wikimedia.org/wikipedia/commons/7/7b/Night_ambience_in_a_temperate_forest.ogg"
 }
 
 if ambient_choice != "Aucun" and ambient_choice in audio_links:
     audio_url = audio_links[ambient_choice]
     str_lit.sidebar.markdown(f"""
-        <audio controls loop preload="metadata" style="width: 100%; height: 35px;" onloadedmetadata="this.currentTime=0.1;">
+        <audio id="immersive-audio" controls loop preload="auto" style="width: 100%; height: 35px;">
             <source src="{audio_url}" type="audio/ogg">
             Votre navigateur ne supporte pas l'élément audio.
         </audio>
+        <script>
+            var audioElem = document.getElementById('immersive-audio');
+            if(audioElem) {{
+                audioElem.load();
+            }}
+        </script>
     """, unsafe_allow_html=True)
 
 str_lit.sidebar.markdown("---")
