@@ -528,10 +528,12 @@ def get_all_characters_dynamically(current_user_pseudo=""):
                     if not c_name:
                         continue
                     
-                    vis = item.get("visibility", "Public")
-                    creator = item.get("creator_pseudo", "")
+                    vis = str(item.get("visibility", "Public")).strip()
+                    creator = str(item.get("creator_pseudo", "")).strip()
+                    p_user = str(current_user_pseudo).strip()
 
-                    if vis == "Public" or not creator or creator == current_user_pseudo:
+                    # Correction : Affichage si Public OU si le créateur est l'utilisateur connecté
+                    if vis.lower() == "public" or (creator and creator == p_user):
                         desc_val = item.get("description", "")
                         gender_val = item.get("gender", "Non spécifié")
                         prompt_val = item.get("prompt", f"Tu es {c_name} (Genre: {gender_val}). {desc_val}")
@@ -549,8 +551,6 @@ def get_all_characters_dynamically(current_user_pseudo=""):
         pass
 
     return chars
-
-CHARACTERS = get_all_characters_dynamically(clean_pseudo)
 
 # --- LOGIN LOGIC ---
 if not str_lit.session_state.logged_in:
@@ -621,6 +621,9 @@ if not str_lit.session_state.logged_in:
                     except Exception as e:
                         str_lit.error(f"Erreur : {e}")
     str_lit.stop()
+
+# Chargement dynamique des personnages mis à jour avec le pseudo correct de l'utilisateur
+CHARACTERS = get_all_characters_dynamically(clean_pseudo)
 
 # --- SIDEBAR ---
 if os.path.exists(SIDEBAR_HEADER_IMG):
