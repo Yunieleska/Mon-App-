@@ -1047,7 +1047,11 @@ elif str_lit.session_state.page == "create_character":
                             "visibility": new_vis,
                             "creator_pseudo": clean_pseudo
                         }).execute()
+                        
                         str_lit.cache_data.clear()
+                        global CHARACTERS
+                        CHARACTERS = get_all_characters_cached(clean_pseudo)
+
                         str_lit.success(f"Personnage créé avec succès !")
                         str_lit.session_state.page = "home"
                         str_lit.rerun()
