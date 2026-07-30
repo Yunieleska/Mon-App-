@@ -610,6 +610,24 @@ menu_html = f"""
 """
 str_lit.sidebar.markdown(menu_html, unsafe_allow_html=True)
 
+# --- AJOUT : AMBIANCE SONORE DANS LA SIDEBAR ---
+str_lit.sidebar.markdown("---")
+str_lit.sidebar.markdown("### 🎧 Ambiance Immersive")
+ambient_choice = str_lit.sidebar.selectbox(
+    "Décor sonore",
+    ["Aucun", "Pluie d'orage douce", "Feu de cheminée", "Nuit mystérieuse"],
+    label_visibility="collapsed"
+)
+
+audio_links = {
+    "Pluie d'orage douce": "https://cdn.pixabay.com/download/audio/2021/08/09/audio_2d326a2754.mp3?filename=gentle-rain-ambient-111154.mp3",
+    "Feu de cheminée": "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c18305f639.mp3?filename=campfire-crackles-104992.mp3",
+    "Nuit mystérieuse": "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=night-ambience-96264.mp3"
+}
+
+if ambient_choice != "Aucun" and ambient_choice in audio_links:
+    str_lit.sidebar.audio(audio_links[ambient_choice], format="audio/mp3", autoplay=True, loop=True)
+
 str_lit.sidebar.markdown("---")
 
 logout_html = f"""
@@ -887,15 +905,28 @@ elif str_lit.session_state.page == "chat":
                                 supabase.table("messages").delete().eq("id", msg_id).execute()
                             except:
                                 pass
+                        
+                        # --- AJOUT : COMPORTEMENTS DYNAMIQUES & MISE EN SCÈNE LORS DE LA RÉGÉNÉRATION ---
                         current_aff = get_affinity(clean_pseudo, current_char)
+                        behavior_boost = ""
+                        if current_aff >= 80:
+                            behavior_boost = "\n- ÉTAT D'ESPRIT ACTUEL : Affinité très élevée (80%+). Le personnage est profondément attaché, vulnérable, et montre des sentiments intenses ou passionnés envers l'interlocutrice."
+                        elif current_aff <= 25:
+                            behavior_boost = "\n- ÉTAT D'ESPRIT ACTUEL : Affinité basse. Le personnage reste distant, méfiant, sur ses gardes ou provocateur."
+                        else:
+                            behavior_boost = "\n- ÉTAT D'ESPRIT ACTUEL : Affinité neutre/évolutive. La relation se construit pas à pas."
+
                         aff_context = f" Niveau d'affinité actuel : {current_aff}%."
+                        narration_rule = "\n- RÈGLE DE MISE EN SCÈNE : Intègre toujours des descriptions d'ambiance physique, de gestes ou de décors en italique pour renforcer l'immersion comme dans un roman."
                         
                         prompt_systeme_complet = (
                             f"{char_data.get('prompt', '')}\n"
                             f"RAPPELS IMPORTANTS POUR LA MÉMOIRE :\n"
                             f"- L'interlocutrice s'appelle {clean_pseudo}.\n"
-                            f"-{aff_context}\n"
-                            f"- Tu dois te souvenir de tous les événements importants passés dans cette conversation avec elle, ne les oublie jamais."
+                            f"-{aff_context}"
+                            f"{behavior_boost}"
+                            f"{narration_rule}\n"
+                            f"- Tu dois te souvenir de tous les événements importants passés dans cette conversation avec ella, ne les oublie jamais."
                         )
                         api_messages = [{"role": "system", "content": prompt_systeme_complet}]
                         for m in messages[-40:]:
@@ -990,15 +1021,26 @@ elif str_lit.session_state.page == "chat":
             if cache_key in str_lit.session_state.messages_cache:
                 del str_lit.session_state.messages_cache[cache_key]
 
+            # --- AJOUT : COMPORTEMENTS DYNAMIQUES & MISE EN SCÈNE LORS DE L'ENVOI ---
             current_aff = get_affinity(clean_pseudo, current_char)
+            behavior_boost = ""
+            if current_aff >= 80:
+                behavior_boost = "\n- ÉTAT D'ESPRIT ACTUEL : Affinité très élevée (80%+). Le personnage est profondément attaché, vulnérable, et montre des sentiments intenses ou passionnés envers l'interlocutrice."
+            elif current_aff <= 25:
+                behavior_boost = "\n- ÉTAT D'ESPRIT ACTUEL : Affinité basse. Le personnage reste distant, méfiant, sur ses gardes ou provocateur."
+            else:
+                behavior_boost = "\n- ÉTAT D'ESPRIT ACTUEL : Affinité neutre/évolutive. La relation se construit pas à pas."
+
             aff_context = f" Niveau d'affinité actuel : {current_aff}%."
+            narration_rule = "\n- RÈGLE DE MISE EN SCÈNE : Intègre toujours des descriptions d'ambiance physique, de gestes ou de décors en italique pour renforcer l'immersion comme dans un roman."
             
-            # --- MÉMOIRE OPTIMISÉE (FENÊTRE ÉLARGIE À 40 MESSAGES & RAPPELS RENFORCÉS) ---
             prompt_systeme_complet = (
                 f"{char_data['prompt']}\n"
                 f"RAPPELS IMPORTANTS POUR LA MÉMOIRE :\n"
                 f"- L'interlocutrice s'appelle {clean_pseudo}.\n"
-                f"-{aff_context}\n"
+                f"-{aff_context}"
+                f"{behavior_boost}"
+                f"{narration_rule}\n"
                 f"- Tu dois te souvenir de tous les événements importants passés dans cette conversation avec elle, ne les oublie jamais."
             )
             
