@@ -1034,7 +1034,6 @@ elif str_lit.session_state.page == "create_character":
             if new_name.strip():
                 if supabase:
                     try:
-                        global CHARACTERS
                         str_lit.cache_data.clear()
                         CHARACTERS = get_all_characters_cached(clean_pseudo)
 
