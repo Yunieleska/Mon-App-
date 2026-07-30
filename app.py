@@ -18,21 +18,26 @@ EXPLORER_BANNER = "explorer.jfif"
 SUPABASE_BUCKET_NAME = "storyia-images"
 
 def upload_image_to_supabase(uploaded_file, folder="uploads"):
-    """Téléverse un fichier image directement sur Supabase Storage et retourne son URL publique"""
+    """Téléverse un fichier image sur Supabase Storage et retourne l'URL publique valide"""
     if not uploaded_file or not supabase:
         return ""
     try:
         file_bytes = uploaded_file.getvalue()
-        file_name = f"{folder}/{os.urandom(8).hex()}_{uploaded_file.name}"
+        file_name = f"{folder}/{os.urandom(8).hex()}_{uploaded_file.name.replace(' ', '_')}"
         
+        # Upload vers le bucket Supabase
         supabase.storage.from_(SUPABASE_BUCKET_NAME).upload(
             path=file_name,
             file=file_bytes,
-            file_options={"content-type": uploaded_file.type}
+            file_options={"content-type": uploaded_file.type, "upsert": "true"}
         )
         
+        # Récupération sécurisée de l'URL publique sous forme de chaîne de caractères
         public_url_res = supabase.storage.from_(SUPABASE_BUCKET_NAME).get_public_url(file_name)
-        return public_url_res
+        
+        if isinstance(public_url_res, dict):
+            return public_url_res.get("publicUrl", "")
+        return str(public_url_res)
     except Exception as e:
         str_lit.error(f"Erreur lors de l'upload de l'image : {e}")
         return ""
@@ -1031,7 +1036,6 @@ elif str_lit.session_state.page == "create_character":
                         if uploaded_file:
                             final_img = upload_image_to_supabase(uploaded_file, folder="characters")
 
-                        # Correction appliquée : Suppression du champ 'temperament' absent de la base de données
                         supabase.table("custom_characters").insert({
                             "name": new_name.strip(),
                             "gender": new_gender,
