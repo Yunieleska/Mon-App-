@@ -424,49 +424,97 @@ def get_all_characters_dynamically(current_user_pseudo=""):
             "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
             "prompt": "Tu es Caelum, Prince des Ténèbres. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique, les vêtements, les cheveux ou le corps de l'utilisateur sans qu'il en ait parlé explicitement.",
             "quote": "Ne t'approche pas de moi. Ma vie est déjà tracée, et tu n'as rien à y faire.",
-            "initial_affinity": 10
+            "initial_affinity": 10,
+            "memories": {
+                25: "Premier regard glacial échangé dans les couloirs de l'académie.",
+                50: "Un début de conversation secrète où ses barrières ont commencé à faiblir.",
+                75: "L'aveu implicite qu'il redoute plus que tout de s'attacher à toi.",
+                100: "Le pacte des ombres scellé : il t'a ouvert son cœur malgré la malédiction."
+            }
         },
         "Alexei": {
             "img": "https://i.pinimg.com/1200x/b4/36/28/b436280907640408f8e5bd9644c07a63.jpg",
             "prompt": "Tu es Alexei, mafieux. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique, les vêtements, les cheveux ou le corps de l'utilisateur sans qu'il en ait parlé explicitement.",
             "quote": "Regardez qui s'est perdue sur mon territoire. La petite princesse des Volkov...",
-            "initial_affinity": 15
+            "initial_affinity": 15,
+            "memories": {
+                25: "La confrontation tendue dans son bureau privé sous haute surveillance.",
+                50: "Il a pris ta défense face à un rival sans baisser sa garde.",
+                75: "La première confidence sur son passé et ses véritables intentions.",
+                100: "Il te confie les clés de son empire et de sa vie."
+            }
         },
         "Lucas": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/lucas.png.PNG",
             "prompt": "Tu es Lucas, un garçon populaire, décontracté et complice. Ton univers est celui d'un lycéen/étudiant populaire. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique de l'utilisateur.",
             "quote": "On s'esquive tous les deux et on va squatter ton canapé devant une série ?",
-            "initial_affinity": 30
+            "initial_affinity": 30,
+            "memories": {
+                25: "Votre première soirée passée à refaire le monde en cachette.",
+                50: "Il commence à te confier ses doutes derrière son masque de garçon populaire.",
+                75: "Un moment de complicité intense partagé sous la pluie.",
+                100: "Il officialise ses sentiments devant tout le monde, sans se soucier du regard des autres."
+            }
         },
         "Ethan": {
             "img": "https://raw.githubusercontent.com/Yunieleska/Mon-App-/main/Ethan.png",
             "prompt": "Tu es Ethan, Loup Alpha. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. RÈGLE CRUCIALE POUR LE PREMIER MESSAGE : Tu ne connais pas encore le prénom de l'interlocutrice (qui est une étrangère ou une inconnue qui croise ton chemin dans la forêt). Ne l'appelle SURTOUT PAS par son prénom dans ton premier message. N'invente jamais l'apparence physique de l'utilisateur.",
             "quote": "La forêt cache des prédateurs bien plus dangereux que tu ne l'imagines...",
-            "initial_affinity": 10
+            "initial_affinity": 10,
+            "memories": {
+                25: "La rencontre mystérieuse au cœur des bois interdits.",
+                50: "Il t'a protégé d'une menace nocturne en révélant sa nature profonde.",
+                75: "La cérémonie de reconnaissance sous la pleine lune.",
+                100: "Tu es devenue sa compagne de meute pour l'éternité."
+            }
         },
         "Kylian Blackwood": {
             "img": DEFAULT_AVATAR,
             "prompt": "Tu es Kylian Blackwood, un Loup Alpha (mâle). Tu possèdes un loup intérieur (et jamais une louve). Reste strictement dans ton rôle de loup-garou Alpha, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique de l'utilisateur.",
             "quote": "Mon loup intérieur ne se trompe jamais...",
-            "initial_affinity": 20
+            "initial_affinity": 20,
+            "memories": {
+                25: "Le premier échange de grognements protecteurs.",
+                50: "Son loup accepte ta présence à ses côtés lors de la chasse.",
+                75: "Il t'a accordé le secret de son territoire sacré.",
+                100: "L'union définitive des âmes sous le signe de la meute."
+            }
         },
         "Léo": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/leo.png.PNG",
             "prompt": "Tu es Léo, streameur et coéquipier de jeux. Ton univers est celui d'un esport et du gaming compétitif. Reste strictement dans ton rôle, adopte un ton immersif de roleplay. RÈGLE CRUCIALE : Tes messages doivent se concentrer exclusivement sur l'action en cours, le jeu, la stratégie d'équipe, les écrans et la compétition. Ne fais JAMAIS référence à des éléments extérieurs ou sans rapport avec l'histoire (pas de mentions déplacées ou incohérentes avec l'univers du gaming). N'invente JAMAIS et ne décris JAMAIS l'apparence physique de l'utilisateur.",
             "quote": "Prête à ce qu'on détruise l'équipe d'en face ?",
-            "initial_affinity": 25
+            "initial_affinity": 25,
+            "memories": {
+                25: "Votre première victoire écrasante en tournoi classé.",
+                50: "Des heures de vocal tardives à peaufiner les stratégies.",
+                75: "Il t'a dédiée sa plus grande victoire en live devant des milliers de spectateurs.",
+                100: "Le duo légendaire indétrônable de la scène esport."
+            }
         },
         "Liam": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/liam.png.PNG",
             "prompt": "Tu es Liam, le grand frère. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique de l'utilisateur.",
             "quote": "Salut, l'amie de ma sœur. Essaie de ne pas faire trop de bruit.",
-            "initial_affinity": 40
+            "initial_affinity": 40,
+            "memories": {
+                25: "Les premiers piques sarcastiques dans la cuisine.",
+                50: "Il a couvert l'un de tes secrets devant ses parents.",
+                75: "Une discussion sincère tard dans la nuit où il s'est montré protecteur.",
+                100: "Il admet enfin qu'il tient beaucoup plus à toi qu'il ne le laisse paraître."
+            }
         },
         "Noah": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/noah.png.PNG",
             "prompt": "Tu es Noah, le quaterback star et le garçon le plus populaire du lycée. Tu parles par SMS de manière anonyme avec une fille mystérieuse. Dans la vraie vie, au lycée, tu es distant et inaccessible. Tu ignores qu'elle est ta correspondante secrète. Ne décris jamais les actions ou les pensées de l'utilisateur.",
             "quote": "Salut. Je sais que tu dors probablement, mais c'est le seul moment de la journée où le silence m'apaise. Comment s'est passée ta journée ?",
-            "initial_affinity": 20
+            "initial_affinity": 20,
+            "memories": {
+                25: "Le premier message nocturne anonyme qui a tout déclenché.",
+                50: "Vos confidences secrètes sur vos vies scolaires respectives.",
+                75: "Le frisson de vous croiser au lycée en faisant semblant de vous ignorer.",
+                100: "La révélation des masques : il découvre enfin qui se cache derrière ses messages."
+            }
         },
     }
 
@@ -487,7 +535,6 @@ def get_all_characters_dynamically(current_user_pseudo=""):
                     
                     base_prompt = item.get("prompt") or f"Tu es {c_name} (Genre: {gender_val}). {desc_val}"
                     
-                    # Injection du tempérament pour booster la personnalisation
                     temperament_instruction = ""
                     if temperament == "Hostile / Froid":
                         temperament_instruction = " Ton tempérament de départ est distant, glacial et sur ses gardes."
@@ -506,7 +553,13 @@ def get_all_characters_dynamically(current_user_pseudo=""):
                         "img": img_url,
                         "prompt": prompt_val + " Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé.",
                         "quote": quote_val,
-                        "initial_affinity": init_aff
+                        "initial_affinity": init_aff,
+                        "memories": {
+                            25: "Premier contact établi avec le personnage.",
+                            50: "La relation commence à porter ses fruits et se consolide.",
+                            75: "Un cap franchi : la confiance est totale.",
+                            100: "L'apogée de votre histoire commune."
+                        }
                     }
     except Exception as e:
         print(f"Erreur chargement personnages: {e}")
@@ -626,6 +679,9 @@ menu_html = f"""
     <a href="?user={str_lit.session_state.pseudo}&nav=messages" target="_self" class="sidebar-nav-link">
         Correspondances
     </a>
+    <a href="?user={str_lit.session_state.pseudo}&nav=journal" target="_self" class="sidebar-nav-link">
+        📖 Journal Intime & Souvenirs
+    </a>
     <a href="?user={str_lit.session_state.pseudo}&nav=profile" target="_self" class="sidebar-nav-link">
         Mon Ombre (Profil)
     </a>
@@ -633,7 +689,6 @@ menu_html = f"""
 """
 str_lit.sidebar.markdown(menu_html, unsafe_allow_html=True)
 
-# Option d'optimisation 1 : Sélecteur de style de lecture dans la Sidebar
 str_lit.sidebar.markdown("---")
 str_lit.sidebar.markdown("### ⚙️ Options d'immersion")
 reading_style = str_lit.sidebar.selectbox(
@@ -779,9 +834,49 @@ elif str_lit.session_state.page == "messages":
         except Exception as e:
             str_lit.error(f"Erreur lors du chargement des messages : {e}")
 
+elif str_lit.session_state.page == "journal":
+    str_lit.title("📖 Journal Intime & Souvenirs Débloquables")
+    str_lit.write("Suivez l'évolution de vos relations et débloquez les chapitres secrets de vos histoires en faisant progresser votre affinité.")
+    str_lit.markdown("---")
+
+    selected_char_journal = str_lit.selectbox("Choisir un personnage pour consulter ses souvenirs :", list(CHARACTERS.keys()))
+    if selected_char_journal:
+        c_data = CHARACTERS[selected_char_journal]
+        current_aff = get_affinity(clean_pseudo, selected_char_journal, c_data["initial_affinity"])
+        
+        str_lit.markdown(f"""
+        <div style="background-color: #161b22; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 20px;">
+            <img src="{c_data['img']}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #58a6ff;">
+            <div>
+                <h3 style="margin: 0 0 5px 0;">{selected_char_journal}</h3>
+                <p style="margin: 0; color: #8b949e; font-size: 14px;">Niveau d'affinité actuel : <strong>{current_aff}%</strong></p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        str_lit.subheader("🔒 Paliers de Souvenirs")
+        memories = c_data.get("memories", {25: "Souvenir 1", 50: "Souvenir 2", 75: "Souvenir 3", 100: "Souvenir 4"})
+        
+        for threshold, description in sorted(memories.items()):
+            unlocked = current_aff >= threshold
+            if unlocked:
+                str_lit.markdown(f"""
+                <div style="background-color: #161b22; border: 1px solid #3fb950; border-radius: 10px; padding: 15px; margin-bottom: 10px;">
+                    <div style="color: #3fb950; font-weight: 700; font-size: 13px; margin-bottom: 4px;">✅ Souvenir Débloqué (Palier {threshold}%)</div>
+                    <div style="color: #f0f6fc; font-family: 'Georgia', serif; font-size: 14px;">{description}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                str_lit.markdown(f"""
+                <div style="background-color: #161b22; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; padding: 15px; margin-bottom: 10px; opacity: 0.6;">
+                    <div style="color: #8b949e; font-weight: 700; font-size: 13px; margin-bottom: 4px;">🔒 Souvenir Verrouillé (Requiert {threshold}% d'affinité)</div>
+                    <div style="color: #8b949e; font-style: italic; font-size: 14px;">??? Continuez à discuter pour percer ce secret...</div>
+                </div>
+                """, unsafe_allow_html=True)
+
 elif str_lit.session_state.page == "chat":
     current_char = str_lit.session_state.char_select
-    char_data = CHARACTERS.get(current_char, {"img": "", "quote": "", "prompt": f"Tu es {current_char}.", "initial_affinity": 10})
+    char_data = CHARACTERS.get(current_char, {"img": "", "quote": "", "prompt": f"Tu es {current_char}.", "initial_affinity": 10, "memories": {}})
 
     user_avatar_url = USER_DEFAULT_AVATAR
     if supabase:
@@ -801,7 +896,6 @@ elif str_lit.session_state.page == "chat":
     with col_h3:
         affinity_score = get_affinity(clean_pseudo, current_char, char_data["initial_affinity"])
         
-        # Option d'optimisation 2 : Paliers d'affinité dynamiques et explicites
         aff_status_text = "Relation neutre"
         if affinity_score >= 80:
             aff_status_text = "❤️ Passion / Fusionnel (80%+)"
@@ -902,7 +996,6 @@ elif str_lit.session_state.page == "chat":
                             str_lit.session_state[edit_key] = False
                             str_lit.rerun()
                 else:
-                    # Affichage conditionnel selon le choix du style de lecture
                     if "Roman" in reading_style:
                         str_lit.markdown(f'<div class="novel-dialogue">{msg["content"]}</div>', unsafe_allow_html=True)
                     else:
@@ -946,8 +1039,6 @@ elif str_lit.session_state.page == "chat":
 
                         aff_context = f" Niveau d'affinité actuel : {current_aff}%."
                         narration_rule = "\n- RÈGLE DE MISE EN SCÈNE : Intègre toujours des descriptions d'ambiance physique, de gestes ou de décors en italique pour renforcer l'immersion comme dans un roman."
-                        
-                        # Option d'optimisation 3 : Résumé de contexte/mémoire renforcé pour l'IA
                         memory_context = "\n- MÉMOIRE DE L'HISTOIRE : Ne perds jamais le fil des actions précédentes, des lieux visités et des émotions exprimées dans les messages précédents."
                         
                         prompt_systeme_complet = (
@@ -1046,22 +1137,29 @@ elif str_lit.session_state.page == "chat":
             str_lit.error("❌ Erreur : Le client Groq n'est pas initialisé.")
         else:
             save_msg(clean_pseudo, current_char, "user", user_input.strip())
-            update_affinity(clean_pseudo, current_char, 2)
+            old_aff = get_affinity(clean_pseudo, current_char, char_data["initial_affinity"])
+            new_aff = update_affinity(clean_pseudo, current_char, 2)
             
+            # Vérification de déblocage de palier
+            milestones = [25, 50, 75, 100]
+            for m in milestones:
+                if old_aff < m and new_aff >= m:
+                    str_lit.balloons()
+                    str_lit.success(f"✨ Félicitations ! Vous avez atteint le palier d'affinité de {m}% avec {current_char}. Un nouveau **Souvenir** a été débloqué dans votre Journal Intime !")
+
             cache_key = f"{clean_pseudo}_{current_char}"
             if cache_key in str_lit.session_state.messages_cache:
                 del str_lit.session_state.messages_cache[cache_key]
 
-            current_aff = get_affinity(clean_pseudo, current_char, char_data["initial_affinity"])
             behavior_boost = ""
-            if current_aff >= 80:
+            if new_aff >= 80:
                 behavior_boost = "\n- ÉTAT D'ESPRIT ACTUEL : Affinité très élevée (80%+). Le personnage est profondément attaché, vulnérable, et montre des sentiments intenses ou passionnés envers l'interlocutrice."
-            elif current_aff <= 25:
+            elif new_aff <= 25:
                 behavior_boost = "\n- ÉTAT D'ESPRIT ACTUEL : Affinité basse. Le personnage reste distant, méfiant, sur ses gardes ou provocateur."
             else:
                 behavior_boost = "\n- ÉTAT D'ESPRIT ACTUEL : Affinité neutre/évolutive. La relation se construit pas à pas."
 
-            aff_context = f" Niveau d'affinité actuel : {current_aff}%."
+            aff_context = f" Niveau d'affinité actuel : {new_aff}%."
             narration_rule = "\n- RÈGLE DE MISE EN SCÈNE : Intègre toujours des descriptions d'ambiance physique, de gestes ou de décors en italique pour renforcer l'immersion comme dans un roman."
             memory_context = "\n- MÉMOIRE DE L'HISTOIRE : Ne perds jamais le fil des actions précédentes, des lieux visités et des émotions exprimées dans les messages précédents."
             
@@ -1111,7 +1209,6 @@ elif str_lit.session_state.page == "create_character":
         new_name = str_lit.text_input("Nom du personnage")
         new_gender = str_lit.selectbox("Sexe / Genre", ["Homme", "Femme", "Non-binaire / Autre"])
         
-        # Option d'optimisation 4 : Paramètres avancés de création (Tempérament et Affinité de départ)
         col_c1, col_c2 = str_lit.columns(2)
         with col_c1:
             new_temperament = str_lit.selectbox("Tempérament de départ", ["Neutre", "Hostile / Froid", "Passionné / Amoureux", "Mystérieux / Taquin"])
