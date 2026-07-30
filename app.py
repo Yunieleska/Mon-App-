@@ -1057,12 +1057,6 @@ elif str_lit.session_state.page == "profile":
     str_lit.write(f"Ton sanctuaire personnel, **{clean_pseudo}**.")
     str_lit.markdown("---")
 
-    # Gestion de l'action de modification par URL
-    if "action" in query_params and query_params["action"] == "toggle_edit_avatar":
-        str_lit.session_state.edit_avatar_open = not str_lit.session_state.get("edit_avatar_open", False)
-        del str_lit.query_params["action"]
-        str_lit.rerun()
-
     user_email = "Non disponible"
     avatar_url = USER_DEFAULT_AVATAR
 
@@ -1076,9 +1070,6 @@ elif str_lit.session_state.page == "profile":
         except:
             pass
 
-    if "edit_avatar_open" not in str_lit.session_state:
-        str_lit.session_state.edit_avatar_open = False
-
     col_av1, col_av2 = str_lit.columns([1.5, 8.5])
     
     with col_av1:
@@ -1087,13 +1078,6 @@ elif str_lit.session_state.page == "profile":
             <img src="{avatar_url}" style="width: 95px; height: 95px; border-radius: 50%; object-fit: cover; border: 2px solid #d299ea; box-shadow: 0 0 15px rgba(210,153,234,0.3);" onerror="this.onerror=null;this.src='{USER_DEFAULT_AVATAR}';">
         </div>
         """, unsafe_allow_html=True)
-        
-        # Lien stylisé en bouton pour basculer l'ouverture proprement
-        str_lit.markdown(f'''
-        <a href="?user={clean_pseudo}&nav=profile&action=toggle_edit_avatar" target="_self" class="custom-action-btn" style="margin-top: 8px; text-align: center;">
-            ✏️ Modifier
-        </a>
-        ''', unsafe_allow_html=True)
 
     with col_av2:
         str_lit.markdown(f"""
@@ -1103,30 +1087,23 @@ elif str_lit.session_state.page == "profile":
         </div>
         """, unsafe_allow_html=True)
 
-    if str_lit.session_state.edit_avatar_open:
-        str_lit.markdown("<br>", unsafe_allow_html=True)
-        with str_lit.container():
-            str_lit.markdown("### Modifier ton avatar")
-            uploaded_avatar = str_lit.file_uploader("Choisir une nouvelle image", type=["png", "jpg", "jpeg", "jfif"])
-            col_b1, col_b2, _ = str_lit.columns([1, 1, 3])
-            with col_b1:
-                if str_lit.button("💾 Enregistrer avatar"):
-                    if supabase:
-                        try:
-                            new_avatar_url = avatar_url
-                            if uploaded_avatar:
-                                new_avatar_url = upload_image_to_supabase(uploaded_file=uploaded_avatar, folder="avatars")
-                            
-                            supabase.table("users").update({"avatar_url": new_avatar_url}).eq("pseudo", clean_pseudo).execute()
-                            str_lit.session_state.edit_avatar_open = False
-                            str_lit.success("Avatar mis à jour avec succès !")
-                            str_lit.rerun()
-                        except Exception as e:
-                            str_lit.error(f"Erreur : {e}")
-            with col_b2:
-                if str_lit.button("Annuler"):
-                    str_lit.session_state.edit_avatar_open = False
-                    str_lit.rerun()
+    str_lit.markdown("<br>", unsafe_allow_html=True)
+    
+    # Section d'upload affichée directement pour éviter les bugs de clic mobile
+    with str_lit.expander("✏️ Modifier mon avatar", expanded=False):
+        uploaded_avatar = str_lit.file_uploader("Choisir une nouvelle image", type=["png", "jpg", "jpeg", "jfif"], key="mobile_safe_avatar_uploader")
+        if uploaded_avatar:
+            if str_lit.button("💾 Enregistrer le nouvel avatar", key="save_mobile_avatar"):
+                if supabase:
+                    try:
+                        with str_lit.spinner("Téléversement en cours..."):
+                            new_avatar_url = upload_image_to_supabase(uploaded_file=uploaded_avatar, folder="avatars")
+                            if new_avatar_url:
+                                supabase.table("users").update({"avatar_url": new_avatar_url}).eq("pseudo", clean_pseudo).execute()
+                                str_lit.success("Avatar mis à jour avec succès !")
+                                str_lit.rerun()
+                    except Exception as e:
+                        str_lit.error(f"Erreur : {e}")
 
     str_lit.markdown("<br>", unsafe_allow_html=True)
     str_lit.subheader("🖤 Mes Créations ténébreuses")
