@@ -791,7 +791,7 @@ elif str_lit.session_state.page == "chat":
 
     str_lit.markdown("---")
 
-    messages = load_msgs(clean_pseudo, current_char, limit=50)
+    messages = load_msgs(clean_pseudo, current_char, limit=100)
 
     if not messages:
         if current_char == "Caelum":
@@ -824,7 +824,7 @@ elif str_lit.session_state.page == "chat":
                 intro_msg = char_data["quote"]
 
         save_msg(clean_pseudo, current_char, "assistant", intro_msg)
-        messages = load_msgs(clean_pseudo, current_char, limit=50)
+        messages = load_msgs(clean_pseudo, current_char, limit=100)
 
     for idx, msg in enumerate(messages):
         msg_id = msg.get("id")
@@ -889,8 +889,21 @@ elif str_lit.session_state.page == "chat":
                                 pass
                         current_aff = get_affinity(clean_pseudo, current_char)
                         aff_context = f" Niveau d'affinité actuel : {current_aff}%."
-                        context_reminder = {"role": "system", "content": f"Rappel important : Le prénom de l'utilisatrice est {clean_pseudo}.{aff_context}"}
-                        api_messages = [{"role": "system", "content": char_data.get("prompt", "")}, context_reminder] + messages[-20:]
+                        
+                        prompt_systeme_complet = (
+                            f"{char_data.get('prompt', '')}\n"
+                            f"RAPPELS IMPORTANTS POUR LA MÉMOIRE :\n"
+                            f"- L'interlocutrice s'appelle {clean_pseudo}.\n"
+                            f"-{aff_context}\n"
+                            f"- Tu dois te souvenir de tous les événements importants passés dans cette conversation avec elle, ne les oublie jamais."
+                        )
+                        api_messages = [{"role": "system", "content": prompt_systeme_complet}]
+                        for m in messages[-40:]:
+                            role = m.get("role")
+                            content = m.get("content")
+                            if role in ["user", "assistant"] and content:
+                                api_messages.append({"role": role, "content": content})
+
                         if client:
                             try:
                                 response = client.chat.completions.create(
@@ -979,11 +992,20 @@ elif str_lit.session_state.page == "chat":
 
             current_aff = get_affinity(clean_pseudo, current_char)
             aff_context = f" Niveau d'affinité actuel : {current_aff}%."
-            context_reminder = {"role": "system", "content": f"Rappel important : L'interlocutrice s'appelle {clean_pseudo}.{aff_context}"}
             
-            messages_actuels = load_msgs(clean_pseudo, current_char, limit=50)
-            api_messages = [{"role": "system", "content": char_data["prompt"]}, context_reminder]
-            for m in messages_actuels[-20:]:
+            # --- MÉMOIRE OPTIMISÉE (FENÊTRE ÉLARGIE À 40 MESSAGES & RAPPELS RENFORCÉS) ---
+            prompt_systeme_complet = (
+                f"{char_data['prompt']}\n"
+                f"RAPPELS IMPORTANTS POUR LA MÉMOIRE :\n"
+                f"- L'interlocutrice s'appelle {clean_pseudo}.\n"
+                f"-{aff_context}\n"
+                f"- Tu dois te souvenir de tous les événements importants passés dans cette conversation avec elle, ne les oublie jamais."
+            )
+            
+            messages_actuels = load_msgs(clean_pseudo, current_char, limit=100)
+            api_messages = [{"role": "system", "content": prompt_systeme_complet}]
+            
+            for m in messages_actuels[-40:]:
                 role = m.get("role")
                 content = m.get("content")
                 if role in ["user", "assistant"] and content:
