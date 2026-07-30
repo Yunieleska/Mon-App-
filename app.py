@@ -836,7 +836,7 @@ elif str_lit.session_state.page == "messages":
 
 elif str_lit.session_state.page == "journal":
     str_lit.title("Journal Intime & Souvenirs Débloquables")
-    str_lit.write("Suivez l'évolution de vos relations et débloquez les chapitres secrets de vos histoires en faisant progresser votre affinité.")
+    str_lit.write("Suivez l'évolution de vos relations et débloquez des contenus exclusifs (pensées intimes, journal secret, lettres d'amour et chansons personnalisées) en faisant progresser votre affinité.")
     str_lit.markdown("---")
 
     selected_char_journal = str_lit.selectbox("Choisir un personnage pour consulter ses souvenirs :", list(CHARACTERS.keys()))
@@ -854,22 +854,67 @@ elif str_lit.session_state.page == "journal":
         </div>
         """, unsafe_allow_html=True)
         
-        str_lit.subheader("🔒 Paliers de Souvenirs")
-        memories = c_data.get("memories", {25: "Souvenir 1", 50: "Souvenir 2", 75: "Souvenir 3", 100: "Souvenir 4"})
+        str_lit.subheader("🔒 Paliers de Souvenirs & Trésors Émotionnels")
         
-        for threshold, description in sorted(memories.items()):
+        rewards = {
+            25: {"title": "Palier 25% : Pensées Intimes", "desc": "Découvre ce que le personnage pense secrètement de toi lorsqu'il est seul."},
+            50: {"title": "Palier 50% : Le Journal Secret", "desc": "Une page intime écrite de sa main sur l'évolution de ses sentiments."},
+            75: {"title": "Palier 75% : La Lettre d'Amour", "desc": "Une déclaration poignante et exclusive rédigée par le personnage."},
+            100: {"title": "Palier 100% : La Chanson de votre Histoire", "desc": "Un morceau poétique unique créé à partir de vos souvenirs de discussion."}
+        }
+        
+        chat_history_for_gen = load_msgs(clean_pseudo, selected_char_journal, limit=30)
+        history_text_snippet = "\n".join([f"{m['role']}: {m['content']}" for m in chat_history_for_gen])
+
+        for threshold, info in rewards.items():
             unlocked = current_aff >= threshold
             if unlocked:
                 str_lit.markdown(f"""
                 <div style="background-color: #161b22; border: 1px solid #3fb950; border-radius: 10px; padding: 15px; margin-bottom: 10px;">
-                    <div style="color: #3fb950; font-weight: 700; font-size: 13px; margin-bottom: 4px;">✅ Souvenir Débloqué (Palier {threshold}%)</div>
-                    <div style="color: #f0f6fc; font-family: 'Georgia', serif; font-size: 14px;">{description}</div>
-                </div>
+                    <div style="color: #3fb950; font-weight: 700; font-size: 13px; margin-bottom: 4px;">✅ {info['title']} (Débloqué)</div>
+                    <div style="color: #8b949e; font-size: 13px; margin-bottom: 10px;">{info['desc']}</div>
                 """, unsafe_allow_html=True)
+                
+                gen_key = f"gen_content_{selected_char_journal}_{threshold}"
+                if gen_key not in str_lit.session_state:
+                    str_lit.session_state[gen_key] = ""
+
+                if str_lit.button(f"📖 Lire le contenu ({threshold}%)", key=f"btn_read_{selected_char_journal}_{threshold}"):
+                    if client:
+                        with str_lit.spinner("Inspiration des souvenirs en cours..."):
+                            prompt_type_map = {
+                                25: f"Rédige un court paragraphe intime à la première personne simulant les pensées secrètes de {selected_char_journal} envers {clean_pseudo}.",
+                                50: f"Rédige une page de journal intime écrite par {selected_char_journal} qui évoque ses doutes et son attachement grandissant pour {clean_pseudo}.",
+                                75: f"Rédige une magnifique lettre d'amour romantique et immersive signée par {selected_char_journal} adressée à {clean_pseudo}.",
+                                100: f"Rédige les paroles d'une chanson romantique inspirée par l'histoire d'amour entre {selected_char_journal} et {clean_pseudo} en te basant sur ces échanges : {history_text_snippet}"
+                            }
+                            try:
+                                resp = client.chat.completions.create(
+                                    model="llama-3.3-70b-versatile",
+                                    messages=[
+                                        {"role": "system", "content": c_data["prompt"]},
+                                        {"role": "user", "content": prompt_type_map[threshold]}
+                                    ],
+                                    temperature=0.85
+                                )
+                                str_lit.session_state[gen_key] = resp.choices[0].message.content
+                            except Exception as e:
+                                str_lit.session_state[gen_key] = f"Erreur de génération : {e}"
+                    else:
+                        str_lit.session_state[gen_key] = c_data.get("memories", {}).get(threshold, "Un souvenir précieux gravé dans les ombres.")
+
+                if str_lit.session_state[gen_key]:
+                    str_lit.markdown(f"""
+                    <div style="font-family: 'Georgia', serif; font-size: 14px; line-height: 1.6; color: #e6edf3; background: #0b0e14; padding: 12px; border-radius: 8px; border-left: 3px solid #3fb950; margin-top: 8px; white-space: pre-wrap;">
+                        {str_lit.session_state[gen_key]}
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                str_lit.markdown("</div>", unsafe_allow_html=True)
             else:
                 str_lit.markdown(f"""
                 <div style="background-color: #161b22; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; padding: 15px; margin-bottom: 10px; opacity: 0.6;">
-                    <div style="color: #8b949e; font-weight: 700; font-size: 13px; margin-bottom: 4px;">🔒 Souvenir Verrouillé (Requiert {threshold}% d'affinité)</div>
+                    <div style="color: #8b949e; font-weight: 700; font-size: 13px; margin-bottom: 4px;">🔒 {info['title']} (Requiert {threshold}% d'affinité)</div>
                     <div style="color: #8b949e; font-style: italic; font-size: 14px;">??? Continuez à discuter pour percer ce secret...</div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -1140,7 +1185,6 @@ elif str_lit.session_state.page == "chat":
             old_aff = get_affinity(clean_pseudo, current_char, char_data["initial_affinity"])
             new_aff = update_affinity(clean_pseudo, current_char, 2)
             
-            # Vérification de déblocage de palier
             milestones = [25, 50, 75, 100]
             for m in milestones:
                 if old_aff < m and new_aff >= m:
