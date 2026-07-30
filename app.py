@@ -1,5 +1,6 @@
 import os
 import re
+import urllib.request
 import streamlit as str_lit
 from supabase import create_client
 from groq import Groq
@@ -609,7 +610,14 @@ audio_links = {
 }
 
 if ambient_choice != "Aucun" and ambient_choice in audio_links:
-    str_lit.sidebar.audio(audio_links[ambient_choice], format="audio/mp3", loop=True)
+    try:
+        audio_url = audio_links[ambient_choice]
+        req = urllib.request.Request(audio_url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req) as response:
+            audio_bytes = response.read()
+        str_lit.sidebar.audio(audio_bytes, format="audio/mp3", loop=True)
+    except Exception as e:
+        str_lit.sidebar.error(f"Impossible de charger l'ambiance : {e}")
 
 str_lit.sidebar.markdown("---")
 
