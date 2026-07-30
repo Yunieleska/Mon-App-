@@ -722,16 +722,8 @@ if str_lit.session_state.page == "home":
 
     public_items = list(CHARACTERS.items())
 
-    ITEMS_PER_PAGE = 8
-    if "home_page" not in str_lit.session_state:
-        str_lit.session_state.home_page = 0
-
-    total_pages = max(1, (len(public_items) + ITEMS_PER_PAGE - 1) // ITEMS_PER_PAGE)
-    str_lit.session_state.home_page = min(str_lit.session_state.home_page, total_pages - 1)
-
-    start_idx = str_lit.session_state.home_page * ITEMS_PER_PAGE
-    end_idx = start_idx + ITEMS_PER_PAGE
-    current_items = public_items[start_idx:end_idx]
+    # Affichage de TOUS les personnages sans limite ni pagination
+    current_items = public_items
 
     grid_html = '<div class="storyia-grid">'
     for idx, (name, data) in enumerate(current_items):
