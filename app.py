@@ -25,14 +25,12 @@ def upload_image_to_supabase(uploaded_file, folder="uploads"):
         file_bytes = uploaded_file.getvalue()
         file_name = f"{folder}/{os.urandom(8).hex()}_{uploaded_file.name.replace(' ', '_')}"
         
-        # Upload vers le bucket Supabase
         supabase.storage.from_(SUPABASE_BUCKET_NAME).upload(
             path=file_name,
             file=file_bytes,
             file_options={"content-type": uploaded_file.type, "upsert": "true"}
         )
         
-        # Récupération sécurisée de l'URL publique sous forme de chaîne de caractères
         public_url_res = supabase.storage.from_(SUPABASE_BUCKET_NAME).get_public_url(file_name)
         
         if isinstance(public_url_res, dict):
@@ -43,12 +41,16 @@ def upload_image_to_supabase(uploaded_file, folder="uploads"):
         return ""
 
 def force_image_url(url):
-    """Contourne les restrictions CORS et anti-hotlinking des hébergeurs tiers"""
+    """Contourne les restrictions et convertit proprement les liens"""
     if not url:
         return ""
     clean_url = url.strip()
+    # Si c'est un lien postimage qui pose problème, on le redirige via un proxy d'image stable ou on s'assure qu'il passe
     if "supabase.co" in clean_url or "raw.githubusercontent.com" in clean_url or clean_url.startswith("http://localhost"):
         return clean_url
+    if "postimg.cc" in clean_url or "i.postimg.cc" in clean_url:
+        # Transformation propre pour s'assurer que le lien pointe vers l'image brute si possible
+        clean_url = clean_url.replace("postimg.cc", "i.postimg.cc")
     return f"https://wsrv.nl/?url={clean_url.replace('https://', '').replace('http://', '')}&w=400&fit=cover"
 
 @str_lit.cache_resource
