@@ -680,7 +680,7 @@ menu_html = f"""
         Correspondances
     </a>
     <a href="?user={str_lit.session_state.pseudo}&nav=journal" target="_self" class="sidebar-nav-link">
-        📖 Journal Intime & Souvenirs
+        Journal Intime & Souvenirs
     </a>
     <a href="?user={str_lit.session_state.pseudo}&nav=profile" target="_self" class="sidebar-nav-link">
         Mon Ombre (Profil)
@@ -835,7 +835,7 @@ elif str_lit.session_state.page == "messages":
             str_lit.error(f"Erreur lors du chargement des messages : {e}")
 
 elif str_lit.session_state.page == "journal":
-    str_lit.title("📖 Journal Intime & Souvenirs Débloquables")
+    str_lit.title("Journal Intime & Souvenirs Débloquables")
     str_lit.write("Suivez l'évolution de vos relations et débloquez les chapitres secrets de vos histoires en faisant progresser votre affinité.")
     str_lit.markdown("---")
 
