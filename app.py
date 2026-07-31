@@ -289,21 +289,23 @@ if "action" in query_params:
         str_lit.rerun()
 
     elif action_type == "del_msg":
-        idx_str = query_params.get("idx", "-1")
+        msg_id_to_del = query_params.get("msg_id", "")
         current_char = str_lit.session_state.get("char_select", "Caelum")
+        cache_key = f"{clean_pseudo}_{current_char}"
+        messages = str_lit.session_state.messages_cache.get(cache_key, [])
+        
+        # Filtrer pour supprimer le message correspondant par ID ou par index de secours
+        idx_str = query_params.get("idx", "-1")
         try:
             idx = int(idx_str)
-            cache_key = f"{clean_pseudo}_{current_char}"
-            messages = str_lit.session_state.messages_cache.get(cache_key, [])
+            if supabase and msg_id_to_del:
+                try:
+                    supabase.table("messages").delete().eq("id", msg_id_to_del).execute()
+                except:
+                    pass
             if 0 <= idx < len(messages):
-                msg_to_del = messages.pop(idx)
-                msg_id = msg_to_del.get("id")
-                if supabase and msg_id:
-                    try:
-                        supabase.table("messages").delete().eq("id", msg_id).execute()
-                    except:
-                        pass
-                str_lit.session_state.messages_cache[cache_key] = messages
+                messages.pop(idx)
+            str_lit.session_state.messages_cache[cache_key] = messages
         except:
             pass
         str_lit.query_params.clear()
@@ -351,7 +353,8 @@ if "action" in query_params:
                         temperature=0.9,
                     )
                     bot_reply = response.choices[0].message.content
-                    save_msg(clean_pseudo, current_char, "assistant", bot_reply)
+                    # Sauvegarde propre avec récupération de l'ID retourné par Supabase
+                    saved_new_msg = save_msg_and_get(clean_pseudo, current_char, "assistant", bot_reply)
                     if cache_key in str_lit.session_state.messages_cache:
                         del str_lit.session_state.messages_cache[cache_key]
                 except:
@@ -362,29 +365,31 @@ if "action" in query_params:
 
 # --- SUPABASE FUNCTIONS ---
 
-def save_msg(pseudo, char, role, content):
+def save_msg_and_get(pseudo, char, role, content):
+    """Sauvegarde le message dans Supabase ET retourne l'objet complet avec son ID unique."""
     cache_key = f"{pseudo}_{char}"
-    if not supabase:
-        if cache_key not in str_lit.session_state.messages_cache:
-            str_lit.session_state.messages_cache[cache_key] = []
-        str_lit.session_state.messages_cache[cache_key].append({"id": None, "role": role, "content": content})
-        return
-    try:
-        p_clean = str(pseudo).strip()
-        res = supabase.table("messages").insert({
-            "user_pseudo": p_clean,
-            "char_name": str(char),
-            "role": str(role),
-            "content": str(content),
-        }).execute()
-        
-        msg_id = res.data[0]["id"] if res.data and "id" in res.data[0] else None
-        
-        if cache_key not in str_lit.session_state.messages_cache:
-            str_lit.session_state.messages_cache[cache_key] = []
-        str_lit.session_state.messages_cache[cache_key].append({"id": msg_id, "role": role, "content": content})
-    except Exception:
-        pass
+    msg_id = None
+    p_clean = str(pseudo).strip()
+    
+    if supabase:
+        try:
+            res = supabase.table("messages").insert({
+                "user_pseudo": p_clean,
+                "char_name": str(char),
+                "role": str(role),
+                "content": str(content),
+            }).execute()
+            if res.data and "id" in res.data[0]:
+                msg_id = res.data[0]["id"]
+        except Exception:
+            pass
+
+    new_msg = {"id": msg_id, "role": role, "content": content}
+    
+    if cache_key not in str_lit.session_state.messages_cache:
+        str_lit.session_state.messages_cache[cache_key] = []
+    str_lit.session_state.messages_cache[cache_key].append(new_msg)
+    return new_msg
 
 
 def load_msgs(pseudo, char, limit=100):
@@ -407,18 +412,20 @@ def load_msgs(pseudo, char, limit=100):
         )
         if res.data:
             messages = []
-            seen_contents = set()
+            seen_entries = set()
             for r in res.data:
-                content = r["content"]
-                if content not in seen_contents or r["role"] != "assistant":
-                    messages.append({"id": r["id"], "role": r["role"], "content": content})
-                    if r["role"] == "assistant":
-                        seen_contents.add(content)
-                else:
+                # Clé unique pour éliminer les doublons stricts en base (même rôle et même contenu consécutifs ou identiques)
+                entry_signature = (r["role"], r["content"])
+                
+                # Si le message existe déjà dans le lot, on nettoie le doublon directement de Supabase
+                if entry_signature in seen_entries and r["role"] == "assistant":
                     try:
                         supabase.table("messages").delete().eq("id", r["id"]).execute()
                     except:
                         pass
+                else:
+                    messages.append({"id": r["id"], "role": r["role"], "content": r["content"]})
+                    seen_entries.add(entry_signature)
 
             str_lit.session_state.messages_cache[cache_key] = messages
             return messages
@@ -952,11 +959,11 @@ elif str_lit.session_state.page == "chat":
             else:
                 intro_msg = f"Tu te trouves face à {current_char}. Ses yeux se posent sur toi : \"{char_data['quote']}\""
 
-        save_msg(clean_pseudo, current_char, "assistant", intro_msg)
+        save_msg_and_get(clean_pseudo, current_char, "assistant", intro_msg)
         messages = load_msgs(clean_pseudo, current_char, limit=50)
 
     for idx, msg in enumerate(messages):
-        msg_id = msg.get("id")
+        msg_id = msg.get("id") or ""
         
         if msg["role"] == "assistant":
             col_avatar, col_content, col_actions = str_lit.columns([1, 5, 1.3])
@@ -983,7 +990,7 @@ elif str_lit.session_state.page == "chat":
             with col_actions:
                 str_lit.markdown(f"""
                 <div style="display: flex; gap: 4px; padding-top: 5px;">
-                    <a href="?user={clean_pseudo}&action=del_msg&idx={idx}" target="_self" class="chat-icon-btn" title="Supprimer">❌</a>
+                    <a href="?user={clean_pseudo}&action=del_msg&idx={idx}&msg_id={msg_id}" target="_self" class="chat-icon-btn" title="Supprimer">❌</a>
                     <a href="?user={clean_pseudo}&action=edit_toggle&idx={idx}" target="_self" class="chat-icon-btn" title="Modifier">✏️</a>
                     {'<a href="?user=' + clean_pseudo + '&action=regen_msg" target="_self" class="chat-icon-btn" title="Régénérer">🔄</a>' if idx == len(messages) - 1 else ''}
                 </div>
@@ -1000,7 +1007,7 @@ elif str_lit.session_state.page == "chat":
                 edit_u_key = f"edit_mode_{idx}"
                 str_lit.markdown(f"""
                 <div style="display: flex; gap: 4px; margin-bottom: 10px;">
-                    <a href="?user={clean_pseudo}&action=del_msg&idx={idx}" target="_self" class="chat-icon-btn" title="Supprimer">❌</a>
+                    <a href="?user={clean_pseudo}&action=del_msg&idx={idx}&msg_id={msg_id}" target="_self" class="chat-icon-btn" title="Supprimer">❌</a>
                     <a href="?user={clean_pseudo}&action=edit_toggle&idx={idx}" target="_self" class="chat-icon-btn" title="Modifier">✏️</a>
                 </div>
                 """, unsafe_allow_html=True)
@@ -1040,7 +1047,8 @@ elif str_lit.session_state.page == "chat":
         if not client:
             str_lit.error("❌ Erreur : Le client Groq n'est pas initialisé.")
         else:
-            save_msg(clean_pseudo, current_char, "user", user_input.strip())
+            # Sauvegarde unique via la nouvelle fonction pour éviter l'effet de double insertion
+            save_msg_and_get(clean_pseudo, current_char, "user", user_input.strip())
             update_affinity(clean_pseudo, current_char, 2)
             
             cache_key = f"{clean_pseudo}_{current_char}"
@@ -1095,7 +1103,7 @@ elif str_lit.session_state.page == "chat":
                     )
                 bot_reply = response.choices[0].message.content
                 if bot_reply:
-                    save_msg(clean_pseudo, current_char, "assistant", bot_reply)
+                    save_msg_and_get(clean_pseudo, current_char, "assistant", bot_reply)
                     if cache_key in str_lit.session_state.messages_cache:
                         del str_lit.session_state.messages_cache[cache_key]
                     str_lit.rerun()
