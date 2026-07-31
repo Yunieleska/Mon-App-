@@ -78,6 +78,20 @@ str_lit.set_page_config(
     page_title="Storyia", layout="wide", initial_sidebar_state="expanded"
 )
 
+# --- INITIALISATION SÉCURISÉE DE SESSION_STATE ---
+if "pseudo" not in str_lit.session_state:
+    str_lit.session_state.pseudo = "Yuna"
+if "logged_in" not in str_lit.session_state:
+    str_lit.session_state.logged_in = False
+if "affinities_cache" not in str_lit.session_state:
+    str_lit.session_state.affinities_cache = {}
+if "messages_cache" not in str_lit.session_state:
+    str_lit.session_state.messages_cache = {}
+if "page" not in str_lit.session_state:
+    str_lit.session_state.page = "home"
+if "char_select" not in str_lit.session_state:
+    str_lit.session_state.char_select = "Caelum"
+
 # --- STYLE GLOBAL & DESIGN ---
 str_lit.markdown(
     """
@@ -221,11 +235,6 @@ str_lit.markdown(
 )
 
 # --- PERSISTANCE PAR URL & SESSION ---
-if "pseudo" not in str_lit.session_state:
-    str_lit.session_state.pseudo = "Yuna"
-if "logged_in" not in str_lit.session_state:
-    str_lit.session_state.logged_in = False
-
 query_params = str_lit.query_params
 
 if "user" in query_params and query_params["user"]:
@@ -350,15 +359,6 @@ if "action" in query_params:
         str_lit.query_params.clear()
         str_lit.session_state.page = "chat"
         str_lit.rerun()
-
-if "page" not in str_lit.session_state:
-    str_lit.session_state.page = "home"
-if "char_select" not in str_lit.session_state:
-    str_lit.session_state.char_select = "Caelum"
-if "affinities_cache" not in str_lit.session_state:
-    str_lit.session_state.affinities_cache = {}
-if "messages_cache" not in str_lit.session_state:
-    str_lit.session_state.messages_cache = {}
 
 # --- SUPABASE FUNCTIONS ---
 
