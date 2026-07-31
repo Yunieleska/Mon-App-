@@ -729,7 +729,8 @@ if str_lit.session_state.page == "home":
 
     public_items = list(CHARACTERS.items())
 
-    ITEMS_PER_PAGE = 8
+    # AUGMENTATION DE LA LIMITE À 16 POUR AFFICHER TOUS LES PERSOS
+    ITEMS_PER_PAGE = 16
     if "home_page" not in str_lit.session_state:
         str_lit.session_state.home_page = 0
 
@@ -760,6 +761,22 @@ if str_lit.session_state.page == "home":
         """
     grid_html += "</div>"
     str_lit.html(grid_html)
+
+    # PAGINATION SI NÉCESSAIRE
+    if total_pages > 1:
+        p_col1, p_col2, p_col3 = str_lit.columns([2, 2, 2])
+        with p_col1:
+            if str_lit.session_state.home_page > 0:
+                if str_lit.button("⬅️ Page précédente"):
+                    str_lit.session_state.home_page -= 1
+                    str_lit.rerun()
+        with p_col2:
+            str_lit.markdown(f"<p style='text-align: center; color: #8b949e;'>Page {str_lit.session_state.home_page + 1} sur {total_pages}</p>", unsafe_allow_html=True)
+        with p_col3:
+            if str_lit.session_state.home_page < total_pages - 1:
+                if str_lit.button("Page suivante ➡️"):
+                    str_lit.session_state.home_page += 1
+                    str_lit.rerun()
 
     if "chat_target" in query_params:
         target_char = query_params["chat_target"]
@@ -1160,4 +1177,4 @@ elif str_lit.session_state.page == "profile":
             else:
                 str_lit.info("Vous n'avez créé aucun personnage pour l'instant.")
         except Exception as e:
-            str_lit.error(f"Erreur : {e}")
+                            str_lit.error(f"Erreur : {e}")
