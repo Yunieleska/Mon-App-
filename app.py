@@ -573,7 +573,7 @@ def get_all_characters(current_user_pseudo=""):
                     quote_val = item.get("quote") or item.get("start")
                     if not quote_val:
                         if c_name == "Dante Moretti":
-                            quote_val = "Le monde extérieur ignore tout de ce qui se murmure entre ces murs. Vos origines ne vous protègent pas de moi, et ce mariage arrangé scellera bien plus que nos familles."
+                            quote_val = "Un mariage arrangé n'est qu'un contrat commercial de plus. Ne t'attends pas à ce que je t'offre de l'amour, ce mot n'existe pas dans mon monde."
                         else:
                             quote_val = f"Bonjour, je suis {c_name}."
                     
@@ -922,6 +922,15 @@ elif str_lit.session_state.page == "chat":
                 f"Le regard ambré de Valerian scrute ton âme avec une intensité dévorante, entre menace et fascination.\n\n"
                 f"Il s'approche lentement, sa voix résonnant avec une gravité envoûtante :\n\n"
                 f"— Je pourrais traverser les siècles sans un regard en arrière, mais une seule de tes respirations suffit à m'ancrer dans le présent. Reste, et laisse-moi te consumer pour l'éternité."
+            )
+        elif current_char == "Dante Moretti":
+            intro_msg = (
+                f"Le bureau ultra-sécurisé de Dante Moretti est plongé dans une pénombre luxueuse, "
+                f"seulement éclairé par les reflets de la ville à travers de grandes baies vitrées. "
+                f"Assis derrière son large bureau en acajou, l'expression de Dante est de marbre, "
+                f"ses yeux sombres fixant l'interlocutrice avec un cynisme glacial.\n\n"
+                f"Il croise lentement les mains avant de prendre la parole d'une voix grave et détachée :\n\n"
+                f"— Un mariage arrangé n'est qu'un contrat commercial de plus. Ne t'attends pas à ce que je t'offre de l'amour, ce mot n'existe pas dans mon monde."
             )
         else:
             if client:
