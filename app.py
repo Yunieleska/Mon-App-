@@ -538,6 +538,7 @@ def get_all_characters(current_user_pseudo=""):
                     raw_img_url = item.get("img_url", "").strip()
                     img_url = force_image_url(raw_img_url) if raw_img_url else "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
                     
+                    # On ajoute ou met à jour proprement sans écraser le reste
                     chars[c_name] = {
                         "img": img_url,
                         "prompt": prompt_val + " Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé.",
