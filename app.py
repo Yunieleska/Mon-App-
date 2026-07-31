@@ -300,7 +300,6 @@ if "action" in query_params:
             except:
                 pass
         
-        # Filtrer la liste en mémoire pour retirer le message ciblé par son ID unique
         str_lit.session_state.messages_cache[cache_key] = [m for m in messages if str(m.get("id")) != str(msg_id_to_del)]
         
         str_lit.query_params.clear()
@@ -357,7 +356,6 @@ if "action" in query_params:
 # --- SUPABASE FUNCTIONS ---
 
 def save_msg_to_db(pseudo, char, role, content):
-    """Sauvegarde propre dans Supabase avec un identifiant garanti unique."""
     cache_key = f"{pseudo}_{char}"
     p_clean = str(pseudo).strip()
     generated_id = str(uuid.uuid4())
@@ -380,13 +378,11 @@ def save_msg_to_db(pseudo, char, role, content):
     if cache_key not in str_lit.session_state.messages_cache:
         str_lit.session_state.messages_cache[cache_key] = []
     
-    # Vérification anti-doublon stricte en mémoire locale avant l'ajout
     existing_ids = [str(m.get("id")) for m in str_lit.session_state.messages_cache[cache_key]]
     if generated_id not in existing_ids:
         str_lit.session_state.messages_cache[cache_key].append(new_msg)
         
     return new_msg
-
 
 def load_msgs(pseudo, char, limit=100):
     cache_key = f"{pseudo}_{char}"
@@ -414,7 +410,6 @@ def load_msgs(pseudo, char, limit=100):
                 role = r["role"]
                 content = r["content"]
                 
-                # Signature unique pour éliminer les doublons stricts en base (même contenu et même rôle consécutifs)
                 signature = (role, content)
                 if signature in seen_signatures and role == "assistant":
                     try:
@@ -432,7 +427,6 @@ def load_msgs(pseudo, char, limit=100):
         return []
     except Exception:
         return []
-
 
 def get_affinity(pseudo, char):
     cache_key = f"{pseudo}_{char}"
@@ -465,7 +459,6 @@ def get_affinity(pseudo, char):
     except Exception:
         return 10
 
-
 def update_affinity(pseudo, char, delta):
     cache_key = f"{pseudo}_{char}"
     current = get_affinity(pseudo, char)
@@ -479,7 +472,6 @@ def update_affinity(pseudo, char, delta):
         return new_score
     except Exception:
         return new_score
-
 
 def get_character_summary(pseudo, char):
     if not supabase:
@@ -499,7 +491,6 @@ def get_character_summary(pseudo, char):
         pass
     return ""
 
-
 def update_character_summary(pseudo, char, new_summary):
     if not supabase:
         return
@@ -509,7 +500,6 @@ def update_character_summary(pseudo, char, new_summary):
         }).eq("user_pseudo", str(pseudo).strip()).eq("char_name", str(char)).execute()
     except Exception:
         pass
-
 
 def get_all_characters(current_user_pseudo=""):
     chars = {
@@ -1034,80 +1024,74 @@ elif str_lit.session_state.page == "chat":
 
     str_lit.markdown("<br>", unsafe_allow_html=True)
     
-    # Utilisation d'un formulaire pour contrôler l'envoi unique de manière propre sans rebond
-    with str_lit.form(key="chat_input_form", clear_on_submit=True):
-        col_input, col_btn = str_lit.columns([4, 1])
-        with col_input:
-            user_input = str_lit.text_area("Écris ta réponse...", key="user_message_input", label_visibility="collapsed", height=80)
-        with col_btn:
-            str_lit.write("") 
-            send_clicked = str_lit.form_submit_button("Envoyer 🚀", use_container_width=True)
+    # --- GESTION DE L'ENVOI PROPRE SANS DOUBLON ---
+    user_input = str_lit.text_area("Écris ta réponse...", key="user_message_input", height=85)
+    if str_lit.button("Envoyer 🚀", use_container_width=True):
+        if user_input and user_input.strip():
+            if not client:
+                str_lit.error("❌ Erreur : Le client Groq n'est pas initialisé.")
+            else:
+                save_msg_to_db(clean_pseudo, current_char, "user", user_input.strip())
+                update_affinity(clean_pseudo, current_char, 2)
+                
+                cache_key = f"{clean_pseudo}_{current_char}"
+                if cache_key in str_lit.session_state.messages_cache:
+                    del str_lit.session_state.messages_cache[cache_key]
 
-    if send_clicked and user_input and user_input.strip():
-        if not client:
-            str_lit.error("❌ Erreur : Le client Groq n'est pas initialisé.")
-        else:
-            save_msg_to_db(clean_pseudo, current_char, "user", user_input.strip())
-            update_affinity(clean_pseudo, current_char, 2)
-            
-            cache_key = f"{clean_pseudo}_{current_char}"
-            if cache_key in str_lit.session_state.messages_cache:
-                del str_lit.session_state.messages_cache[cache_key]
+                messages_actuels = load_msgs(clean_pseudo, current_char, limit=100)
 
-            messages_actuels = load_msgs(clean_pseudo, current_char, limit=100)
+                if len(messages_actuels) > 0 and len(messages_actuels) % 10 == 0:
+                    old_summary = get_character_summary(clean_pseudo, current_char)
+                    summary_prompt = [
+                        {
+                            "role": "system", 
+                            "content": "Tu es un assistant expert en résumé narratif. Ton rôle est de condenser l'histoire d'amour/rôle de manière ultra-concise (3-4 phrases max), en capturant les faits marquants, les secrets et l'évolution de la relation."
+                        },
+                        {
+                            "role": "user", 
+                            "content": f"Ancien résumé : {old_summary}\n\nDerniers échanges de la conversation : {str(messages_actuels[-10:])}\n\nRédige le nouveau résumé global actualisé :"
+                        }
+                    ]
+                    try:
+                        summary_res = client.chat.completions.create(
+                            model="meta-llama/llama-4-scout-17b-16e-instruct",
+                            messages=summary_prompt,
+                            temperature=0.5,
+                        )
+                        updated_summary = summary_res.choices[0].message.content
+                        update_character_summary(clean_pseudo, current_char, updated_summary)
+                    except Exception:
+                        pass
 
-            if len(messages_actuels) > 0 and len(messages_actuels) % 10 == 0:
-                old_summary = get_character_summary(clean_pseudo, current_char)
-                summary_prompt = [
-                    {
-                        "role": "system", 
-                        "content": "Tu es un assistant expert en résumé narratif. Ton rôle est de condenser l'histoire d'amour/rôle de manière ultra-concise (3-4 phrases max), en capturant les faits marquants, les secrets et l'évolution de la relation."
-                    },
-                    {
-                        "role": "user", 
-                        "content": f"Ancien résumé : {old_summary}\n\nDerniers échanges de la conversation : {str(messages_actuels[-10:])}\n\nRédige le nouveau résumé global actualisé :"
-                    }
-                ]
+                current_summary = get_character_summary(clean_pseudo, current_char)
+                summary_context = f"\n\n--- MÉMOIRE DE L'HISTOIRE (FAITS PASSÉS) ---\n{current_summary}" if current_summary else ""
+
+                current_aff = get_affinity(clean_pseudo, current_char)
+                aff_context = f" Niveau d'affinité actuel : {current_aff}%."
+                context_reminder = {"role": "system", "content": f"Rappel important : L'interlocutrice s'appelle {clean_pseudo}.{aff_context}"}
+                
+                api_messages = [{"role": "system", "content": char_data["prompt"] + summary_context}, context_reminder]
+                for m in messages_actuels[-20:]:
+                    role = m.get("role")
+                    content = m.get("content")
+                    if role in ["user", "assistant"] and content:
+                        api_messages.append({"role": role, "content": content})
+                
                 try:
-                    summary_res = client.chat.completions.create(
-                        model="meta-llama/llama-4-scout-17b-16e-instruct",
-                        messages=summary_prompt,
-                        temperature=0.5,
-                    )
-                    updated_summary = summary_res.choices[0].message.content
-                    update_character_summary(clean_pseudo, current_char, updated_summary)
-                except Exception:
-                    pass
-
-            current_summary = get_character_summary(clean_pseudo, current_char)
-            summary_context = f"\n\n--- MÉMOIRE DE L'HISTOIRE (FAITS PASSÉS) ---\n{current_summary}" if current_summary else ""
-
-            current_aff = get_affinity(clean_pseudo, current_char)
-            aff_context = f" Niveau d'affinité actuel : {current_aff}%."
-            context_reminder = {"role": "system", "content": f"Rappel important : L'interlocutrice s'appelle {clean_pseudo}.{aff_context}"}
-            
-            api_messages = [{"role": "system", "content": char_data["prompt"] + summary_context}, context_reminder]
-            for m in messages_actuels[-20:]:
-                role = m.get("role")
-                content = m.get("content")
-                if role in ["user", "assistant"] and content:
-                    api_messages.append({"role": role, "content": content})
-            
-            try:
-                with str_lit.spinner(f"{current_char} est en train d'écrire..."):
-                    response = client.chat.completions.create(
-                        model="meta-llama/llama-4-scout-17b-16e-instruct",
-                        messages=api_messages,
-                        temperature=0.85,
-                    )
-                bot_reply = response.choices[0].message.content
-                if bot_reply:
-                    save_msg_to_db(clean_pseudo, current_char, "assistant", bot_reply)
-                    if cache_key in str_lit.session_state.messages_cache:
-                        del str_lit.session_state.messages_cache[cache_key]
-                    str_lit.rerun()
-            except Exception as e:
-                str_lit.error(f"❌ Erreur technique : {e}")
+                    with str_lit.spinner(f"{current_char} est en train d'écrire..."):
+                        response = client.chat.completions.create(
+                            model="meta-llama/llama-4-scout-17b-16e-instruct",
+                            messages=api_messages,
+                            temperature=0.85,
+                        )
+                    bot_reply = response.choices[0].message.content
+                    if bot_reply:
+                        save_msg_to_db(clean_pseudo, current_char, "assistant", bot_reply)
+                        if cache_key in str_lit.session_state.messages_cache:
+                            del str_lit.session_state.messages_cache[cache_key]
+                        str_lit.rerun()
+                except Exception as e:
+                    str_lit.error(f"❌ Erreur technique : {e}")
 
 elif str_lit.session_state.page == "create_character":
     if os.path.exists(CREATE_CHARACTER_BANNER):
