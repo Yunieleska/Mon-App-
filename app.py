@@ -510,7 +510,7 @@ def get_all_characters(current_user_pseudo=""):
         },
         "Liam": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/liam.png.PNG",
-            "prompt": "Tu es Liam, le grand frère. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique de l'utilisateur.",
+            "prompt": "Tu es Liam, le grand frère. Reste strictement dans ton rôle, adopte un tenant immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique de l'utilisateur.",
             "quote": "Salut, l'amie de ma sœur. Essaie de ne pas faire trop de bruit.",
         },
         "Noah": {
@@ -1129,6 +1129,7 @@ elif str_lit.session_state.page == "profile":
                                 new_avatar_url = upload_image_to_supabase(uploaded_file=uploaded_avatar, folder="avatars")
                             
                             supabase.table("users").update({"avatar_url": new_avatar_url}).eq("pseudo", clean_pseudo).execute()
+                            str_lit.session_state.edit_avatar_open = href_val = "" # type fix
                             str_lit.session_state.edit_avatar_open = False
                             str_lit.success("Mis à jour !")
                             str_lit.rerun()
@@ -1165,8 +1166,8 @@ elif str_lit.session_state.page == "profile":
                         
                         str_lit.markdown(f'''
                         <a href="?user={clean_pseudo}&chat_target={c_name_val}" target="_self" class="custom-action-btn" style="margin-bottom: 6px;">💬 Discuter</a>
-                        <a href="?user={clean_pseudo}&action=delete_char&char={c_name_val}" target="_self" class="custom-danger-btn">🗑️ Supprimer</a>
-                        ''', unsafe_allow_html=True)
+                        <a href="?user={clean_perso_err if 'clean_perso_err' in locals() else clean_pseudo}&action=delete_char&char={c_name_val}" target="_self" class="custom-danger-btn">🗑️ Supprimer</a>
+                        '''.replace(clean_perso_err if 'clean_perso_err' in locals() else 'NONEXISTENT', clean_pseudo), unsafe_allow_html=True)
             else:
                 str_lit.info("Vous n'avez créé aucun personnage pour l'instant.")
         except Exception as e:
