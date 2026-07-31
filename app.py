@@ -523,6 +523,7 @@ def get_all_characters(current_user_pseudo=""):
     try:
         supabase_temp = init_supabase_client()
         if supabase_temp:
+            # Récupération globale de toutes les lignes pour garantir l'affichage dans le Sanctuaire
             res = supabase_temp.table("custom_characters").select("*").execute()
             if res.data:
                 for item in res.data:
@@ -719,7 +720,6 @@ if str_lit.session_state.page == "home":
     
     str_lit.markdown("---")
 
-    # Chargement dynamique pour inclure instantanément les nouveaux personnages de Supabase
     current_all_chars = get_all_characters(str_lit.session_state.get("pseudo", ""))
     public_items = list(current_all_chars.items())
 
