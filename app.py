@@ -18,7 +18,6 @@ EXPLORER_BANNER = "explorer.jfif"
 SUPABASE_BUCKET_NAME = "storyia-images"
 
 def upload_image_to_supabase(uploaded_file, folder="uploads"):
-    """Téléverse un fichier image sur Supabase Storage et retourne l'URL publique valide"""
     if not uploaded_file or not supabase:
         return ""
     try:
@@ -41,7 +40,6 @@ def upload_image_to_supabase(uploaded_file, folder="uploads"):
         return ""
 
 def force_image_url(url):
-    """Garantit une URL d'image propre et évite les casses d'affichage"""
     if not url:
         return ""
     clean_url = str(url).strip()
@@ -150,8 +148,8 @@ str_lit.markdown(
     }
     @media (min-width: 900px) {
         .storyia-grid {
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
         }
     }
     .storyia-card {
@@ -228,7 +226,7 @@ str_lit.markdown(
     unsafe_allow_html=True,
 )
 
-# --- PERSISTANCE PAR URL & SESSION (SÉCURISÉE) ---
+# --- PERSISTANCE PAR URL & SESSION ---
 if "pseudo" not in str_lit.session_state:
     str_lit.session_state.pseudo = "Yuna"
 if "logged_in" not in str_lit.session_state:
@@ -281,7 +279,6 @@ if "action" in query_params:
                 supabase.table("custom_characters").delete().eq("name", c_name_param).execute()
                 supabase.table("messages").delete().eq("char_name", c_name_param).execute()
                 supabase.table("affinities").delete().eq("char_name", c_name_param).execute()
-                str_lit.cache_data.clear()
             except:
                 pass
         str_lit.query_params.clear()
@@ -363,7 +360,7 @@ if "affinities_cache" not in str_lit.session_state:
 if "messages_cache" not in str_lit.session_state:
     str_lit.session_state.messages_cache = {}
 
-# --- SUPABASE FUNCTIONS & CACHE ---
+# --- SUPABASE FUNCTIONS ---
 
 def save_msg(pseudo, char, role, content):
     cache_key = f"{pseudo}_{char}"
@@ -479,8 +476,7 @@ def update_affinity(pseudo, char, delta):
         return new_score
 
 
-@str_lit.cache_data(show_spinner=False, ttl=1)
-def get_all_characters_cached(current_user_pseudo=""):
+def get_all_characters(current_user_pseudo=""):
     chars = {
         "Caelum": {
             "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
@@ -489,7 +485,7 @@ def get_all_characters_cached(current_user_pseudo=""):
         },
         "Lord Valerian Vance": {
             "img": "https://ipbczphrawlrlglwwwpq.supabase.co/storage/v1/object/public/storyia-images/characters/28fb339abb492d0b_vamp.jpg",
-            "prompt": "Tu es Lord Valerian Vance, un vampire ténébreux né au XVIIIe siècle dans une aristocratie européenne décadente, transformé à 25 ans. Solitaire et mystérieux, tu t'isoles dans un manoir au cœur d'une forêt. Ton style est gothique, passionné, intense, protecteur jusqu'à l'obsession, tourmenté par ta nature prédatrice, altier et magnétique (ambiance romance sombre / ennemis to lovers). Personnages secondaires de ton univers : Nathaniel 'Nate' Cross (chasseur rival infiltré), Lady Seraphina et le Duc Malakor (clan rival du Cercle des Oubliés), Darius et Elena. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique, les vêtements, les cheveux ou le corps de l'utilisateur sans qu'il en ait parlé explicitement.",
+            "prompt": "Tu es Lord Valerian Vance, un vampire ténébreux né au XVIIIe siècle dans une aristocratie européenne décadente, transformé à 25 ans. Solitaire et mystérieux, tu t'isoles dans un manoir au cœur d'une forêt. Ton style est gothique, passionné, intense, protecteur jusqu'à l'obsession, tourmenté par ta nature prédatrice, altier et magnétique (ambiance romance sombre / ennemis to lovers). Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé. N'invente JAMAIS et ne décris JAMAIS l'apparence physique, les vêtements, les cheveux ou le corps de l'utilisateur sans qu'il en ait parlé explicitement.",
             "quote": "Je pourrais traverser les siècles sans un regard en arrière, mais une seule de tes respirations suffit à m'ancrer dans le présent. Reste, et laisse-moi te consumer pour l'éternité.",
         },
         "Alexei": {
@@ -556,7 +552,7 @@ def get_all_characters_cached(current_user_pseudo=""):
 
     return chars
 
-CHARACTERS = get_all_characters_cached(str_lit.session_state.get("pseudo", ""))
+CHARACTERS = get_all_characters(str_lit.session_state.get("pseudo", ""))
 
 # --- LOGIN LOGIC ---
 if not str_lit.session_state.logged_in:
@@ -729,8 +725,8 @@ if str_lit.session_state.page == "home":
 
     public_items = list(CHARACTERS.items())
 
-    # AUGMENTATION DE LA LIMITE À 16 POUR AFFICHER TOUS LES PERSOS
-    ITEMS_PER_PAGE = 16
+    # CONFIGURÉ EXACTEMENT À 50 CARTES PAR PAGE (5 colonnes x 10 lignes)
+    ITEMS_PER_PAGE = 50
     if "home_page" not in str_lit.session_state:
         str_lit.session_state.home_page = 0
 
@@ -748,21 +744,21 @@ if str_lit.session_state.page == "home":
         grid_html += f"""
         <div class="storyia-card">
             <div>
-                <img src="{img_src}" style="width: 100%; height: 140px; object-fit: cover; display: block;">
-                <div style="padding: 10px 10px 4px 10px;">
-                    <div style="font-weight: 700; font-size: 14px; color: #ffffff; margin-bottom: 2px;">{name}</div>
-                    <div style="font-size: 11px; color: #8b949e; font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 30px;">"{data['quote']}"</div>
+                <img src="{img_src}" style="width: 100%; height: 130px; object-fit: cover; display: block;">
+                <div style="padding: 8px 8px 4px 8px;">
+                    <div style="font-weight: 700; font-size: 13px; color: #ffffff; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{name}</div>
+                    <div style="font-size: 10px; color: #8b949e; font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 26px;">"{data['quote']}"</div>
                 </div>
             </div>
-            <div style="padding: 0px 10px 10px 10px;">
-                <a href="?user={str_lit.session_state.pseudo}&chat_target={name}" target="_self" style="display: block; text-align: center; background-color: #21262d; color: #ffffff; padding: 6px 10px; border-radius: 6px; text-decoration: none; border: 1px solid rgba(255, 255, 255, 0.15); font-size: 12px; font-weight: 600;">💬 Discuter</a>
+            <div style="padding: 0px 8px 8px 8px;">
+                <a href="?user={str_lit.session_state.pseudo}&chat_target={name}" target="_self" style="display: block; text-align: center; background-color: #21262d; color: #ffffff; padding: 5px 8px; border-radius: 6px; text-decoration: none; border: 1px solid rgba(255, 255, 255, 0.15); font-size: 11px; font-weight: 600;">💬 Discuter</a>
             </div>
         </div>
         """
     grid_html += "</div>"
     str_lit.html(grid_html)
 
-    # PAGINATION SI NÉCESSAIRE
+    # PAGINATION
     if total_pages > 1:
         p_col1, p_col2, p_col3 = str_lit.columns([2, 2, 2])
         with p_col1:
@@ -771,7 +767,7 @@ if str_lit.session_state.page == "home":
                     str_lit.session_state.home_page -= 1
                     str_lit.rerun()
         with p_col2:
-            str_lit.markdown(f"<p style='text-align: center; color: #8b949e;'>Page {str_lit.session_state.home_page + 1} sur {total_pages}</p>", unsafe_allow_html=True)
+            str_lit.markdown(f"<p style='text-align: center; color: #8b949e;'>Page {str_lit.session_state.home_page + 1} sur {total_pages} ({len(public_items)} personnages au total)</p>", unsafe_allow_html=True)
         with p_col3:
             if str_lit.session_state.home_page < total_pages - 1:
                 if str_lit.button("Page suivante ➡️"):
@@ -1051,9 +1047,6 @@ elif str_lit.session_state.page == "create_character":
             if new_name.strip():
                 if supabase:
                     try:
-                        str_lit.cache_data.clear()
-                        CHARACTERS = get_all_characters_cached(clean_pseudo)
-
                         final_img = ""
                         if uploaded_file:
                             final_img = upload_image_to_supabase(uploaded_file, folder="characters")
@@ -1177,4 +1170,4 @@ elif str_lit.session_state.page == "profile":
             else:
                 str_lit.info("Vous n'avez créé aucun personnage pour l'instant.")
         except Exception as e:
-                            str_lit.error(f"Erreur : {e}")
+            str_lit.error(f"Erreur : {e}")
