@@ -1,5 +1,5 @@
 import os
-import re
+import uuid
 import streamlit as str_lit
 from supabase import create_client
 from groq import Groq
@@ -294,32 +294,24 @@ if "action" in query_params:
         cache_key = f"{clean_pseudo}_{current_char}"
         messages = str_lit.session_state.messages_cache.get(cache_key, [])
         
-        # Filtrer pour supprimer le message correspondant par ID ou par index de secours
-        idx_str = query_params.get("idx", "-1")
-        try:
-            idx = int(idx_str)
-            if supabase and msg_id_to_del:
-                try:
-                    supabase.table("messages").delete().eq("id", msg_id_to_del).execute()
-                except:
-                    pass
-            if 0 <= idx < len(messages):
-                messages.pop(idx)
-            str_lit.session_state.messages_cache[cache_key] = messages
-        except:
-            pass
+        if supabase and msg_id_to_del:
+            try:
+                supabase.table("messages").delete().eq("id", msg_id_to_del).execute()
+            except:
+                pass
+        
+        # Filtrer la liste en mémoire pour retirer le message ciblé par son ID unique
+        str_lit.session_state.messages_cache[cache_key] = [m for m in messages if str(m.get("id")) != str(msg_id_to_del)]
+        
         str_lit.query_params.clear()
         str_lit.session_state.page = "chat"
         str_lit.rerun()
 
     elif action_type == "edit_toggle":
-        idx_str = query_params.get("idx", "-1")
-        try:
-            idx = int(idx_str)
-            key_name = f"edit_mode_{idx}"
+        msg_id_to_edit = query_params.get("msg_id", "")
+        if msg_id_to_edit:
+            key_name = f"edit_mode_{msg_id_to_edit}"
             str_lit.session_state[key_name] = not str_lit.session_state.get(key_name, False)
-        except:
-            pass
         str_lit.query_params.clear()
         str_lit.session_state.page = "chat"
         str_lit.rerun()
@@ -353,8 +345,7 @@ if "action" in query_params:
                         temperature=0.9,
                     )
                     bot_reply = response.choices[0].message.content
-                    # Sauvegarde propre avec récupération de l'ID retourné par Supabase
-                    saved_new_msg = save_msg_and_get(clean_pseudo, current_char, "assistant", bot_reply)
+                    save_msg_to_db(clean_pseudo, current_char, "assistant", bot_reply)
                     if cache_key in str_lit.session_state.messages_cache:
                         del str_lit.session_state.messages_cache[cache_key]
                 except:
@@ -365,11 +356,11 @@ if "action" in query_params:
 
 # --- SUPABASE FUNCTIONS ---
 
-def save_msg_and_get(pseudo, char, role, content):
-    """Sauvegarde le message dans Supabase ET retourne l'objet complet avec son ID unique."""
+def save_msg_to_db(pseudo, char, role, content):
+    """Sauvegarde propre dans Supabase avec un identifiant garanti unique."""
     cache_key = f"{pseudo}_{char}"
-    msg_id = None
     p_clean = str(pseudo).strip()
+    generated_id = str(uuid.uuid4())
     
     if supabase:
         try:
@@ -380,15 +371,20 @@ def save_msg_and_get(pseudo, char, role, content):
                 "content": str(content),
             }).execute()
             if res.data and "id" in res.data[0]:
-                msg_id = res.data[0]["id"]
+                generated_id = str(res.data[0]["id"])
         except Exception:
             pass
 
-    new_msg = {"id": msg_id, "role": role, "content": content}
+    new_msg = {"id": generated_id, "role": role, "content": content}
     
     if cache_key not in str_lit.session_state.messages_cache:
         str_lit.session_state.messages_cache[cache_key] = []
-    str_lit.session_state.messages_cache[cache_key].append(new_msg)
+    
+    # Vérification anti-doublon stricte en mémoire locale avant l'ajout
+    existing_ids = [str(m.get("id")) for m in str_lit.session_state.messages_cache[cache_key]]
+    if generated_id not in existing_ids:
+        str_lit.session_state.messages_cache[cache_key].append(new_msg)
+        
     return new_msg
 
 
@@ -412,20 +408,22 @@ def load_msgs(pseudo, char, limit=100):
         )
         if res.data:
             messages = []
-            seen_entries = set()
+            seen_signatures = set()
             for r in res.data:
-                # Clé unique pour éliminer les doublons stricts en base (même rôle et même contenu consécutifs ou identiques)
-                entry_signature = (r["role"], r["content"])
+                msg_id = str(r["id"])
+                role = r["role"]
+                content = r["content"]
                 
-                # Si le message existe déjà dans le lot, on nettoie le doublon directement de Supabase
-                if entry_signature in seen_entries and r["role"] == "assistant":
+                # Signature unique pour éliminer les doublons stricts en base (même contenu et même rôle consécutifs)
+                signature = (role, content)
+                if signature in seen_signatures and role == "assistant":
                     try:
                         supabase.table("messages").delete().eq("id", r["id"]).execute()
                     except:
                         pass
                 else:
-                    messages.append({"id": r["id"], "role": r["role"], "content": r["content"]})
-                    seen_entries.add(entry_signature)
+                    messages.append({"id": msg_id, "role": role, "content": content})
+                    seen_signatures.add(signature)
 
             str_lit.session_state.messages_cache[cache_key] = messages
             return messages
@@ -959,11 +957,11 @@ elif str_lit.session_state.page == "chat":
             else:
                 intro_msg = f"Tu te trouves face à {current_char}. Ses yeux se posent sur toi : \"{char_data['quote']}\""
 
-        save_msg_and_get(clean_pseudo, current_char, "assistant", intro_msg)
+        save_msg_to_db(clean_pseudo, current_char, "assistant", intro_msg)
         messages = load_msgs(clean_pseudo, current_char, limit=50)
 
     for idx, msg in enumerate(messages):
-        msg_id = msg.get("id") or ""
+        msg_id = str(msg.get("id", ""))
         
         if msg["role"] == "assistant":
             col_avatar, col_content, col_actions = str_lit.columns([1, 5, 1.3])
@@ -972,10 +970,10 @@ elif str_lit.session_state.page == "chat":
             with col_content:
                 str_lit.markdown(f'<div class="novel-dialogue">{msg["content"]}</div>', unsafe_allow_html=True)
                 
-                edit_key = f"edit_mode_{idx}"
+                edit_key = f"edit_mode_{msg_id}"
                 if str_lit.session_state.get(edit_key, False):
-                    new_text = str_lit.text_area("Modifier la réponse :", value=msg["content"], key=f"txt_area_{idx}")
-                    if str_lit.button("💾 Enregistrer", key=f"save_edit_{idx}"):
+                    new_text = str_lit.text_area("Modifier la réponse :", value=msg["content"], key=f"txt_area_{msg_id}")
+                    if str_lit.button("💾 Enregistrer", key=f"save_edit_{msg_id}"):
                         msg["content"] = new_text
                         str_lit.session_state[edit_key] = False
                         cache_key = f"{clean_pseudo}_{current_char}"
@@ -990,8 +988,8 @@ elif str_lit.session_state.page == "chat":
             with col_actions:
                 str_lit.markdown(f"""
                 <div style="display: flex; gap: 4px; padding-top: 5px;">
-                    <a href="?user={clean_pseudo}&action=del_msg&idx={idx}&msg_id={msg_id}" target="_self" class="chat-icon-btn" title="Supprimer">❌</a>
-                    <a href="?user={clean_pseudo}&action=edit_toggle&idx={idx}" target="_self" class="chat-icon-btn" title="Modifier">✏️</a>
+                    <a href="?user={clean_pseudo}&action=del_msg&msg_id={msg_id}" target="_self" class="chat-icon-btn" title="Supprimer">❌</a>
+                    <a href="?user={clean_pseudo}&action=edit_toggle&msg_id={msg_id}" target="_self" class="chat-icon-btn" title="Modifier">✏️</a>
                     {'<a href="?user=' + clean_pseudo + '&action=regen_msg" target="_self" class="chat-icon-btn" title="Régénérer">🔄</a>' if idx == len(messages) - 1 else ''}
                 </div>
                 """, unsafe_allow_html=True)
@@ -1004,17 +1002,17 @@ elif str_lit.session_state.page == "chat":
                 </div>
                 """, unsafe_allow_html=True)
                 
-                edit_u_key = f"edit_mode_{idx}"
+                edit_u_key = f"edit_mode_{msg_id}"
                 str_lit.markdown(f"""
                 <div style="display: flex; gap: 4px; margin-bottom: 10px;">
-                    <a href="?user={clean_pseudo}&action=del_msg&idx={idx}&msg_id={msg_id}" target="_self" class="chat-icon-btn" title="Supprimer">❌</a>
-                    <a href="?user={clean_pseudo}&action=edit_toggle&idx={idx}" target="_self" class="chat-icon-btn" title="Modifier">✏️</a>
+                    <a href="?user={clean_pseudo}&action=del_msg&msg_id={msg_id}" target="_self" class="chat-icon-btn" title="Supprimer">❌</a>
+                    <a href="?user={clean_pseudo}&action=edit_toggle&msg_id={msg_id}" target="_self" class="chat-icon-btn" title="Modifier">✏️</a>
                 </div>
                 """, unsafe_allow_html=True)
 
                 if str_lit.session_state.get(edit_u_key, False):
-                    new_u_text = str_lit.text_area("Modifier ton message :", value=msg["content"], key=f"txt_usr_{idx}")
-                    if str_lit.button("💾 Valider", key=f"save_usr_{idx}"):
+                    new_u_text = str_lit.text_area("Modifier ton message :", value=msg["content"], key=f"txt_usr_{msg_id}")
+                    if str_lit.button("💾 Valider", key=f"save_usr_{msg_id}"):
                         msg["content"] = new_u_text
                         str_lit.session_state[edit_u_key] = False
                         cache_key = f"{clean_pseudo}_{current_char}"
@@ -1036,19 +1034,20 @@ elif str_lit.session_state.page == "chat":
 
     str_lit.markdown("<br>", unsafe_allow_html=True)
     
-    col_input, col_btn = str_lit.columns([4, 1])
-    with col_input:
-        user_input = str_lit.text_area("Écris ta réponse...", key="user_message_input", label_visibility="collapsed", height=80)
-    with col_btn:
-        str_lit.write("") 
-        send_clicked = str_lit.button("Envoyer 🚀", key="send_message_btn", use_container_width=True)
+    # Utilisation d'un formulaire pour contrôler l'envoi unique de manière propre sans rebond
+    with str_lit.form(key="chat_input_form", clear_on_submit=True):
+        col_input, col_btn = str_lit.columns([4, 1])
+        with col_input:
+            user_input = str_lit.text_area("Écris ta réponse...", key="user_message_input", label_visibility="collapsed", height=80)
+        with col_btn:
+            str_lit.write("") 
+            send_clicked = str_lit.form_submit_button("Envoyer 🚀", use_container_width=True)
 
     if send_clicked and user_input and user_input.strip():
         if not client:
             str_lit.error("❌ Erreur : Le client Groq n'est pas initialisé.")
         else:
-            # Sauvegarde unique via la nouvelle fonction pour éviter l'effet de double insertion
-            save_msg_and_get(clean_pseudo, current_char, "user", user_input.strip())
+            save_msg_to_db(clean_pseudo, current_char, "user", user_input.strip())
             update_affinity(clean_pseudo, current_char, 2)
             
             cache_key = f"{clean_pseudo}_{current_char}"
@@ -1103,7 +1102,7 @@ elif str_lit.session_state.page == "chat":
                     )
                 bot_reply = response.choices[0].message.content
                 if bot_reply:
-                    save_msg_and_get(clean_pseudo, current_char, "assistant", bot_reply)
+                    save_msg_to_db(clean_pseudo, current_char, "assistant", bot_reply)
                     if cache_key in str_lit.session_state.messages_cache:
                         del str_lit.session_state.messages_cache[cache_key]
                     str_lit.rerun()
