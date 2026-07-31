@@ -15,7 +15,7 @@ SIDEBAR_HEADER_IMG = "couple.png"
 CORRESPONDANCES_BANNER = "https://i.postimg.cc/tCnmbx3m/correspondances.jpg"
 CREATE_CHARACTER_BANNER = "créer un personnage.jfif"
 EXPLORER_BANNER = "explorer.jfif"
-JOURNAL_BANNER = "https://raw.githubusercontent.com/Yunieleska/Mon-App-/refs/heads/main/journal%20intime.jfif"
+JOURNAL_BANNER = "https://i.postimg.cc/9M9jG1z5/journal-intime.jpg"  # Lien direct sécurisé
 SUPABASE_BUCKET_NAME = "storyia-images"
 
 def upload_image_to_supabase(uploaded_file, folder="uploads"):
@@ -47,7 +47,7 @@ def force_image_url(url):
     if not clean_url or clean_url.lower() == "none" or clean_url.lower() == "nan":
         return "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
     
-    if "supabase.co" in clean_url or "raw.githubusercontent.com" in clean_url or clean_url.startswith("http://localhost") or clean_url.startswith("https://i.pinimg.com"):
+    if "supabase.co" in clean_url or "raw.githubusercontent.com" in clean_url or "i.postimg.cc" in clean_url or clean_url.startswith("http://localhost") or clean_url.startswith("https://i.pinimg.com"):
         return clean_url
         
     return clean_url
