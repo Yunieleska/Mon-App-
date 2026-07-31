@@ -992,7 +992,7 @@ elif str_lit.session_state.page == "chat":
             col_content_u, col_avatar_u = str_lit.columns([5, 1])
             with col_content_u:
                 str_lit.markdown(f"""
-                <div style="background-color: #21262d; font-family: 'Georgia', serif; font-size: 15px; line-height: 1.6; color: #e6edf3; padding: 15px; border-radius: 10px; border-right: 4px solid #d299ea; margin-bottom: 10px; text-align: right;">
+                <div style="background-color: #21262d; font-family: 'Georgia', serif; font-size: 15px; line-height: 1.6; color: #e6edf3; padding: 15px; border-radius: 10px; border-right: 4px solid #d299ea; margin-bottom: 10px; text-align: right; white-space: pre-wrap;">
                     {msg["content"]}
                 </div>
                 """, unsafe_allow_html=True)
@@ -1006,7 +1006,7 @@ elif str_lit.session_state.page == "chat":
                 """, unsafe_allow_html=True)
 
                 if str_lit.session_state.get(edit_u_key, False):
-                    new_u_text = str_lit.text_input("Modifier ton message :", value=msg["content"], key=f"txt_usr_{idx}")
+                    new_u_text = str_lit.text_area("Modifier ton message :", value=msg["content"], key=f"txt_usr_{idx}")
                     if str_lit.button("💾 Valider", key=f"save_usr_{idx}"):
                         msg["content"] = new_u_text
                         str_lit.session_state[edit_u_key] = False
@@ -1031,8 +1031,10 @@ elif str_lit.session_state.page == "chat":
     
     col_input, col_btn = str_lit.columns([4, 1])
     with col_input:
-        user_input = str_lit.text_input("Écris ta réponse...", key="user_message_input", label_visibility="collapsed")
+        # CORRECTION ICI : Remplacement de text_input par text_area pour autoriser les retours à la ligne
+        user_input = str_lit.text_area("Écris ta réponse...", key="user_message_input", label_visibility="collapsed", height=80)
     with col_btn:
+        str_lit.write("") # Petit espace pour aligner verticalement avec la zone de texte élargie
         send_clicked = str_lit.button("Envoyer 🚀", key="send_message_btn", use_container_width=True)
 
     if send_clicked and user_input and user_input.strip():
