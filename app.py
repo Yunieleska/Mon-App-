@@ -1031,10 +1031,9 @@ elif str_lit.session_state.page == "chat":
     
     col_input, col_btn = str_lit.columns([4, 1])
     with col_input:
-        # CORRECTION ICI : Remplacement de text_input par text_area pour autoriser les retours à la ligne
         user_input = str_lit.text_area("Écris ta réponse...", key="user_message_input", label_visibility="collapsed", height=80)
     with col_btn:
-        str_lit.write("") # Petit espace pour aligner verticalement avec la zone de texte élargie
+        str_lit.write("") 
         send_clicked = str_lit.button("Envoyer 🚀", key="send_message_btn", use_container_width=True)
 
     if send_clicked and user_input and user_input.strip():
@@ -1050,7 +1049,6 @@ elif str_lit.session_state.page == "chat":
 
             messages_actuels = load_msgs(clean_pseudo, current_char, limit=100)
 
-            # Mise à jour automatique du résumé tous les 10 messages
             if len(messages_actuels) > 0 and len(messages_actuels) % 10 == 0:
                 old_summary = get_character_summary(clean_pseudo, current_char)
                 summary_prompt = [
