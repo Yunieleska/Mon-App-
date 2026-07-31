@@ -948,9 +948,9 @@ elif str_lit.session_state.page == "chat":
                     intro_msg = resp_init.choices[0].message.content
                     intro_msg = intro_msg.replace(clean_pseudo, "tu").replace(clean_pseudo.lower(), "tu")
                 except Exception:
-                    intro_msg = char_data["quote"]
+                    intro_msg = f"Tu te trouves face à {current_char}. Ses yeux se posent sur toi : \"{char_data['quote']}\""
             else:
-                intro_msg = char_data["quote"]
+                intro_msg = f"Tu te trouves face à {current_char}. Ses yeux se posent sur toi : \"{char_data['quote']}\""
 
         save_msg(clean_pseudo, current_char, "assistant", intro_msg)
         messages = load_msgs(clean_pseudo, current_char, limit=50)
