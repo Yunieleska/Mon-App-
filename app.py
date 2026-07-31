@@ -341,7 +341,7 @@ if "action" in query_params:
             if client:
                 try:
                     response = client.chat.completions.create(
-                        model="meta-llama/llama-4-scout-17b-16e-instruct",
+                        model="llama-3.3-70b-versatile",
                         messages=api_messages,
                         temperature=0.9,
                     )
@@ -938,7 +938,7 @@ elif str_lit.session_state.page == "chat":
                     ]
                     with str_lit.spinner(f"Génération de l'introduction avec {current_char}..."):
                         resp_init = client.chat.completions.create(
-                            model="meta-llama/llama-4-scout-17b-16e-instruct",
+                            model="llama-3.1-8b-instant",  # Utilisation du modèle léger et rapide
                             messages=init_prompt,
                             temperature=0.7,
                         )
@@ -1056,7 +1056,7 @@ elif str_lit.session_state.page == "chat":
                     ]
                     try:
                         summary_res = client.chat.completions.create(
-                            model="meta-llama/llama-4-scout-17b-16e-instruct",
+                            model="llama-3.1-8b-instant",  # Utilisation du modèle léger pour la mise à jour des résumés en arrière-plan
                             messages=summary_prompt,
                             temperature=0.5,
                         )
@@ -1070,7 +1070,6 @@ elif str_lit.session_state.page == "chat":
 
                 current_aff = get_affinity(clean_pseudo, current_char)
                 
-                # Instruction système stricte pour forcer le personnage à parler directement au joueur
                 direct_instruction = {
                     "role": "system", 
                     "content": f"RÈGLE ABSOLUE ET OBLIGATOIRE : Tu t'adresses DIRECTEMENT et UNIQUEMENT à l'interlocutrice en face de toi, dont le prénom est {clean_pseudo}. Tu dois impérativement utiliser le 'tu' (jamais la troisième personne du type 'elle' ou 'la jeune femme' pour parler au joueur). Niveau d'affinité actuel : {current_aff}%."
@@ -1086,7 +1085,7 @@ elif str_lit.session_state.page == "chat":
                 try:
                     with str_lit.spinner(f"{current_char} est en train d'écrire..."):
                         response = client.chat.completions.create(
-                            model="meta-llama/llama-4-scout-17b-16e-instruct",
+                            model="llama-3.3-70b-versatile",  # Utilisation du modèle puissant pour l'immersion et les réponses du personnage
                             messages=api_messages,
                             temperature=0.85,
                         )
