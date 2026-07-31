@@ -964,8 +964,6 @@ elif str_lit.session_state.page == "chat":
                             str_lit.rerun()
 
             with col_actions:
-                # CORRECTION MAJEURE : Utilisation exclusive de boutons natifs Streamlit au lieu de liens URL
-                # Cela évite le bug de redirection vers l'accueil ou un autre personnage
                 c_btn1, c_btn2 = str_lit.columns(2)
                 with c_btn1:
                     if str_lit.button("❌", key=f"del_{msg_id}", help="Supprimer"):
@@ -1026,7 +1024,6 @@ elif str_lit.session_state.page == "chat":
                     </div>
                     """, unsafe_allow_html=True)
                 
-                # Boutons natifs pour l'utilisateur
                 cu_btn1, cu_btn2 = str_lit.columns([1, 1])
                 with cu_btn1:
                     if str_lit.button("❌ Supprimer", key=f"del_u_{msg_id}"):
@@ -1048,7 +1045,7 @@ elif str_lit.session_state.page == "chat":
                         new_u_text = str_lit.text_area("Modifier ton message :", value=msg["content"])
                         col_usv1, col_usv2 = str_lit.columns(2)
                         with col_usv1:
-                            submitted_usr = str_lit.form_submit_button("💾 Valider")
+                            submitted_usr = str_lit.form_submit_button("💾 Valider et relancer")
                         with col_usv2:
                             cancelled_usr = str_lit.form_submit_button("Annuler")
                             
@@ -1056,12 +1053,59 @@ elif str_lit.session_state.page == "chat":
                             msg["content"] = new_u_text
                             str_lit.session_state.active_edit_msg_id = ""
                             cache_key = f"{clean_pseudo}_{current_char}"
-                            str_lit.session_state.messages_cache[cache_key] = messages
-                            if supabase and msg_id:
-                                try:
-                                    supabase.table("messages").update({"content": new_u_text}).eq("id", msg_id).execute()
-                                except:
-                                    pass
+                            
+                            target_index = -1
+                            for idx_m, m_item in enumerate(messages):
+                                if str(m_item.get("id")) == msg_id:
+                                    target_index = idx_m
+                                    break
+                            
+                            if target_index != -1:
+                                messages_to_keep = messages[:target_index + 1]
+                                messages_to_delete = messages[target_index + 1:]
+                                
+                                if supabase:
+                                    try:
+                                        supabase.table("messages").update({"content": new_u_text}).eq("id", msg_id).execute()
+                                        for old_m in messages_to_delete:
+                                            if old_m.get("id"):
+                                                supabase.table("messages").delete().eq("id", old_m.get("id")).execute()
+                                    except:
+                                        pass
+                                        
+                                str_lit.session_state.messages_cache[cache_key] = messages_to_keep
+                                
+                                current_aff = get_affinity(clean_pseudo, current_char)
+                                current_summary = get_character_summary(clean_pseudo, current_char)
+                                summary_context = f"\n\n--- MÉMOIRE DE L'HISTOIRE (FAITS PASSÉS) ---\n{current_summary}" if current_summary else ""
+                                
+                                direct_instruction = {
+                                    "role": "system", 
+                                    "content": f"RÈGLE ABSOLUE ET OBLIGATOIRE : Tu t'adresses DIRECTEMENT et UNIQUEMENT à l'interlocutrice en face de toi, dont le prénom est {clean_pseudo}. Tu dois impérativement utiliser le 'tu' (jamais la troisième personne du type 'elle' ou 'la jeune femme' pour parler au joueur). Niveau d'affinité actuel : {current_aff}%."
+                                }
+                                
+                                api_messages = [{"role": "system", "content": char_data["prompt"] + summary_context}, direct_instruction]
+                                for m in messages_to_keep[-20:]:
+                                    role = m.get("role")
+                                    content = m.get("content")
+                                    if role in ["user", "assistant"] and content:
+                                        api_messages.append({"role": role, "content": content})
+                                
+                                if client:
+                                    try:
+                                        response = client.chat.completions.create(
+                                            model="llama-3.3-70b-versatile",
+                                            messages=api_messages,
+                                            temperature=0.85,
+                                        )
+                                        bot_reply = response.choices[0].message.content
+                                        if bot_reply:
+                                            save_msg_to_db(clean_pseudo, current_char, "assistant", bot_reply)
+                                            if cache_key in str_lit.session_state.messages_cache:
+                                                del str_lit.session_state.messages_cache[cache_key]
+                                    except:
+                                        pass
+
                             str_lit.rerun()
                         if cancelled_usr:
                             str_lit.session_state.active_edit_msg_id = ""
