@@ -290,7 +290,10 @@ if "action" in query_params:
                 msg_to_del = messages.pop(idx)
                 msg_id = msg_to_del.get("id")
                 if supabase and msg_id:
-                    supabase.table("messages").delete().eq("id", msg_id).execute()
+                    try:
+                        supabase.table("messages").delete().eq("id", msg_id).execute()
+                    except:
+                        pass
                 str_lit.session_state.messages_cache[cache_key] = messages
         except:
             pass
@@ -324,10 +327,13 @@ if "action" in query_params:
             
             char_data = CHARACTERS.get(current_char, {})
             current_aff = get_affinity(clean_pseudo, current_char)
+            current_summary = get_character_summary(clean_pseudo, current_char)
+            summary_context = f"\n\n--- MÉMOIRE DE L'HISTOIRE (FAITS PASSÉS) ---\n{current_summary}" if current_summary else ""
+            
             aff_context = f" Niveau d'affinité actuel : {current_aff}%."
             context_reminder = {"role": "system", "content": f"Rappel important : Le prénom de l'utilisatrice est {clean_pseudo}.{aff_context}"}
             
-            api_messages = [{"role": "system", "content": char_data.get("prompt", "")}, context_reminder] + messages[-20:]
+            api_messages = [{"role": "system", "content": char_data.get("prompt", "") + summary_context}, context_reminder] + messages[-20:]
             if client:
                 try:
                     response = client.chat.completions.create(
@@ -470,6 +476,36 @@ def update_affinity(pseudo, char, delta):
         return new_score
 
 
+def get_character_summary(pseudo, char):
+    if not supabase:
+        return ""
+    try:
+        res = (
+            supabase.table("affinities")
+            .select("story_summary")
+            .eq("user_pseudo", str(pseudo).strip())
+            .eq("char_name", str(char))
+            .maybe_single()
+            .execute()
+        )
+        if res and res.data and res.data.get("story_summary"):
+            return res.data["story_summary"]
+    except Exception:
+        pass
+    return ""
+
+
+def update_character_summary(pseudo, char, new_summary):
+    if not supabase:
+        return
+    try:
+        supabase.table("affinities").update({
+            "story_summary": new_summary
+        }).eq("user_pseudo", str(pseudo).strip()).eq("char_name", str(char)).execute()
+    except Exception:
+        pass
+
+
 def get_all_characters(current_user_pseudo=""):
     chars = {
         "Caelum": {
@@ -527,7 +563,6 @@ def get_all_characters(current_user_pseudo=""):
                     desc_val = item.get("description", "") or ""
                     gender_val = item.get("gender", "Non spécifié") or "Non spécifié"
                     
-                    # Récupération sécurisée du prompt même s'il est NULL dans Supabase
                     prompt_val = item.get("prompt")
                     if not prompt_val:
                         if c_name == "Dante Moretti":
@@ -535,7 +570,6 @@ def get_all_characters(current_user_pseudo=""):
                         else:
                             prompt_val = f"Tu es {c_name} (Genre: {gender_val}). {desc_val} Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé."
                     
-                    # Récupération sécurisée du quote/start même s'il est NULL dans Supabase
                     quote_val = item.get("quote") or item.get("start")
                     if not quote_val:
                         if c_name == "Dante Moretti":
@@ -1003,12 +1037,40 @@ elif str_lit.session_state.page == "chat":
             if cache_key in str_lit.session_state.messages_cache:
                 del str_lit.session_state.messages_cache[cache_key]
 
+            messages_actuels = load_msgs(clean_pseudo, current_char, limit=100)
+
+            # Mise à jour automatique du résumé tous les 10 messages
+            if len(messages_actuels) > 0 and len(messages_actuels) % 10 == 0:
+                old_summary = get_character_summary(clean_pseudo, current_char)
+                summary_prompt = [
+                    {
+                        "role": "system", 
+                        "content": "Tu es un assistant expert en résumé narratif. Ton rôle est de condenser l'histoire d'amour/rôle de manière ultra-concise (3-4 phrases max), en capturant les faits marquants, les secrets et l'évolution de la relation."
+                    },
+                    {
+                        "role": "user", 
+                        "content": f"Ancien résumé : {old_summary}\n\nDerniers échanges de la conversation : {str(messages_actuels[-10:])}\n\nRédige le nouveau résumé global actualisé :"
+                    }
+                ]
+                try:
+                    summary_res = client.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
+                        messages=summary_prompt,
+                        temperature=0.5,
+                    )
+                    updated_summary = summary_res.choices[0].message.content
+                    update_character_summary(clean_pseudo, current_char, updated_summary)
+                except Exception:
+                    pass
+
+            current_summary = get_character_summary(clean_pseudo, current_char)
+            summary_context = f"\n\n--- MÉMOIRE DE L'HISTOIRE (FAITS PASSÉS) ---\n{current_summary}" if current_summary else ""
+
             current_aff = get_affinity(clean_pseudo, current_char)
             aff_context = f" Niveau d'affinité actuel : {current_aff}%."
             context_reminder = {"role": "system", "content": f"Rappel important : L'interlocutrice s'appelle {clean_pseudo}.{aff_context}"}
             
-            messages_actuels = load_msgs(clean_pseudo, current_char, limit=50)
-            api_messages = [{"role": "system", "content": char_data["prompt"]}, context_reminder]
+            api_messages = [{"role": "system", "content": char_data["prompt"] + summary_context}, context_reminder]
             for m in messages_actuels[-20:]:
                 role = m.get("role")
                 content = m.get("content")
