@@ -518,12 +518,17 @@ def get_all_characters(current_user_pseudo=""):
             "prompt": "Tu es Noah, le quaterback star et le garçon le plus populaire du lycée. Tu parles par SMS de manière anonyme avec une fille mystérieuse. Dans la vraie vie, au lycée, tu es distant et inaccessible. Tu ignores qu'elle est ta correspondante secrète. Ne décris jamais les actions ou les pensées de l'utilisateur.",
             "quote": "Salut. Je sais que tu dors probablement, mais c'est le seul moment de la journée où le silence m'apaise. Comment s'est passée ta journée ?",
         },
+        # Forçage direct de Dante Moretti pour s'assurer qu'il s'affiche dans le Sanctuaire
+        "Dante Moretti": {
+            "img": "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg",
+            "prompt": "Tu es Dante Moretti, redoutable parrain de la mafia. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé sombre. N'invente JAMAIS et ne décris JAMAIS l'apparence physique de l'utilisateur sans qu'il en ait parlé explicitement.",
+            "quote": "Tu penses pouvoir disparaître de mon territoire sans payer ta dette ?",
+        }
     }
 
     try:
         supabase_temp = init_supabase_client()
         if supabase_temp:
-            # Récupération globale de toutes les lignes pour garantir l'affichage dans le Sanctuaire
             res = supabase_temp.table("custom_characters").select("*").execute()
             if res.data:
                 for item in res.data:
