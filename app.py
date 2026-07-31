@@ -337,7 +337,7 @@ if "action" in query_params:
             if client:
                 try:
                     response = client.chat.completions.create(
-                        model="llama-3.3-70b-versatile",
+                        model="meta-llama/llama-4-scout-17b-16e-instruct",
                         messages=api_messages,
                         temperature=0.9,
                     )
@@ -932,7 +932,7 @@ elif str_lit.session_state.page == "chat":
                     ]
                     with str_lit.spinner(f"Génération de l'introduction avec {current_char}..."):
                         resp_init = client.chat.completions.create(
-                            model="llama-3.3-70b-versatile",
+                            model="meta-llama/llama-4-scout-17b-16e-instruct",
                             messages=init_prompt,
                             temperature=0.7,
                         )
@@ -1054,7 +1054,7 @@ elif str_lit.session_state.page == "chat":
                 ]
                 try:
                     summary_res = client.chat.completions.create(
-                        model="llama-3.3-70b-versatile",
+                        model="meta-llama/llama-4-scout-17b-16e-instruct",
                         messages=summary_prompt,
                         temperature=0.5,
                     )
@@ -1080,7 +1080,7 @@ elif str_lit.session_state.page == "chat":
             try:
                 with str_lit.spinner(f"{current_char} est en train d'écrire..."):
                     response = client.chat.completions.create(
-                        model="llama-3.3-70b-versatile",
+                        model="meta-llama/llama-4-scout-17b-16e-instruct",
                         messages=api_messages,
                         temperature=0.85,
                     )
