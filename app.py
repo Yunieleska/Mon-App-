@@ -15,7 +15,7 @@ SIDEBAR_HEADER_IMG = "couple.png"
 CORRESPONDANCES_BANNER = "https://i.postimg.cc/tCnmbx3m/correspondances.jpg"
 CREATE_CHARACTER_BANNER = "créer un personnage.jfif"
 EXPLORER_BANNER = "explorer.jfif"
-JOURNAL_BANNER = "https://i.postimg.cc/9M9jG1z5/journal-intime.jpg"  # Lien direct sécurisé
+JOURNAL_BANNER = "https://raw.githubusercontent.com/Yunieleska/Mon-App-/main/journal%20intimes.jfif"
 SUPABASE_BUCKET_NAME = "storyia-images"
 
 def upload_image_to_supabase(uploaded_file, folder="uploads"):
@@ -851,7 +851,11 @@ elif str_lit.session_state.page == "messages":
 
 elif str_lit.session_state.page == "journal":
     str_lit.markdown(
-        f'<img src="{JOURNAL_BANNER}" style="width: 100%; border-radius: 12px; margin-bottom: 20px; object-fit: cover;">',
+        f'''
+        <div style="width: 100%; max-height: 250px; overflow: hidden; border-radius: 12px; margin-bottom: 20px;">
+            <img src="{JOURNAL_BANNER}" style="width: 100%; object-fit: cover;">
+        </div>
+        ''',
         unsafe_allow_html=True
     )
     str_lit.markdown("---")
