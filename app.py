@@ -309,8 +309,7 @@ if "action" in query_params:
     elif action_type == "edit_toggle":
         msg_id_to_edit = query_params.get("msg_id", "")
         if msg_id_to_edit:
-            key_name = f"edit_mode_{msg_id_to_edit}"
-            str_lit.session_state[key_name] = not str_lit.session_state.get(key_name, False)
+            str_lit.session_state.active_edit_msg_id = msg_id_to_edit
         
         str_lit.query_params.clear()
         str_lit.query_params["user"] = clean_pseudo
@@ -956,29 +955,35 @@ elif str_lit.session_state.page == "chat":
 
     for idx, msg in enumerate(messages):
         msg_id = str(msg.get("id", ""))
+        is_currently_edited = (str(str_lit.session_state.get("active_edit_msg_id", "")) == msg_id)
         
         if msg["role"] == "assistant":
             col_avatar, col_content, col_actions = str_lit.columns([1, 5, 1.3])
             with col_avatar:
                 str_lit.image(char_data["img"], width=65)
             with col_content:
-                str_lit.markdown(f'<div class="novel-dialogue">{msg["content"]}</div>', unsafe_allow_html=True)
-                
-                edit_key = f"edit_mode_{msg_id}"
-                if str_lit.session_state.get(edit_key, False):
+                if not is_currently_edited:
+                    str_lit.markdown(f'<div class="novel-dialogue">{msg["content"]}</div>', unsafe_allow_html=True)
+                else:
                     new_text = str_lit.text_area("Modifier la réponse :", value=msg["content"], key=f"txt_area_{msg_id}")
-                    if str_lit.button("💾 Enregistrer", key=f"save_edit_{msg_id}"):
-                        msg["content"] = new_text
-                        str_lit.session_state[edit_key] = False
-                        cache_key = f"{clean_pseudo}_{current_char}"
-                        str_lit.session_state.messages_cache[cache_key] = messages
-                        if supabase and msg_id:
-                            try:
-                                supabase.table("messages").update({"content": new_text}).eq("id", msg_id).execute()
-                            except:
-                                pass
-                        str_lit.success("Modifié !")
-                        str_lit.rerun()
+                    col_sv1, col_sv2 = str_lit.columns(2)
+                    with col_sv1:
+                        if str_lit.button("💾 Enregistrer", key=f"save_edit_{msg_id}"):
+                            msg["content"] = new_text
+                            str_lit.session_state.active_edit_msg_id = ""
+                            cache_key = f"{clean_pseudo}_{current_char}"
+                            str_lit.session_state.messages_cache[cache_key] = messages
+                            if supabase and msg_id:
+                                try:
+                                    supabase.table("messages").update({"content": new_text}).eq("id", msg_id).execute()
+                                except:
+                                    pass
+                            str_lit.rerun()
+                    with col_sv2:
+                        if str_lit.button("Annuler", key=f"cancel_edit_{msg_id}"):
+                            str_lit.session_state.active_edit_msg_id = ""
+                            str_lit.rerun()
+
             with col_actions:
                 str_lit.markdown(f"""
                 <div style="display: flex; gap: 4px; padding-top: 5px;">
@@ -990,13 +995,13 @@ elif str_lit.session_state.page == "chat":
         else:
             col_content_u, col_avatar_u = str_lit.columns([5, 1])
             with col_content_u:
-                str_lit.markdown(f"""
-                <div style="background-color: #21262d; font-family: 'Georgia', serif; font-size: 15px; line-height: 1.6; color: #e6edf3; padding: 15px; border-radius: 10px; border-right: 4px solid #d299ea; margin-bottom: 10px; text-align: right; white-space: pre-wrap;">
-                    {msg["content"]}
-                </div>
-                """, unsafe_allow_html=True)
+                if not is_currently_edited:
+                    str_lit.markdown(f"""
+                    <div style="background-color: #21262d; font-family: 'Georgia', serif; font-size: 15px; line-height: 1.6; color: #e6edf3; padding: 15px; border-radius: 10px; border-right: 4px solid #d299ea; margin-bottom: 10px; text-align: right; white-space: pre-wrap;">
+                        {msg["content"]}
+                    </div>
+                    """, unsafe_allow_html=True)
                 
-                edit_u_key = f"edit_mode_{msg_id}"
                 str_lit.markdown(f"""
                 <div style="display: flex; gap: 4px; margin-bottom: 10px;">
                     <a href="?user={clean_pseudo}&action=del_msg&msg_id={msg_id}" target="_self" class="chat-icon-btn" title="Supprimer">❌</a>
@@ -1004,20 +1009,25 @@ elif str_lit.session_state.page == "chat":
                 </div>
                 """, unsafe_allow_html=True)
 
-                if str_lit.session_state.get(edit_u_key, False):
+                if is_currently_edited:
                     new_u_text = str_lit.text_area("Modifier ton message :", value=msg["content"], key=f"txt_usr_{msg_id}")
-                    if str_lit.button("💾 Valider", key=f"save_usr_{msg_id}"):
-                        msg["content"] = new_u_text
-                        str_lit.session_state[edit_u_key] = False
-                        cache_key = f"{clean_pseudo}_{current_char}"
-                        str_lit.session_state.messages_cache[cache_key] = messages
-                        if supabase and msg_id:
-                            try:
-                                supabase.table("messages").update({"content": new_u_text}).eq("id", msg_id).execute()
-                            except:
-                                pass
-                        str_lit.success("Message modifié !")
-                        str_lit.rerun()
+                    col_usv1, col_usv2 = str_lit.columns(2)
+                    with col_usv1:
+                        if str_lit.button("💾 Valider", key=f"save_usr_{msg_id}"):
+                            msg["content"] = new_u_text
+                            str_lit.session_state.active_edit_msg_id = ""
+                            cache_key = f"{clean_pseudo}_{current_char}"
+                            str_lit.session_state.messages_cache[cache_key] = messages
+                            if supabase and msg_id:
+                                try:
+                                    supabase.table("messages").update({"content": new_u_text}).eq("id", msg_id).execute()
+                                except:
+                                    pass
+                            str_lit.rerun()
+                    with col_usv2:
+                        if str_lit.button("Annuler", key=f"cancel_usr_{msg_id}"):
+                            str_lit.session_state.active_edit_msg_id = ""
+                            str_lit.rerun()
 
             with col_avatar_u:
                 str_lit.markdown(f"""
