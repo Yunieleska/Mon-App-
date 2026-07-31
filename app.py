@@ -719,7 +719,9 @@ if str_lit.session_state.page == "home":
     
     str_lit.markdown("---")
 
-    public_items = list(CHARACTERS.items())
+    # Chargement dynamique pour inclure instantanément les nouveaux personnages de Supabase
+    current_all_chars = get_all_characters(str_lit.session_state.get("pseudo", ""))
+    public_items = list(current_all_chars.items())
 
     ITEMS_PER_PAGE = 50
     if "home_page" not in str_lit.session_state:
@@ -770,7 +772,8 @@ if str_lit.session_state.page == "home":
 
     if "chat_target" in query_params:
         target_char = query_params["chat_target"]
-        if target_char in CHARACTERS:
+        refreshed_chars = get_all_characters(str_lit.session_state.get("pseudo", ""))
+        if target_char in refreshed_chars:
             str_lit.session_state.char_select = target_char
             str_lit.session_state.page = "chat"
             if "chat_target" in str_lit.query_params:
