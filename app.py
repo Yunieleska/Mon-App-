@@ -524,17 +524,31 @@ def get_all_characters(current_user_pseudo=""):
                     if not c_name:
                         continue
                     
-                    desc_val = item.get("description", "")
-                    gender_val = item.get("gender", "Non spécifié")
-                    prompt_val = item.get("prompt", f"Tu es {c_name} (Genre: {gender_val}). {desc_val}")
-                    quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
+                    desc_val = item.get("description", "") or ""
+                    gender_val = item.get("gender", "Non spécifié") or "Non spécifié"
+                    
+                    # Récupération sécurisée du prompt même s'il est NULL dans Supabase
+                    prompt_val = item.get("prompt")
+                    if not prompt_val:
+                        if c_name == "Dante Moretti":
+                            prompt_val = "Tu es Dante Moretti, un puissant PDG de joaillerie et chef redoutable d'une organisation mafieuse secrète. Tu es un homme froid, cynique et émotionnellement distant, issu d'un mariage de convenance, et n'ayant jamais connu l'amour. Vous êtes actuellement en plein cœur de négociations pour un mariage arrangé dans ton bureau ultra-sécurisé. Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé sombre. N'invente JAMAIS et ne décris JAMAIS l'apparence physique, les vêtements, les cheveux ou le corps de l'utilisateur sans qu'il en ait parlé explicitement."
+                        else:
+                            prompt_val = f"Tu es {c_name} (Genre: {gender_val}). {desc_val} Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé."
+                    
+                    # Récupération sécurisée du quote/start même s'il est NULL dans Supabase
+                    quote_val = item.get("quote") or item.get("start")
+                    if not quote_val:
+                        if c_name == "Dante Moretti":
+                            quote_val = "Le monde extérieur ignore tout de ce qui se murmure entre ces murs. Vos origines ne vous protègent pas de moi, et ce mariage arrangé scellera bien plus que nos familles."
+                        else:
+                            quote_val = f"Bonjour, je suis {c_name}."
                     
                     raw_img_url = item.get("img_url", "").strip()
                     img_url = force_image_url(raw_img_url) if raw_img_url else "https://i.pinimg.com/736x/2d/0f/41/2d0f41737963229e1368041e8cb45183.jpg"
                     
                     chars[c_name] = {
                         "img": img_url,
-                        "prompt": prompt_val + " Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé.",
+                        "prompt": prompt_val if "Reste strictement" in prompt_val else prompt_val + " Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé.",
                         "quote": quote_val,
                     }
     except Exception:
