@@ -332,10 +332,12 @@ if "action" in query_params:
             current_summary = get_character_summary(clean_pseudo, current_char)
             summary_context = f"\n\n--- MÉMOIRE DE L'HISTOIRE (FAITS PASSÉS) ---\n{current_summary}" if current_summary else ""
             
-            aff_context = f" Niveau d'affinité actuel : {current_aff}%."
-            context_reminder = {"role": "system", "content": f"Rappel important : Le prénom de l'utilisatrice est {clean_pseudo}.{aff_context}"}
+            direct_instruction = {
+                "role": "system", 
+                "content": f"RÈGLE ABSOLUE ET OBLIGATOIRE : Tu t'adresses DIRECTEMENT et UNIQUEMENT à l'interlocutrice en face de toi, dont le prénom est {clean_pseudo}. Tu dois impérativement utiliser le 'tu' (jamais la troisième personne du type 'elle' ou 'la jeune femme' pour parler au joueur). Niveau d'affinité actuel : {current_aff}%."
+            }
             
-            api_messages = [{"role": "system", "content": char_data.get("prompt", "") + summary_context}, context_reminder] + messages[-20:]
+            api_messages = [{"role": "system", "content": char_data.get("prompt", "") + summary_context}, direct_instruction] + messages[-20:]
             if client:
                 try:
                     response = client.chat.completions.create(
@@ -1024,7 +1026,7 @@ elif str_lit.session_state.page == "chat":
 
     str_lit.markdown("<br>", unsafe_allow_html=True)
     
-    # --- GESTION DE L'ENVOI PROPRE SANS DOUBLON ---
+    # --- GESTION DE L'ENVOI PROPRE SANS DOUBLON & CIBLAGE DIRECT ---
     user_input = str_lit.text_area("Écris ta réponse...", key="user_message_input", height=85)
     if str_lit.button("Envoyer 🚀", use_container_width=True):
         if user_input and user_input.strip():
@@ -1067,10 +1069,14 @@ elif str_lit.session_state.page == "chat":
                 summary_context = f"\n\n--- MÉMOIRE DE L'HISTOIRE (FAITS PASSÉS) ---\n{current_summary}" if current_summary else ""
 
                 current_aff = get_affinity(clean_pseudo, current_char)
-                aff_context = f" Niveau d'affinité actuel : {current_aff}%."
-                context_reminder = {"role": "system", "content": f"Rappel important : L'interlocutrice s'appelle {clean_pseudo}.{aff_context}"}
                 
-                api_messages = [{"role": "system", "content": char_data["prompt"] + summary_context}, context_reminder]
+                # Instruction système stricte pour forcer le personnage à parler directement au joueur
+                direct_instruction = {
+                    "role": "system", 
+                    "content": f"RÈGLE ABSOLUE ET OBLIGATOIRE : Tu t'adresses DIRECTEMENT et UNIQUEMENT à l'interlocutrice en face de toi, dont le prénom est {clean_pseudo}. Tu dois impérativement utiliser le 'tu' (jamais la troisième personne du type 'elle' ou 'la jeune femme' pour parler au joueur). Niveau d'affinité actuel : {current_aff}%."
+                }
+                
+                api_messages = [{"role": "system", "content": char_data["prompt"] + summary_context}, direct_instruction]
                 for m in messages_actuels[-20:]:
                     role = m.get("role")
                     content = m.get("content")
