@@ -965,10 +965,15 @@ elif str_lit.session_state.page == "chat":
                 if not is_currently_edited:
                     str_lit.markdown(f'<div class="novel-dialogue">{msg["content"]}</div>', unsafe_allow_html=True)
                 else:
-                    new_text = str_lit.text_area("Modifier la réponse :", value=msg["content"], key=f"txt_area_{msg_id}")
-                    col_sv1, col_sv2 = str_lit.columns(2)
-                    with col_sv1:
-                        if str_lit.button("💾 Enregistrer", key=f"save_edit_{msg_id}"):
+                    with str_lit.form(key=f"form_edit_{msg_id}"):
+                        new_text = str_lit.text_area("Modifier la réponse :", value=msg["content"])
+                        col_sv1, col_sv2 = str_lit.columns(2)
+                        with col_sv1:
+                            submitted_edit = str_lit.form_submit_button("💾 Enregistrer")
+                        with col_sv2:
+                            cancelled_edit = str_lit.form_submit_button("Annuler")
+                            
+                        if submitted_edit:
                             msg["content"] = new_text
                             str_lit.session_state.active_edit_msg_id = ""
                             cache_key = f"{clean_pseudo}_{current_char}"
@@ -979,8 +984,7 @@ elif str_lit.session_state.page == "chat":
                                 except:
                                     pass
                             str_lit.rerun()
-                    with col_sv2:
-                        if str_lit.button("Annuler", key=f"cancel_edit_{msg_id}"):
+                        if cancelled_edit:
                             str_lit.session_state.active_edit_msg_id = ""
                             str_lit.rerun()
 
@@ -1010,10 +1014,15 @@ elif str_lit.session_state.page == "chat":
                 """, unsafe_allow_html=True)
 
                 if is_currently_edited:
-                    new_u_text = str_lit.text_area("Modifier ton message :", value=msg["content"], key=f"txt_usr_{msg_id}")
-                    col_usv1, col_usv2 = str_lit.columns(2)
-                    with col_usv1:
-                        if str_lit.button("💾 Valider", key=f"save_usr_{msg_id}"):
+                    with str_lit.form(key=f"form_usr_{msg_id}"):
+                        new_u_text = str_lit.text_area("Modifier ton message :", value=msg["content"])
+                        col_usv1, col_usv2 = str_lit.columns(2)
+                        with col_usv1:
+                            submitted_usr = str_lit.form_submit_button("💾 Valider")
+                        with col_usv2:
+                            cancelled_usr = str_lit.form_submit_button("Annuler")
+                            
+                        if submitted_usr:
                             msg["content"] = new_u_text
                             str_lit.session_state.active_edit_msg_id = ""
                             cache_key = f"{clean_pseudo}_{current_char}"
@@ -1024,8 +1033,7 @@ elif str_lit.session_state.page == "chat":
                                 except:
                                     pass
                             str_lit.rerun()
-                    with col_usv2:
-                        if str_lit.button("Annuler", key=f"cancel_usr_{msg_id}"):
+                        if cancelled_usr:
                             str_lit.session_state.active_edit_msg_id = ""
                             str_lit.rerun()
 
