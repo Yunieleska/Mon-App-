@@ -530,23 +530,19 @@ def get_all_characters(current_user_pseudo=""):
                     if not c_name:
                         continue
                     
-                    vis = item.get("visibility", "Public")
-                    creator = item.get("creator_pseudo", "")
-
-                    if vis == "Public" or not creator or creator == current_user_pseudo:
-                        desc_val = item.get("description", "")
-                        gender_val = item.get("gender", "Non spécifié")
-                        prompt_val = item.get("prompt", f"Tu es {c_name} (Genre: {gender_val}). {desc_val}")
-                        quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
-                        
-                        raw_img_url = item.get("img_url", "").strip()
-                        img_url = force_image_url(raw_img_url)
-                        
-                        chars[c_name] = {
-                            "img": img_url,
-                            "prompt": prompt_val + " Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé.",
-                            "quote": quote_val,
-                        }
+                    desc_val = item.get("description", "")
+                    gender_val = item.get("gender", "Non spécifié")
+                    prompt_val = item.get("prompt", f"Tu es {c_name} (Genre: {gender_val}). {desc_val}")
+                    quote_val = item.get("quote", f"Bonjour, je suis {c_name}.")
+                    
+                    raw_img_url = item.get("img_url", "").strip()
+                    img_url = force_image_url(raw_img_url)
+                    
+                    chars[c_name] = {
+                        "img": img_url,
+                        "prompt": prompt_val + " Reste strictement dans ton rôle, adopte un ton immersif de roleplay romancé.",
+                        "quote": quote_val,
+                    }
     except Exception:
         pass
 
@@ -725,7 +721,6 @@ if str_lit.session_state.page == "home":
 
     public_items = list(CHARACTERS.items())
 
-    # CONFIGURÉ EXACTEMENT À 50 CARTES PAR PAGE (5 colonnes x 10 lignes)
     ITEMS_PER_PAGE = 50
     if "home_page" not in str_lit.session_state:
         str_lit.session_state.home_page = 0
@@ -758,7 +753,6 @@ if str_lit.session_state.page == "home":
     grid_html += "</div>"
     str_lit.html(grid_html)
 
-    # PAGINATION
     if total_pages > 1:
         p_col1, p_col2, p_col3 = str_lit.columns([2, 2, 2])
         with p_col1:
@@ -1129,7 +1123,6 @@ elif str_lit.session_state.page == "profile":
                                 new_avatar_url = upload_image_to_supabase(uploaded_file=uploaded_avatar, folder="avatars")
                             
                             supabase.table("users").update({"avatar_url": new_avatar_url}).eq("pseudo", clean_pseudo).execute()
-                            str_lit.session_state.edit_avatar_open = href_val = "" # type fix
                             str_lit.session_state.edit_avatar_open = False
                             str_lit.success("Mis à jour !")
                             str_lit.rerun()
@@ -1166,8 +1159,8 @@ elif str_lit.session_state.page == "profile":
                         
                         str_lit.markdown(f'''
                         <a href="?user={clean_pseudo}&chat_target={c_name_val}" target="_self" class="custom-action-btn" style="margin-bottom: 6px;">💬 Discuter</a>
-                        <a href="?user={clean_perso_err if 'clean_perso_err' in locals() else clean_pseudo}&action=delete_char&char={c_name_val}" target="_self" class="custom-danger-btn">🗑️ Supprimer</a>
-                        '''.replace(clean_perso_err if 'clean_perso_err' in locals() else 'NONEXISTENT', clean_pseudo), unsafe_allow_html=True)
+                        <a href="?user={clean_pseudo}&action=delete_char&char={c_name_val}" target="_self" class="custom-danger-btn">🗑️ Supprimer</a>
+                        ''', unsafe_allow_html=True)
             else:
                 str_lit.info("Vous n'avez créé aucun personnage pour l'instant.")
         except Exception as e:
