@@ -91,6 +91,8 @@ if "page" not in str_lit.session_state:
     str_lit.session_state.page = "home"
 if "char_select" not in str_lit.session_state:
     str_lit.session_state.char_select = "Caelum"
+if "active_edit_msg_id" not in str_lit.session_state:
+    str_lit.session_state.active_edit_msg_id = ""
 
 # --- STYLE GLOBAL & DESIGN ---
 str_lit.markdown(
@@ -212,23 +214,6 @@ str_lit.markdown(
         color: #ff7b72 !important;
         border-color: #ff7b72 !important;
     }
-    .chat-icon-btn {
-        display: inline-block;
-        background-color: #21262d;
-        color: #ffffff;
-        padding: 6px 10px;
-        border-radius: 6px;
-        text-decoration: none !important;
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        font-size: 13px;
-        text-align: center;
-        margin-right: 4px;
-        transition: background-color 0.2s;
-    }
-    .chat-icon-btn:hover {
-        background-color: #30363d;
-        border-color: #ffffff;
-    }
     </style>
 """,
     unsafe_allow_html=True,
@@ -303,16 +288,6 @@ if "action" in query_params:
         str_lit.session_state.messages_cache[cache_key] = [m for m in messages if str(m.get("id")) != str(msg_id_to_del)]
         
         str_lit.query_params.clear()
-        str_lit.session_state.page = "chat"
-        str_lit.rerun()
-
-    elif action_type == "edit_toggle":
-        msg_id_to_edit = query_params.get("msg_id", "")
-        if msg_id_to_edit:
-            str_lit.session_state.active_edit_msg_id = msg_id_to_edit
-        
-        str_lit.query_params.clear()
-        str_lit.query_params["user"] = clean_pseudo
         str_lit.session_state.page = "chat"
         str_lit.rerun()
 
@@ -955,7 +930,7 @@ elif str_lit.session_state.page == "chat":
 
     for idx, msg in enumerate(messages):
         msg_id = str(msg.get("id", ""))
-        is_currently_edited = (str(str_lit.session_state.get("active_edit_msg_id", "")) == msg_id)
+        is_currently_edited = (str(str_lit.session_state.active_edit_msg_id) == msg_id)
         
         if msg["role"] == "assistant":
             col_avatar, col_content, col_actions = str_lit.columns([1, 5, 1.3])
@@ -989,29 +964,84 @@ elif str_lit.session_state.page == "chat":
                             str_lit.rerun()
 
             with col_actions:
-                str_lit.markdown(f"""
-                <div style="display: flex; gap: 4px; padding-top: 5px;">
-                    <a href="?user={clean_pseudo}&action=del_msg&msg_id={msg_id}" target="_self" class="chat-icon-btn" title="Supprimer">❌</a>
-                    <a href="?user={clean_pseudo}&action=edit_toggle&msg_id={msg_id}" target="_self" class="chat-icon-btn" title="Modifier">✏️</a>
-                    {'<a href="?user=' + clean_pseudo + '&action=regen_msg" target="_self" class="chat-icon-btn" title="Régénérer">🔄</a>' if idx == len(messages) - 1 else ''}
-                </div>
-                """, unsafe_allow_html=True)
+                # CORRECTION MAJEURE : Utilisation exclusive de boutons natifs Streamlit au lieu de liens URL
+                # Cela évite le bug de redirection vers l'accueil ou un autre personnage
+                c_btn1, c_btn2 = str_lit.columns(2)
+                with c_btn1:
+                    if str_lit.button("❌", key=f"del_{msg_id}", help="Supprimer"):
+                        cache_key = f"{clean_pseudo}_{current_char}"
+                        if supabase and msg_id:
+                            try:
+                                supabase.table("messages").delete().eq("id", msg_id).execute()
+                            except:
+                                pass
+                        str_lit.session_state.messages_cache[cache_key] = [m for m in messages if str(m.get("id")) != msg_id]
+                        str_lit.rerun()
+                with c_btn2:
+                    if str_lit.button("✏️", key=f"edit_btn_{msg_id}", help="Modifier"):
+                        str_lit.session_state.active_edit_msg_id = msg_id
+                        str_lit.rerun()
+                
+                if idx == len(messages) - 1:
+                    if str_lit.button("🔄", key=f"regen_{msg_id}", help="Régénérer"):
+                        cache_key = f"{clean_pseudo}_{current_char}"
+                        messages.pop()
+                        if supabase and msg_id:
+                            try:
+                                supabase.table("messages").delete().eq("id", msg_id).execute()
+                            except:
+                                pass
+                        
+                        current_aff = get_affinity(clean_pseudo, current_char)
+                        current_summary = get_character_summary(clean_pseudo, current_char)
+                        summary_context = f"\n\n--- MÉMOIRE DE L'HISTOIRE (FAITS PASSÉS) ---\n{current_summary}" if current_summary else ""
+                        
+                        direct_instruction = {
+                            "role": "system", 
+                            "content": f"RÈGLE ABSOLUE ET OBLIGATOIRE : Tu t'adresses DIRECTEMENT et UNIQUEMENT à l'interlocutrice en face de toi, dont le prénom est {clean_pseudo}. Tu dois impérativement utiliser le 'tu' (jamais la troisième personne du type 'elle' ou 'la jeune femme' pour parler au joueur). Niveau d'affinité actuel : {current_aff}%."
+                        }
+                        
+                        api_messages = [{"role": "system", "content": char_data.get("prompt", "") + summary_context}, direct_instruction] + messages[-20:]
+                        if client:
+                            try:
+                                response = client.chat.completions.create(
+                                    model="llama-3.3-70b-versatile",
+                                    messages=api_messages,
+                                    temperature=0.9,
+                                )
+                                bot_reply = response.choices[0].message.content
+                                save_msg_to_db(clean_pseudo, current_char, "assistant", bot_reply)
+                                if cache_key in str_lit.session_state.messages_cache:
+                                    del str_lit.session_state.messages_cache[cache_key]
+                            except:
+                                pass
+                        str_lit.rerun()
         else:
             col_content_u, col_avatar_u = str_lit.columns([5, 1])
             with col_content_u:
                 if not is_currently_edited:
                     str_lit.markdown(f"""
-                    <div style="background-color: #21262d; font-family: 'Georgia', serif; font-size: 15px; line-height: 1.6; color: #e6edf3; padding: 15px; border-radius: 10px; border-right: 4px solid #d299ea; margin-bottom: 10px; text-align: right; white-space: pre-wrap;">
+                    <div style="background-color: #21262d; font-family: 'Georgia', serif; font-size: 15px; line-height: 1.6; color: #e6edf3; padding: 15px; border-radius: 10px; border-right: 4px solid #d299ea; margin-bottom: 5px; text-align: right; white-space: pre-wrap;">
                         {msg["content"]}
                     </div>
                     """, unsafe_allow_html=True)
                 
-                str_lit.markdown(f"""
-                <div style="display: flex; gap: 4px; margin-bottom: 10px;">
-                    <a href="?user={clean_pseudo}&action=del_msg&msg_id={msg_id}" target="_self" class="chat-icon-btn" title="Supprimer">❌</a>
-                    <a href="?user={clean_pseudo}&action=edit_toggle&msg_id={msg_id}" target="_self" class="chat-icon-btn" title="Modifier">✏️</a>
-                </div>
-                """, unsafe_allow_html=True)
+                # Boutons natifs pour l'utilisateur
+                cu_btn1, cu_btn2 = str_lit.columns([1, 1])
+                with cu_btn1:
+                    if str_lit.button("❌ Supprimer", key=f"del_u_{msg_id}"):
+                        cache_key = f"{clean_pseudo}_{current_char}"
+                        if supabase and msg_id:
+                            try:
+                                supabase.table("messages").delete().eq("id", msg_id).execute()
+                            except:
+                                pass
+                        str_lit.session_state.messages_cache[cache_key] = [m for m in messages if str(m.get("id")) != msg_id]
+                        str_lit.rerun()
+                with cu_btn2:
+                    if str_lit.button("✏️ Modifier", key=f"edit_u_btn_{msg_id}"):
+                        str_lit.session_state.active_edit_msg_id = msg_id
+                        str_lit.rerun()
 
                 if is_currently_edited:
                     with str_lit.form(key=f"form_usr_{msg_id}"):
