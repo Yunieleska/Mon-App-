@@ -311,7 +311,9 @@ if "action" in query_params:
         if msg_id_to_edit:
             key_name = f"edit_mode_{msg_id_to_edit}"
             str_lit.session_state[key_name] = not str_lit.session_state.get(key_name, False)
+        
         str_lit.query_params.clear()
+        str_lit.query_params["user"] = clean_pseudo
         str_lit.session_state.page = "chat"
         str_lit.rerun()
 
@@ -570,7 +572,7 @@ def get_all_characters(current_user_pseudo=""):
                     quote_val = item.get("quote") or item.get("start")
                     if not quote_val:
                         if c_name == "Dante Moretti":
-                            quote_val = "Un mariage arrangé n'est qu'un contrat commercial de plus. Ne t'attends pas à ce que je t'offre de l'amour, ce mot n'existe pas dans mon monde."
+                            quote_val = "Un mariage arrangé n'est qu'un contrat commercial de plus. Ne t'attends pas à ce que je t'offre de l'amour, ce mot n'exite pas dans mon monde."
                         else:
                             quote_val = f"Bonjour, je suis {c_name}."
                     
@@ -938,7 +940,7 @@ elif str_lit.session_state.page == "chat":
                     ]
                     with str_lit.spinner(f"Génération de l'introduction avec {current_char}..."):
                         resp_init = client.chat.completions.create(
-                            model="llama-3.1-8b-instant",  # Utilisation du modèle léger et rapide
+                            model="llama-3.1-8b-instant",
                             messages=init_prompt,
                             temperature=0.7,
                         )
@@ -1026,7 +1028,6 @@ elif str_lit.session_state.page == "chat":
 
     str_lit.markdown("<br>", unsafe_allow_html=True)
     
-    # --- GESTION DE L'ENVOI PROPRE SANS DOUBLON & CIBLAGE DIRECT ---
     user_input = str_lit.text_area("Écris ta réponse...", key="user_message_input", height=85)
     if str_lit.button("Envoyer 🚀", use_container_width=True):
         if user_input and user_input.strip():
@@ -1056,7 +1057,7 @@ elif str_lit.session_state.page == "chat":
                     ]
                     try:
                         summary_res = client.chat.completions.create(
-                            model="llama-3.1-8b-instant",  # Utilisation du modèle léger pour la mise à jour des résumés en arrière-plan
+                            model="llama-3.1-8b-instant",
                             messages=summary_prompt,
                             temperature=0.5,
                         )
@@ -1085,7 +1086,7 @@ elif str_lit.session_state.page == "chat":
                 try:
                     with str_lit.spinner(f"{current_char} est en train d'écrire..."):
                         response = client.chat.completions.create(
-                            model="llama-3.3-70b-versatile",  # Utilisation du modèle puissant pour l'immersion et les réponses du personnage
+                            model="llama-3.3-70b-versatile",
                             messages=api_messages,
                             temperature=0.85,
                         )
