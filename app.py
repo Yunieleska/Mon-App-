@@ -15,7 +15,7 @@ SIDEBAR_HEADER_IMG = "couple.png"
 CORRESPONDANCES_BANNER = "https://i.postimg.cc/tCnmbx3m/correspondances.jpg"
 CREATE_CHARACTER_BANNER = "créer un personnage.jfif"
 EXPLORER_BANNER = "explorer.jfif"
-JOURNAL_BANNER = "journal intime.jfif"
+JOURNAL_BANNER = "https://raw.githubusercontent.com/Yunieleska/Mon-App-/refs/heads/main/journal%20intime.jfif"
 SUPABASE_BUCKET_NAME = "storyia-images"
 
 def upload_image_to_supabase(uploaded_file, folder="uploads"):
@@ -850,11 +850,10 @@ elif str_lit.session_state.page == "messages":
             str_lit.error(f"Erreur lors du chargement des messages : {e}")
 
 elif str_lit.session_state.page == "journal":
-    if os.path.exists(JOURNAL_BANNER):
-        str_lit.image(JOURNAL_BANNER, use_container_width=True)
-    else:
-        str_lit.title("📖 Journal Intime")
-        str_lit.write("Retrouvez ici les souvenirs et résumés de vos histoires avec chaque personnage.")
+    str_lit.markdown(
+        f'<img src="{JOURNAL_BANNER}" style="width: 100%; border-radius: 12px; margin-bottom: 20px; object-fit: cover;">',
+        unsafe_allow_html=True
+    )
     str_lit.markdown("---")
 
     selected_char_journal = str_lit.selectbox("Choisir un personnage pour consulter ses souvenirs :", list(CHARACTERS.keys()))
