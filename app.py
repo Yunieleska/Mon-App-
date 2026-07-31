@@ -15,6 +15,7 @@ SIDEBAR_HEADER_IMG = "couple.png"
 CORRESPONDANCES_BANNER = "https://i.postimg.cc/tCnmbx3m/correspondances.jpg"
 CREATE_CHARACTER_BANNER = "créer un personnage.jfif"
 EXPLORER_BANNER = "explorer.jfif"
+JOURNAL_BANNER = "journal intime.jfif"
 SUPABASE_BUCKET_NAME = "storyia-images"
 
 def upload_image_to_supabase(uploaded_file, folder="uploads"):
@@ -675,6 +676,9 @@ menu_html = f"""
     <a href="?user={str_lit.session_state.pseudo}&nav=messages" target="_self" class="sidebar-nav-link">
         Correspondances
     </a>
+    <a href="?user={str_lit.session_state.pseudo}&nav=journal" target="_self" class="sidebar-nav-link">
+        Journal intime
+    </a>
     <a href="?user={str_lit.session_state.pseudo}&nav=profile" target="_self" class="sidebar-nav-link">
         Mon Ombre
     </a>
@@ -844,6 +848,51 @@ elif str_lit.session_state.page == "messages":
                 str_lit.info("Aucun historique de message trouvé pour l'instant.")
         except Exception as e:
             str_lit.error(f"Erreur lors du chargement des messages : {e}")
+
+elif str_lit.session_state.page == "journal":
+    if os.path.exists(JOURNAL_BANNER):
+        str_lit.image(JOURNAL_BANNER, use_container_width=True)
+    else:
+        str_lit.title("📖 Journal Intime")
+        str_lit.write("Retrouvez ici les souvenirs et résumés de vos histoires avec chaque personnage.")
+    str_lit.markdown("---")
+
+    if not supabase:
+        str_lit.warning("Base de données non connectée.")
+    else:
+        try:
+            res_j = supabase.table("affinities").select("char_name, story_summary, score").eq("user_pseudo", clean_pseudo).execute()
+            if res_j and res_j.data:
+                found_entries = False
+                for row in res_j.data:
+                    c_name = row.get("char_name")
+                    summary = row.get("story_summary")
+                    score = row.get("score", 10)
+                    
+                    if summary:
+                        found_entries = True
+                        c_data = CHARACTERS.get(c_name, {"img": ""})
+                        str_lit.markdown(f"""
+                        <div style="background-color: #161b22; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 12px;">
+                                <img src="{c_data['img']}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;">
+                                <div>
+                                    <h3 style="margin: 0; color: #ffffff;">{c_name}</h3>
+                                    <span style="font-size: 12px; color: #8b949e;">Affinité : {score}%</span>
+                                </div>
+                            </div>
+                            <p style="font-family: 'Georgia', serif; font-size: 14px; line-height: 1.6; color: #e6edf3; background: #0b0e14; padding: 15px; border-radius: 8px; border-left: 3px solid #d299ea;">
+                                {summary}
+                            </p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                
+                if not found_entries:
+                    str_lit.info("Votre journal est encore vierge. Discutez un peu plus avec vos personnages pour que l'histoire s'y inscrive !")
+            else:
+                str_lit.info("Aucune entrée dans le journal pour le moment.")
+        except Exception as e:
+            str_lit.error(f"Erreur : {e}")
 
 elif str_lit.session_state.page == "chat":
     current_char = str_lit.session_state.char_select
